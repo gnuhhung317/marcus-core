@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>io.marcus</groupId>
+        <artifactId>marcus-parent</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>marcus-application</artifactId>
+    <packaging>jar</packaging>
+    <name>marcus-application</name>
+    <description>Application services/use cases for Marcus</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.marcus</groupId>
+            <artifactId>marcus-domain</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <!-- Add other dependencies like Spring Context if needed, but keep it clean from web/db -->
+    </dependencies>
+
+</project>

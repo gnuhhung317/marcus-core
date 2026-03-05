@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: marcus-parent
+  datasource:
+    url: jdbc:postgresql://localhost:5432/signal_db
+    username: user
+    password: password
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
