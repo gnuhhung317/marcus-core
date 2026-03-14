@@ -15,5 +15,6 @@ public class ExecutorToken extends BaseModel{
     private String userId;
     private String name;
     private ExecutorTokenStatus status;
+    @Builder.Default
     private LocalDateTime lastConnected = LocalDateTime.now();
 }
