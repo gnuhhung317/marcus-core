@@ -9,5 +9,5 @@ public enum ExecutionStatus {
     PENDING,
     EXECUTED,
     FAILED,
-    CANCELLED;
+    CANCELED;
 }
