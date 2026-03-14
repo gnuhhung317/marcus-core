@@ -11,6 +11,7 @@ import lombok.*;
 public class User extends BaseModel{
     private String userId;
     private String username;
+    @ToString.Exclude
     private String passwordHash;
     private String email;
     private Role role;
