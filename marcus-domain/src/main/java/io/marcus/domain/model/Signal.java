@@ -11,7 +11,7 @@ import lombok.*;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 public class Signal extends BaseModel {
     private String signalId;
