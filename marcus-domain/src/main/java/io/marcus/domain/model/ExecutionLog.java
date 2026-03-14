@@ -10,5 +10,5 @@ public class ExecutionLog extends BaseModel {
     private String executionLogId;
     private String signalId;
     private String userId;
-    private String status;
+    private ExecutionStatus status;
 }
