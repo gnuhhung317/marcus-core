@@ -29,12 +29,8 @@ public class RefreshAccessTokenUseCase {
         AuthenticatedUser tokenUser = refreshTokenPort.consumeRefreshToken(refreshTokenRequest.refreshToken())
                 .orElseThrow(() -> new UnauthenticatedException("Invalid refresh token"));
 
-        User user = userCredentialQueryPort.findByUsername(tokenUser.username())
+        User user = userCredentialQueryPort.findByUserId(tokenUser.userId())
                 .orElseThrow(() -> new UnauthenticatedException("Invalid refresh token"));
-
-        if (!user.getUserId().equals(tokenUser.userId())) {
-            throw new UnauthenticatedException("Invalid refresh token");
-        }
 
         AuthenticatedUser authenticatedUser = new AuthenticatedUser(user.getUserId(), user.getUsername(), user.getRole());
 
