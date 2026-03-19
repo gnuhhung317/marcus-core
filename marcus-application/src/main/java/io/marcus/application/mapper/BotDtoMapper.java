@@ -18,7 +18,6 @@ public class BotDtoMapper {
                 .description(request.description())
                 .tradingPair(request.tradingPair())
                 .exchangeId(request.exchangeId())
-                .developerId(request.developerId())
                 .status(BotStatus.ACTIVE)
                 .build();
     }

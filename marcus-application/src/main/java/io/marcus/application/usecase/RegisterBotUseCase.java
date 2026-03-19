@@ -2,6 +2,7 @@ package io.marcus.application.usecase;
 
 import io.marcus.application.dto.BotRegistrationResult;
 import io.marcus.application.dto.RegisterBotRequest;
+import io.marcus.application.exception.UnauthenticatedException;
 import io.marcus.application.mapper.BotDtoMapper;
 import io.marcus.domain.model.Bot;
 import io.marcus.domain.repository.BotRepository;
@@ -28,7 +29,10 @@ public class RegisterBotUseCase {
 
     @Transactional
     public BotRegistrationResult execute(RegisterBotRequest botRequest) {
-        if (!userRepository.existsByIdAndRole(identityService.getCurrentUserId().get(), Role.DEVELOPER)) {
+        String currentUserId = identityService.getCurrentUserId()
+                .orElseThrow(() -> new UnauthenticatedException("No authenticated user found"));
+
+        if (!userRepository.existsByIdAndRole(currentUserId, Role.DEVELOPER)) {
             throw new IllegalArgumentException("Only developer can register bot");
         }
 
@@ -37,9 +41,10 @@ public class RegisterBotUseCase {
         String secret = encryptionService.encrypt(rawSecret);
 
         Bot bot = botDtoMapper.toDomain(botRequest);
+        bot.setBotId(generateSecureKey("bot"));
         bot.setApiKey(apiKey);
         bot.setSecretKey(secret);
-        bot.setDeveloperId(identityService.getCurrentUserId().get());
+        bot.setDeveloperId(currentUserId);
 
         bot = botRepository.save(bot);
         return botDtoMapper.toRegistrationResult(bot, rawSecret);
