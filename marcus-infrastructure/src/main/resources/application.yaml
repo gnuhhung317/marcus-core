@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: marcus-infrastructure
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://200.200.201.4:5432/marcus
+    username: user
+    password: password
+
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+
+  data:
+    redis:
+      host: 200.200.201.4
+      port: 6379
+

@@ -4,11 +4,12 @@ import io.marcus.domain.vo.SubscriptionStatus;
 
 import java.time.LocalDateTime;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 
 public class UserSubscription extends BaseModel{

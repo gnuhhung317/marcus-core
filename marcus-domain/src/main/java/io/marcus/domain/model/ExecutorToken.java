@@ -4,6 +4,7 @@ import io.marcus.domain.vo.ExecutorTokenStatus;
 
 import java.time.LocalDateTime;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @Data
 @AllArgsConstructor

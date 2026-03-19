@@ -20,6 +20,17 @@
             <artifactId>marcus-domain</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- dependency for transaction annotation       -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-tx</artifactId>
+        </dependency>
         
         <!-- Add other dependencies like Spring Context if needed, but keep it clean from web/db -->
     </dependencies>

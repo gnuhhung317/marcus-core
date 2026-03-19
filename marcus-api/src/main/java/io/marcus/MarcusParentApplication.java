@@ -1,4 +1,4 @@
-package io.marcus.marcus_parent;
+package io.marcus;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

@@ -1,0 +1,59 @@
+-- Create users table
+CREATE TABLE users (
+    id VARCHAR(36) PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL UNIQUE,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    role VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP WITHOUT TIME ZONE
+);
+
+-- Create exchanges table
+CREATE TABLE exchanges (
+    id VARCHAR(36) PRIMARY KEY,
+    exchange_id VARCHAR(255) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
+    base_url VARCHAR(255),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP WITHOUT TIME ZONE
+);
+
+-- Create bots table
+CREATE TABLE bots (
+    id VARCHAR(36) PRIMARY KEY,
+    bot_id VARCHAR(255) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
+    developer_id VARCHAR(255) NOT NULL,
+    exchange_id VARCHAR(36),
+    description TEXT,
+    status VARCHAR(50) NOT NULL,
+    trading_pair VARCHAR(50),
+    secret_key VARCHAR(255),
+    api_key VARCHAR(255),
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP WITHOUT TIME ZONE,
+    CONSTRAINT fk_bot_exchange FOREIGN KEY (exchange_id) REFERENCES exchanges(id)
+);
+
+-- Create signals table
+CREATE TABLE signals (
+    id VARCHAR(36) PRIMARY KEY,
+    signal_id VARCHAR(255) NOT NULL UNIQUE,
+    bot_id VARCHAR(255) NOT NULL,
+    action VARCHAR(50) NOT NULL,
+    entry DECIMAL(18, 8),
+    stop_loss DECIMAL(18, 8),
+    take_profit DECIMAL(18, 8),
+    status VARCHAR(50) NOT NULL,
+    generated_timestamp TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    metadata TEXT,
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP WITHOUT TIME ZONE
+);

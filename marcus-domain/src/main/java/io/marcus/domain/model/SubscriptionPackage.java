@@ -1,10 +1,11 @@
 package io.marcus.domain.model;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 
 public class SubscriptionPackage extends BaseModel{

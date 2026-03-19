@@ -1,4 +1,5 @@
 package io.marcus.domain.model;
+import io.marcus.domain.vo.ExecutionStatus;
 import lombok.*;
 
 @Data
