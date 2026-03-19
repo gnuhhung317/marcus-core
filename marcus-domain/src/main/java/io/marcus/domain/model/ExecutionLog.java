@@ -1,11 +1,12 @@
 package io.marcus.domain.model;
 import io.marcus.domain.vo.ExecutionStatus;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
+@SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 public class ExecutionLog extends BaseModel {
     private String executionLogId;
