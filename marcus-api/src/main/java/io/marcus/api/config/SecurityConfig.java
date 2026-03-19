@@ -1,7 +1,8 @@
 package io.marcus.api.config;
 
+import io.marcus.api.security.JwtAuthenticationFilter;
+import io.marcus.domain.vo.Role;
 import io.marcus.infrastructure.security.filter.RequestCachingFilter;
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -13,8 +14,13 @@ import org.springframework.security.web.context.SecurityContextHolderFilter;
 
 @Configuration
 @EnableWebSecurity
-@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    }
 
     @Bean
     public RequestCachingFilter requestCachingFilter() {
@@ -27,10 +33,12 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/v1/auth/**").permitAll() //authentication with interceptor
-                        .requestMatchers("/api/v1/signals/**").permitAll()
+                        .requestMatchers("/auth/login", "/auth/refresh", "/api/v1/auth/**").permitAll()
+                        .requestMatchers("/signal/**", "/api/v1/signals/**").permitAll()
+                        .requestMatchers("/bots/register").hasRole(Role.DEVELOPER.name())
                         .anyRequest().authenticated())
-                .addFilterBefore(requestCachingFilter, SecurityContextHolderFilter.class) // add this for reading payload multiple times (support interceptor logic)
+                .addFilterBefore(requestCachingFilter, SecurityContextHolderFilter.class)
+                .addFilterAfter(jwtAuthenticationFilter, SecurityContextHolderFilter.class)
                 .build();
     }
 }
