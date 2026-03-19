@@ -38,7 +38,7 @@ public class SecurityConfig {
                         .requestMatchers("/bots/register").hasRole(Role.DEVELOPER.name())
                         .anyRequest().authenticated())
                 .addFilterBefore(requestCachingFilter, SecurityContextHolderFilter.class)
-                .addFilterBefore(jwtAuthenticationFilter, SecurityContextHolderFilter.class)
+                .addFilterAfter(jwtAuthenticationFilter, SecurityContextHolderFilter.class)
                 .build();
     }
 }
