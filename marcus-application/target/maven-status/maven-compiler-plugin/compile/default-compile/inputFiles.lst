@@ -1,7 +1,0 @@
-/home/runner/work/marcus-core/marcus-core/marcus-application/src/main/java/io/marcus/application/mapper/BotDtoMapper.java
-/home/runner/work/marcus-core/marcus-core/marcus-application/src/main/java/io/marcus/application/dto/BotRegistrationResult.java
-/home/runner/work/marcus-core/marcus-core/marcus-application/src/main/java/io/marcus/application/usecase/AuthenticateBotUseCase.java
-/home/runner/work/marcus-core/marcus-core/marcus-application/src/main/java/io/marcus/application/dto/RegisterBotRequest.java
-/home/runner/work/marcus-core/marcus-core/marcus-application/src/main/java/io/marcus/application/usecase/CaptureSignalUseCase.java
-/home/runner/work/marcus-core/marcus-core/marcus-application/src/main/java/io/marcus/application/usecase/RegisterBotUseCase.java
-/home/runner/work/marcus-core/marcus-core/marcus-application/src/main/java/io/marcus/application/exception/UnauthenticatedException.java
