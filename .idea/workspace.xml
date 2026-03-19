@@ -5,57 +5,15 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="74b35c14-9a2b-4622-9055-8322a9b4b6bf" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/dataSources.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/uiDesigner.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/api/config/SecurityConfig.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/api/controller/BotController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/api/controller/SignalController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/api/exception/GlobalExceptionsHandler.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/api/security/ApiKeyAuthFilter.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-application/src/main/java/io/marcus/application/dto/BotRegistrationResult.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-application/src/main/java/io/marcus/application/dto/RegisterBotRequest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-application/src/main/java/io/marcus/application/usecase/AuthenticateBotUseCase.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-application/src/main/java/io/marcus/application/usecase/CaptureSignalUseCase.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-application/src/main/java/io/marcus/application/usecase/RegisterBotUseCase.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/exception/BotNotFoundException.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/repository/BotRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/repository/SignalRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/repository/UserRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/service/EncryptionService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/service/IdentityService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/crypto/HmacSignatureValidator.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/messaging/KafkaSignalProducer.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/JpaBotRepositoryImpl.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/JpaUserRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/SpringDataBotRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/SpringDataUserRepository.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/AesEncryptionService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/BotSecretProvider.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/BotSignatureInterceptor.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/RequireBotSignature.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/SpringSecurityIdentityService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/filter/RequestCachingFilter.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/wrapper/CachedServletInputStream.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/wrapper/MultiReadHttpServletRequestWrapper.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/resources/application.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/resources/db/migration/V1__initial_schema.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/build.log" beforeDir="false" afterPath="$PROJECT_DIR$/build.log" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/marcus_parent/MarcusParentApplication.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/MarcusParentApplication.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-api/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-api/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/api/config/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/api/config/SecurityConfig.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/marcus-api/src/main/resources/application.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-api/src/main/resources/application.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/marcus-api/target/classes/application.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-api/target/classes/application.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/marcus-api/target/classes/io/marcus/marcus_parent/MarcusParentApplication.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/marcus-application/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-application/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/model/Bot.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/model/Bot.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/model/Exchange.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/model/Exchange.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/model/ExecutionLog.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/model/ExecutionLog.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/model/ExecutorToken.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/model/ExecutorToken.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/model/Signal.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/model/Signal.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/model/SubscriptionPackage.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/model/SubscriptionPackage.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/model/User.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/model/User.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/model/UserSubscription.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/model/UserSubscription.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/service/IdentityService.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/service/IdentityService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/marcus-infrastructure/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-infrastructure/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/SpringDataUserRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/SpringDataUserRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/SpringSecurityIdentityService.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/SpringSecurityIdentityService.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -108,10 +66,10 @@
     &quot;accountId&quot;: &quot;bec34af4-05e5-4fa9-a293-90c9e2ca3eaf&quot;
   }
 }</component>
-  <component name="KubernetesApiPersistence"><![CDATA[{}]]></component>
-  <component name="KubernetesApiProvider"><![CDATA[{
-  "isMigrated": true
-}]]></component>
+  <component name="KubernetesApiPersistence">{}</component>
+  <component name="KubernetesApiProvider">{
+  &quot;isMigrated&quot;: true
+}</component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 8
 }</component>
@@ -133,7 +91,7 @@
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "Spring Boot.MarcusParentApplication.executor": "Debug",
     "com.codeium.enabled": "true",
-    "git-widget-placeholder": "main",
+    "git-widget-placeholder": "feature/authen",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "D:/Code/Projects/DATN/signal-core-backend",
     "node.js.detected.package.eslint": "true",
@@ -198,7 +156,8 @@
       <workItem from="1773471856031" duration="1301000" />
       <workItem from="1773628826026" duration="16928000" />
       <workItem from="1773730650060" duration="10723000" />
-      <workItem from="1773892810094" duration="1487000" />
+      <workItem from="1773892810094" duration="3238000" />
+      <workItem from="1773905843287" duration="2756000" />
     </task>
     <servers />
   </component>
