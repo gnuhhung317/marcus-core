@@ -1,8 +1,0 @@
-io/marcus/application/exception/UnauthenticatedException.class
-io/marcus/application/usecase/CaptureSignalUseCase.class
-io/marcus/application/dto/RegisterBotRequest.class
-io/marcus/application/usecase/RegisterBotUseCase.class
-io/marcus/application/dto/BotRegistrationResult.class
-io/marcus/application/dto/BotRegistrationResult$BotRegistrationResultBuilder.class
-io/marcus/application/mapper/BotDtoMapper.class
-io/marcus/application/usecase/AuthenticateBotUseCase.class

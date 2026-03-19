@@ -1,6 +1,0 @@
-io/marcus/api/config/SecurityConfig.class
-io/marcus/MarcusParentApplication.class
-io/marcus/api/security/ApiKeyAuthFilter.class
-io/marcus/api/exception/GlobalExceptionsHandler.class
-io/marcus/api/controller/BotController.class
-io/marcus/api/controller/SignalController.class

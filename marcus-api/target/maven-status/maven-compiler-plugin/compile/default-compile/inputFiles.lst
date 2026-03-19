@@ -1,6 +1,0 @@
-/home/runner/work/marcus-core/marcus-core/marcus-api/src/main/java/io/marcus/MarcusParentApplication.java
-/home/runner/work/marcus-core/marcus-core/marcus-api/src/main/java/io/marcus/api/security/ApiKeyAuthFilter.java
-/home/runner/work/marcus-core/marcus-core/marcus-api/src/main/java/io/marcus/api/controller/BotController.java
-/home/runner/work/marcus-core/marcus-core/marcus-api/src/main/java/io/marcus/api/config/SecurityConfig.java
-/home/runner/work/marcus-core/marcus-core/marcus-api/src/main/java/io/marcus/api/exception/GlobalExceptionsHandler.java
-/home/runner/work/marcus-core/marcus-core/marcus-api/src/main/java/io/marcus/api/controller/SignalController.java
