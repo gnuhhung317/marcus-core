@@ -1,5 +1,6 @@
 package io.marcus.api.exception;
 
+import io.marcus.application.exception.ForbiddenOperationException;
 import io.marcus.application.exception.UnauthenticatedException;
 import io.marcus.domain.exception.BotNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -23,5 +24,10 @@ public class GlobalExceptionsHandler {
     @ExceptionHandler(UnauthenticatedException.class)
     public ResponseEntity<String> handleUnauthenticated(UnauthenticatedException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(ForbiddenOperationException.class)
+    public ResponseEntity<String> handleForbiddenOperation(ForbiddenOperationException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ex.getMessage());
     }
 }

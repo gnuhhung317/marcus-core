@@ -3,6 +3,7 @@ package io.marcus.infrastructure.persistence;
 import io.marcus.domain.model.Bot;
 import io.marcus.domain.repository.BotRepository;
 import io.marcus.infrastructure.persistence.entity.BotEntity;
+import io.marcus.infrastructure.persistence.entity.ExchangeEntity;
 import io.marcus.infrastructure.persistence.mapper.BotMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -14,6 +15,7 @@ import java.util.Optional;
 public class JpaBotRepositoryImpl implements BotRepository {
 
     private final SpringDataBotRepository springDataBotRepository;
+    private final SpringDataExchangeRepository springDataExchangeRepository;
     private final BotMapper botMapper;
 
     @Override
@@ -30,7 +32,12 @@ public class JpaBotRepositoryImpl implements BotRepository {
 
     @Override
     public Bot save(Bot bot) {
-        return botMapper.toDomain(springDataBotRepository.save(botMapper.toEntity(bot)));
+        BotEntity entity = botMapper.toEntity(bot);
+        ExchangeEntity exchange = springDataExchangeRepository.findByExchangeId(bot.getExchangeId())
+                .orElseThrow(() -> new IllegalArgumentException("Exchange not found: " + bot.getExchangeId()));
+        entity.setExchange(exchange);
+
+        return botMapper.toDomain(springDataBotRepository.save(entity));
     }
 
     @Override
