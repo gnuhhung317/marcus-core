@@ -23,4 +23,21 @@ public class UserMapper {
                 .deletedAt(entity.getDeletedAt())
                 .build();
     }
+
+    public UserEntity toEntity(User domain) {
+        if (domain == null) {
+            return null;
+        }
+
+        return UserEntity.builder()
+                .userId(domain.getUserId())
+                .username(domain.getUsername())
+                .passwordHash(domain.getPasswordHash())
+                .email(domain.getEmail())
+                .role(domain.getRole())
+                .createdAt(domain.getCreatedAt())
+                .updatedAt(domain.getUpdatedAt())
+                .deletedAt(domain.getDeletedAt())
+                .build();
+    }
 }

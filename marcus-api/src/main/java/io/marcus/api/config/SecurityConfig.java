@@ -33,10 +33,10 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/login", "/auth/refresh", "/api/v1/auth/**").permitAll()
-                        .requestMatchers("/signal/**", "/api/v1/signals/**").permitAll()
-                        .requestMatchers("/bots/register").hasRole(Role.DEVELOPER.name())
-                        .anyRequest().authenticated())
+                .requestMatchers("/auth/register", "/auth/login", "/auth/refresh", "/api/v1/auth/**").permitAll()
+                .requestMatchers("/signal/**", "/api/v1/signals/**").permitAll()
+                .requestMatchers("/bots/register").hasRole(Role.DEVELOPER.name())
+                .anyRequest().authenticated())
                 .addFilterBefore(requestCachingFilter, SecurityContextHolderFilter.class)
                 .addFilterAfter(jwtAuthenticationFilter, SecurityContextHolderFilter.class)
                 .build();

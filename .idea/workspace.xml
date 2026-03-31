@@ -5,15 +5,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="74b35c14-9a2b-4622-9055-8322a9b4b6bf" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/marcus-api/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-api/pom.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/api/config/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/api/config/SecurityConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/api/controller/AuthController.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/api/controller/AuthController.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/marcus-api/src/main/resources/application.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-api/src/main/resources/application.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/service/IdentityService.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/service/IdentityService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/marcus-infrastructure/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-infrastructure/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-application/src/main/java/io/marcus/application/dto/RefreshTokenRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-application/src/main/java/io/marcus/application/dto/RefreshTokenRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-application/src/main/java/io/marcus/application/usecase/AuthenticateUserUseCase.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-application/src/main/java/io/marcus/application/usecase/AuthenticateUserUseCase.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-application/src/main/java/io/marcus/application/usecase/RefreshAccessTokenUseCase.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-application/src/main/java/io/marcus/application/usecase/RefreshAccessTokenUseCase.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/port/PasswordHashPort.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/port/PasswordHashPort.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/SpringDataUserRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/SpringDataUserRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/SpringSecurityIdentityService.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/SpringSecurityIdentityService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/mapper/UserMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/mapper/UserMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/BcryptPasswordHashAdapter.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/BcryptPasswordHashAdapter.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -157,7 +159,7 @@
       <workItem from="1773628826026" duration="16928000" />
       <workItem from="1773730650060" duration="10723000" />
       <workItem from="1773892810094" duration="3238000" />
-      <workItem from="1773905843287" duration="2756000" />
+      <workItem from="1773905843287" duration="7112000" />
     </task>
     <servers />
   </component>

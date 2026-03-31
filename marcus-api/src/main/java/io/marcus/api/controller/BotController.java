@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/bots")
 @RequiredArgsConstructor
 public class BotController {
+
     private final RegisterBotUseCase registerBotUseCase;
 
     @PostMapping("/register")

@@ -10,6 +10,11 @@ public class BcryptPasswordHashAdapter implements PasswordHashPort {
     private static final BCryptPasswordEncoder PASSWORD_ENCODER = new BCryptPasswordEncoder();
 
     @Override
+    public String encode(String rawPassword) {
+        return PASSWORD_ENCODER.encode(rawPassword);
+    }
+
+    @Override
     public boolean matches(String rawPassword, String encodedPassword) {
         return PASSWORD_ENCODER.matches(rawPassword, encodedPassword);
     }

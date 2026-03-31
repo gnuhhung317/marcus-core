@@ -16,6 +16,25 @@ spring:
   flyway:
     enabled: false
     baseline-on-migrate: true
+  data:
+    redis:
+      host: 200.200.201.4
+      port: 6379
+  kafka:
+    bootstrap-servers: 200.200.201.4:9092
+    consumer:
+      group-id: marcus-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+    listener:
+      ack-mode: record   # xử lý từng message
+
 marcus:
   security:
     master-key: coleemchangkhocchutnaocoleemchangquantamanhrasao
@@ -24,3 +43,6 @@ marcus:
       secret: marcus-super-secret-key-change-me-at-least-32-bytes
       access-token-expiration-seconds: 3600
       refresh-token-expiration-seconds: 604800
+
+  server:
+    port: 8080

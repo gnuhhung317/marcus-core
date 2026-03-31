@@ -43,10 +43,10 @@ public class AuthenticateUserUseCase {
 
         return new LoginResponse(
                 accessToken,
-            refreshToken,
+                refreshToken,
                 "Bearer",
                 accessTokenPort.accessTokenTtlSeconds(),
-            refreshTokenPort.refreshTokenTtlSeconds(),
+                refreshTokenPort.refreshTokenTtlSeconds(),
                 user.getUserId(),
                 user.getUsername(),
                 user.getRole().name()

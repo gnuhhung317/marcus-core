@@ -18,8 +18,8 @@ public class RefreshAccessTokenUseCase {
     private final UserCredentialQueryPort userCredentialQueryPort;
 
     public RefreshAccessTokenUseCase(RefreshTokenPort refreshTokenPort,
-                                     AccessTokenPort accessTokenPort,
-                                     UserCredentialQueryPort userCredentialQueryPort) {
+            AccessTokenPort accessTokenPort,
+            UserCredentialQueryPort userCredentialQueryPort) {
         this.refreshTokenPort = refreshTokenPort;
         this.accessTokenPort = accessTokenPort;
         this.userCredentialQueryPort = userCredentialQueryPort;
