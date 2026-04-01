@@ -1,0 +1,1550 @@
+﻿openapi: 3.0.3
+info:
+  title: Marcus Trading API Delta
+  version: 0.2.0
+  description: >-
+    Contract-first delta for Marcus trading integration.
+    This version completes High and Medium priority operations and standardizes
+    reusable error responses.
+
+servers:
+  - url: /api/v1
+
+tags:
+  - name: auth
+  - name: bots
+  - name: subscriptions
+  - name: dashboard
+  - name: strategies
+  - name: leaderboard
+  - name: paper
+  - name: profile
+  - name: system
+
+paths:
+  /auth/register:
+    post:
+      tags: [auth]
+      operationId: authRegister
+      summary: Register a new user account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterUserRequest'
+      responses:
+        '201':
+          description: User registered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterUserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /auth/login:
+    post:
+      tags: [auth]
+      operationId: authLogin
+      summary: Login and issue access and refresh token pair.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/refresh:
+    post:
+      tags: [auth]
+      operationId: authRefresh
+      summary: Refresh access token using a refresh token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Token pair rotated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /bots:
+    get:
+      tags: [bots]
+      operationId: listPublicBotsWithFilters
+      summary: List public bots with optional filters and pagination.
+      parameters:
+        - $ref: '#/components/parameters/Q'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - name: asset
+          in: query
+          schema:
+            type: string
+        - name: risk
+          in: query
+          schema:
+            type: string
+        - name: sort
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Public bots.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BotSummary'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    post:
+      tags: [bots]
+      operationId: registerBot
+      summary: Register a bot (developer role).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterBotRequest'
+      responses:
+        '201':
+          description: Bot registered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BotRegistrationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /bots/my-bots:
+    get:
+      tags: [bots]
+      operationId: listDeveloperBots
+      summary: List bots owned by current developer.
+      responses:
+        '200':
+          description: Developer bots.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BotSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /subscriptions/{botId}:
+    post:
+      tags: [subscriptions]
+      operationId: subscribeBot
+      summary: Subscribe current user to bot strategy.
+      parameters:
+        - $ref: '#/components/parameters/BotId'
+      responses:
+        '201':
+          description: Subscribed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscribeBotResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /subscriptions/my-subscriptions:
+    get:
+      tags: [subscriptions]
+      operationId: listMySubscriptions
+      summary: List subscriptions for current user.
+      responses:
+        '200':
+          description: Subscriptions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MySubscriptionsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /dashboard/overview:
+    get:
+      tags: [dashboard]
+      operationId: getDashboardOverview
+      summary: Load KPI cards and top-level trading overview.
+      responses:
+        '200':
+          description: Dashboard KPIs.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardOverviewResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /dashboard/equity-series:
+    get:
+      tags: [dashboard]
+      operationId: getDashboardEquitySeries
+      summary: Load equity curve by selected range.
+      parameters:
+        - $ref: '#/components/parameters/Range'
+      responses:
+        '200':
+          description: Time series points.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TimeSeriesPoint'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /dashboard/exchange-allocation:
+    get:
+      tags: [dashboard]
+      operationId: getExchangeAllocation
+      summary: Load exchange allocation for donut chart.
+      responses:
+        '200':
+          description: Allocation list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExchangeAllocationItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /strategies/{strategyId}:
+    get:
+      tags: [strategies]
+      operationId: getStrategyDetail
+      summary: Load strategy header and metadata.
+      parameters:
+        - $ref: '#/components/parameters/StrategyId'
+      responses:
+        '200':
+          description: Strategy detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StrategyDetailResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /strategies/{strategyId}/metrics:
+    get:
+      tags: [strategies]
+      operationId: getStrategyMetrics
+      summary: Load strategy metrics (raw or after-fees).
+      parameters:
+        - $ref: '#/components/parameters/StrategyId'
+        - name: feeMode
+          in: query
+          schema:
+            type: string
+            enum: [RAW, AFTER_FEES]
+      responses:
+        '200':
+          description: Metrics payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StrategyMetricsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /strategies/{strategyId}/performance-series:
+    get:
+      tags: [strategies]
+      operationId: getStrategyPerformanceSeries
+      summary: Load strategy performance series by range.
+      parameters:
+        - $ref: '#/components/parameters/StrategyId'
+        - $ref: '#/components/parameters/Range'
+      responses:
+        '200':
+          description: Series points.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TimeSeriesPoint'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /strategies/{strategyId}/trades:
+    get:
+      tags: [strategies]
+      operationId: listStrategyTradeLogs
+      summary: Paginated trade logs for strategy.
+      parameters:
+        - $ref: '#/components/parameters/StrategyId'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - name: asset
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Trade log page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradeLogPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /strategies/{strategyId}/favorite:
+    post:
+      tags: [strategies]
+      operationId: upsertFavoriteStrategy
+      summary: Mark strategy as favorite for current user.
+      parameters:
+        - $ref: '#/components/parameters/StrategyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FavoriteStrategyRequest'
+      responses:
+        '200':
+          description: Favorite updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FavoriteStrategyResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /strategies/{strategyId}/export/pdf:
+    post:
+      tags: [strategies]
+      operationId: exportStrategyReportPdf
+      summary: Request PDF strategy report export.
+      parameters:
+        - $ref: '#/components/parameters/StrategyId'
+      responses:
+        '202':
+          description: Export accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportAcceptedResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /strategies/{strategyId}/export/json:
+    post:
+      tags: [strategies]
+      operationId: exportStrategySnapshotJson
+      summary: Request JSON snapshot export.
+      parameters:
+        - $ref: '#/components/parameters/StrategyId'
+      responses:
+        '202':
+          description: Export accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportAcceptedResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /strategies/{strategyId}/paper-history:
+    get:
+      tags: [strategies]
+      operationId: listStrategyPaperHistory
+      summary: Paginated paper trade history for a strategy.
+      parameters:
+        - $ref: '#/components/parameters/StrategyId'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - name: range
+          in: query
+          schema:
+            type: string
+            enum: [1D, 1W, 1M, YTD, ALL]
+      responses:
+        '200':
+          description: Paper history page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaperTradeHistoryPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /leaderboard/strategies:
+    get:
+      tags: [leaderboard]
+      operationId: listLeaderboardStrategies
+      summary: List ranked strategies for leaderboard tables.
+      parameters:
+        - name: timeframe
+          in: query
+          schema:
+            type: string
+            enum: [24H, 7D, 30D, ALL]
+        - name: market
+          in: query
+          schema:
+            type: string
+        - name: asset
+          in: query
+          schema:
+            type: string
+        - name: rankMetric
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Leaderboard page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaderboardStrategiesPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /leaderboard/featured:
+    get:
+      tags: [leaderboard]
+      operationId: listLeaderboardFeatured
+      summary: Get featured top leaderboard cards.
+      responses:
+        '200':
+          description: Featured list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeaderboardFeaturedResponse'
+
+  /leaderboard/spotlights:
+    get:
+      tags: [leaderboard]
+      operationId: listStrategySpotlights
+      summary: Get strategy spotlight cards.
+      responses:
+        '200':
+          description: Spotlights.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StrategySpotlight'
+
+  /paper/session:
+    get:
+      tags: [paper]
+      operationId: getPaperSessionSummary
+      summary: Load paper trading session summary.
+      responses:
+        '200':
+          description: Session summary.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaperSessionSummaryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /paper/signals:
+    get:
+      tags: [paper]
+      operationId: listPaperSignals
+      summary: List active or recent paper signals.
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [ACTIVE, EXECUTED, EXPIRED, ALL]
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Signals.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaperSignalItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /paper/orders:
+    post:
+      tags: [paper]
+      operationId: createPaperOrder
+      summary: Create paper order from quick order form.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaperOrderRequest'
+      responses:
+        '201':
+          description: Order accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaperOrderResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+
+  /paper/session/pause:
+    post:
+      tags: [paper]
+      operationId: pausePaperSession
+      summary: Pause current paper trading session.
+      responses:
+        '200':
+          description: Session paused.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaperSessionStateResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /paper/session/resume:
+    post:
+      tags: [paper]
+      operationId: resumePaperSession
+      summary: Resume current paper trading session.
+      responses:
+        '200':
+          description: Session resumed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaperSessionStateResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /paper/logs:
+    get:
+      tags: [paper]
+      operationId: listPaperExecutionLogs
+      summary: Paginated execution logs for paper trading.
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Log page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaperExecutionLogPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/me:
+    get:
+      tags: [profile]
+      operationId: getCurrentUserProfile
+      summary: Get current user profile.
+      responses:
+        '200':
+          description: User profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/me/preferences:
+    put:
+      tags: [profile]
+      operationId: updateUserPreferences
+      summary: Update current user preferences.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserPreferencesRequest'
+      responses:
+        '200':
+          description: Preferences updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferencesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/me/api-keys:
+    get:
+      tags: [profile]
+      operationId: listApiKeys
+      summary: List API keys of current user.
+      responses:
+        '200':
+          description: API key list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ApiKeySummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [profile]
+      operationId: createApiKey
+      summary: Create a new API key.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateApiKeyRequest'
+      responses:
+        '201':
+          description: API key created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateApiKeyResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/me/api-keys/{apiKeyId}:
+    delete:
+      tags: [profile]
+      operationId: deleteApiKey
+      summary: Revoke an API key.
+      parameters:
+        - $ref: '#/components/parameters/ApiKeyId'
+      responses:
+        '204':
+          description: API key revoked.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /users/me/login-activities:
+    get:
+      tags: [profile]
+      operationId: listLoginActivities
+      summary: Paginated login activity audit logs.
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Login activity page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginActivityPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /system/connectivity:
+    get:
+      tags: [system]
+      operationId: getSystemConnectivityHealth
+      summary: Load connectivity health for core external dependencies.
+      responses:
+        '200':
+          description: Connectivity health.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectivityHealthResponse'
+
+  /system/execution-logs:
+    get:
+      tags: [system]
+      operationId: listSystemExecutionLogs
+      summary: Paginated system execution logs.
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: System execution logs.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionLogPage'
+
+components:
+  parameters:
+    BotId:
+      name: botId
+      in: path
+      required: true
+      schema:
+        type: string
+    StrategyId:
+      name: strategyId
+      in: path
+      required: true
+      schema:
+        type: string
+    ApiKeyId:
+      name: apiKeyId
+      in: path
+      required: true
+      schema:
+        type: string
+    Q:
+      name: q
+      in: query
+      schema:
+        type: string
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    Size:
+      name: size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    Cursor:
+      name: cursor
+      in: query
+      schema:
+        type: string
+    Range:
+      name: range
+      in: query
+      required: true
+      schema:
+        type: string
+        enum: [1D, 1W, 1M, YTD, ALL]
+
+  responses:
+    BadRequest:
+      description: Bad request.
+      headers:
+        X-Trace-Id:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Unauthorized.
+      headers:
+        X-Trace-Id:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Forbidden.
+      headers:
+        X-Trace-Id:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resource not found.
+      headers:
+        X-Trace-Id:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Resource conflict.
+      headers:
+        X-Trace-Id:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ValidationFailed:
+      description: Validation failed.
+      headers:
+        X-Trace-Id:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrorResponse'
+    InternalServerError:
+      description: Internal server error.
+      headers:
+        X-Trace-Id:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    RefreshTokenRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    RegisterUserRequest:
+      type: object
+      required: [username, password, email]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        email:
+          type: string
+          format: email
+
+    RegisterUserResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+
+    LoginResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        tokenType:
+          type: string
+        accessTokenExpiresInSeconds:
+          type: integer
+          format: int64
+        refreshTokenExpiresInSeconds:
+          type: integer
+          format: int64
+        userId:
+          type: string
+        username:
+          type: string
+        role:
+          type: string
+
+    RegisterBotRequest:
+      type: object
+      required: [description, tradingPair, botName, exchange]
+      properties:
+        description:
+          type: string
+        tradingPair:
+          type: string
+        botName:
+          type: string
+        exchange:
+          type: string
+
+    BotRegistrationResponse:
+      type: object
+      properties:
+        botId:
+          type: string
+        botName:
+          type: string
+        description:
+          type: string
+        apiKey:
+          type: string
+        rawSecret:
+          type: string
+        status:
+          type: string
+        tradingPair:
+          type: string
+        exchange:
+          type: string
+
+    BotSummary:
+      type: object
+      properties:
+        botId:
+          type: string
+        botName:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        tradingPair:
+          type: string
+        exchange:
+          type: string
+
+    SubscribeBotResult:
+      type: object
+      properties:
+        botId:
+          type: string
+        wsToken:
+          type: string
+        status:
+          type: string
+
+    SubscriptionSummary:
+      type: object
+      properties:
+        botId:
+          type: string
+        botName:
+          type: string
+        tradingPair:
+          type: string
+        status:
+          type: string
+        subscribedAt:
+          type: string
+          format: date-time
+
+    MySubscriptionsResponse:
+      type: object
+      properties:
+        wsToken:
+          type: string
+        localExecutorInstruction:
+          type: string
+        subscriptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionSummary'
+
+    DashboardOverviewResponse:
+      type: object
+      properties:
+        totalEquity:
+          type: number
+          format: double
+        openPnl:
+          type: number
+          format: double
+        winRate:
+          type: number
+          format: double
+        activeBots:
+          type: integer
+
+    TimeSeriesPoint:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        value:
+          type: number
+          format: double
+
+    ExchangeAllocationItem:
+      type: object
+      properties:
+        exchange:
+          type: string
+        percentage:
+          type: number
+          format: double
+
+    StrategyDetailResponse:
+      type: object
+      properties:
+        strategyId:
+          type: string
+        strategyName:
+          type: string
+        ownerName:
+          type: string
+        market:
+          type: string
+        status:
+          type: string
+
+    StrategyMetricsResponse:
+      type: object
+      properties:
+        annualReturn:
+          type: number
+          format: double
+        maxDrawdown:
+          type: number
+          format: double
+        sharpe:
+          type: number
+          format: double
+        sortino:
+          type: number
+          format: double
+        calmar:
+          type: number
+          format: double
+        profitFactor:
+          type: number
+          format: double
+
+    TradeLogItem:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        assetPair:
+          type: string
+        side:
+          type: string
+        size:
+          type: number
+          format: double
+        entryPrice:
+          type: number
+          format: double
+        exitPrice:
+          type: number
+          format: double
+        netPnl:
+          type: number
+          format: double
+
+    TradeLogPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TradeLogItem'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+
+    FavoriteStrategyRequest:
+      type: object
+      required: [favorite]
+      properties:
+        favorite:
+          type: boolean
+
+    FavoriteStrategyResponse:
+      type: object
+      properties:
+        strategyId:
+          type: string
+        favorite:
+          type: boolean
+
+    ExportAcceptedResponse:
+      type: object
+      properties:
+        exportId:
+          type: string
+        status:
+          type: string
+          enum: [PENDING]
+
+    PaperTradeHistoryItem:
+      type: object
+      properties:
+        orderId:
+          type: string
+        executedAt:
+          type: string
+          format: date-time
+        assetPair:
+          type: string
+        side:
+          type: string
+        quantity:
+          type: number
+          format: double
+        executedPrice:
+          type: number
+          format: double
+
+    PaperTradeHistoryPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaperTradeHistoryItem'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+
+    LeaderboardStrategyItem:
+      type: object
+      properties:
+        rank:
+          type: integer
+        strategyId:
+          type: string
+        strategyName:
+          type: string
+        creatorName:
+          type: string
+        cagr:
+          type: number
+          format: double
+        sharpe:
+          type: number
+          format: double
+        maxDrawdown:
+          type: number
+          format: double
+
+    LeaderboardStrategiesPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeaderboardStrategyItem'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+
+    LeaderboardFeaturedItem:
+      type: object
+      properties:
+        strategyId:
+          type: string
+        strategyName:
+          type: string
+        rankLabel:
+          type: string
+        sharpe:
+          type: number
+          format: double
+
+    LeaderboardFeaturedResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/LeaderboardFeaturedItem'
+
+    StrategySpotlight:
+      type: object
+      properties:
+        strategyId:
+          type: string
+        strategyName:
+          type: string
+        market:
+          type: string
+        oneDayReturn:
+          type: number
+          format: double
+
+    PaperSessionSummaryResponse:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        status:
+          type: string
+        virtualBalance:
+          type: number
+          format: double
+        openPnl:
+          type: number
+          format: double
+        buyingPower:
+          type: number
+          format: double
+
+    PaperSignalItem:
+      type: object
+      properties:
+        signalId:
+          type: string
+        botId:
+          type: string
+        assetPair:
+          type: string
+        side:
+          type: string
+        confidence:
+          type: number
+          format: double
+        status:
+          type: string
+        generatedAt:
+          type: string
+          format: date-time
+
+    CreatePaperOrderRequest:
+      type: object
+      required: [assetPair, orderType, side, quantity]
+      properties:
+        assetPair:
+          type: string
+        orderType:
+          type: string
+          enum: [MARKET, LIMIT]
+        side:
+          type: string
+          enum: [BUY, SELL]
+        quantity:
+          type: number
+          format: double
+        limitPrice:
+          type: number
+          format: double
+
+    PaperOrderResponse:
+      type: object
+      properties:
+        orderId:
+          type: string
+        status:
+          type: string
+        executedPrice:
+          type: number
+          format: double
+
+    PaperSessionStateResponse:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        status:
+          type: string
+          enum: [RUNNING, PAUSED]
+
+    PaperExecutionLogItem:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        level:
+          type: string
+        message:
+          type: string
+
+    PaperExecutionLogPage:
+      type: object
+      properties:
+        cursor:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaperExecutionLogItem'
+
+    UserProfileResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+
+    UpdateUserPreferencesRequest:
+      type: object
+      properties:
+        timezone:
+          type: string
+        locale:
+          type: string
+        emailNotificationsEnabled:
+          type: boolean
+
+    UserPreferencesResponse:
+      type: object
+      properties:
+        timezone:
+          type: string
+        locale:
+          type: string
+        emailNotificationsEnabled:
+          type: boolean
+
+    ApiKeySummary:
+      type: object
+      properties:
+        apiKeyId:
+          type: string
+        label:
+          type: string
+        maskedKey:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        lastUsedAt:
+          type: string
+          format: date-time
+
+    CreateApiKeyRequest:
+      type: object
+      required: [label]
+      properties:
+        label:
+          type: string
+
+    CreateApiKeyResponse:
+      type: object
+      properties:
+        apiKeyId:
+          type: string
+        key:
+          type: string
+        label:
+          type: string
+
+    LoginActivityItem:
+      type: object
+      properties:
+        occurredAt:
+          type: string
+          format: date-time
+        ipAddress:
+          type: string
+        userAgent:
+          type: string
+        success:
+          type: boolean
+
+    LoginActivityPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/LoginActivityItem'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+
+    ConnectivityHealthDependency:
+      type: object
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+          enum: [UP, DEGRADED, DOWN]
+        latencyMs:
+          type: integer
+
+    ConnectivityHealthResponse:
+      type: object
+      properties:
+        overallStatus:
+          type: string
+          enum: [UP, DEGRADED, DOWN]
+        checkedAt:
+          type: string
+          format: date-time
+        dependencies:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConnectivityHealthDependency'
+
+    ExecutionLogItem:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        level:
+          type: string
+        source:
+          type: string
+        message:
+          type: string
+
+    ExecutionLogPage:
+      type: object
+      properties:
+        cursor:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExecutionLogItem'
+
+    ErrorResponse:
+      type: object
+      required: [code, message, status, traceId, path, timestamp]
+      properties:
+        code:
+          type: string
+          description: Stable application error code.
+        message:
+          type: string
+        status:
+          type: integer
+          format: int32
+        traceId:
+          type: string
+        path:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    FieldValidationError:
+      type: object
+      required: [field, reason]
+      properties:
+        field:
+          type: string
+        reason:
+          type: string
+
+    ValidationErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+        - type: object
+          required: [errors]
+          properties:
+            errors:
+              type: array
+              items:
+                $ref: '#/components/schemas/FieldValidationError'

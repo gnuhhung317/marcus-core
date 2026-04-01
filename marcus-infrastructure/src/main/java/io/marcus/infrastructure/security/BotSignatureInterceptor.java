@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.Locale;
 
 @Component
 public class BotSignatureInterceptor implements HandlerInterceptor {
@@ -46,9 +47,18 @@ public class BotSignatureInterceptor implements HandlerInterceptor {
 
         String timestampHeader = request.getHeader(HEADER_TIMESTAMP);
         String apiKey = request.getHeader(HEADER_API_KEY);
-        String signature = request.getHeader(HEADER_SIGNATURE);
+        String signatureHeader = request.getHeader(HEADER_SIGNATURE);
 
-        if (timestampHeader == null || apiKey == null || signature == null) {
+        if (timestampHeader == null || apiKey == null || signatureHeader == null) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return false;
+        }
+
+        timestampHeader = timestampHeader.trim();
+        apiKey = apiKey.trim();
+        String normalizedSignature = signatureHeader.trim().toLowerCase(Locale.ROOT);
+
+        if (timestampHeader.isEmpty() || apiKey.isEmpty() || normalizedSignature.isEmpty()) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return false;
         }
@@ -67,7 +77,7 @@ public class BotSignatureInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        String redisKey = "idem:sig:" + apiKey + ":" + signature;
+        String redisKey = "idem:sig:" + apiKey + ":" + normalizedSignature;
         Boolean isUnique;
         try {
             isUnique = redisTemplate.opsForValue().setIfAbsent(redisKey, "1", Duration.ofSeconds(IDEMPOTENCY_WINDOW_SECONDS));
@@ -78,7 +88,7 @@ public class BotSignatureInterceptor implements HandlerInterceptor {
         }
 
         if (Boolean.FALSE.equals(isUnique)) {
-            log.warn("Idempotency Violation! Signature: {}", signature);
+            log.warn("Idempotency Violation! Signature: {}", normalizedSignature);
             response.setStatus(HttpServletResponse.SC_CONFLICT);
             return false;
         }
@@ -102,7 +112,7 @@ public class BotSignatureInterceptor implements HandlerInterceptor {
         }
 
         String signaturePayload = timestampHeader + "\n" + jsonBody;
-        boolean isValid = hmacSignatureValidator.isValid(signaturePayload, botSecret, signature);
+        boolean isValid = hmacSignatureValidator.isValid(signaturePayload, botSecret, normalizedSignature);
         if (!isValid) {
             log.warn("Invalid signature for API Key: {}", apiKey);
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

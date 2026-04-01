@@ -149,4 +149,55 @@ class RegisterBotUseCaseTest {
 
         verifyNoInteractions(identityService, userRepository, botRepository, encryptionService);
     }
+
+    @Test
+    void shouldRejectMissingTradingPair() {
+        RegisterBotRequest request = new RegisterBotRequest(
+                "Momentum bot",
+                " ",
+                "Alpha Trader",
+                "binance");
+
+        assertThatThrownBy(() -> registerBotUseCase.execute(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Trading pair is required");
+
+        verifyNoInteractions(identityService, userRepository, botRepository, encryptionService);
+    }
+
+    @Test
+    void shouldRejectMissingExchangeId() {
+        RegisterBotRequest request = new RegisterBotRequest(
+                "Momentum bot",
+                "BTCUSDT",
+                "Alpha Trader",
+                " ");
+
+        assertThatThrownBy(() -> registerBotUseCase.execute(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Exchange id is required");
+
+        verifyNoInteractions(identityService, userRepository, botRepository, encryptionService);
+    }
+
+    @Test
+    void shouldPropagateRepositoryErrorWhenSaveFails() {
+        RegisterBotRequest request = new RegisterBotRequest(
+                "Momentum bot",
+                "BTCUSDT",
+                "Alpha Trader",
+                "binance");
+
+        when(identityService.getCurrentUserId()).thenReturn(Optional.of("usr_001"));
+        when(userRepository.existsByIdAndRole(eq("usr_001"), eq(Role.DEVELOPER))).thenReturn(true);
+        when(encryptionService.encrypt(anyString())).thenAnswer(invocation -> "enc:" + invocation.getArgument(0, String.class));
+        when(botRepository.save(any(Bot.class))).thenThrow(new IllegalStateException("Bot already exists"));
+
+        assertThatThrownBy(() -> registerBotUseCase.execute(request))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Bot already exists");
+
+        verify(botRepository).save(any(Bot.class));
+        verify(encryptionService).encrypt(anyString());
+    }
 }

@@ -17,6 +17,6 @@ public class BotSignatureWebMvcConfigurer implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(botSignatureInterceptor)
-                .addPathPatterns("/signal/**", "/api/v1/signals/**");
+                .addPathPatterns("/signal/**", "/api/v1/signals/**", "/routing/**", "/api/v1/routing/**");
     }
 }

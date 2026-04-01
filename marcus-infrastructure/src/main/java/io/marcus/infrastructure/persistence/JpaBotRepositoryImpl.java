@@ -2,12 +2,14 @@ package io.marcus.infrastructure.persistence;
 
 import io.marcus.domain.model.Bot;
 import io.marcus.domain.repository.BotRepository;
+import io.marcus.domain.vo.BotStatus;
 import io.marcus.infrastructure.persistence.entity.BotEntity;
 import io.marcus.infrastructure.persistence.entity.ExchangeEntity;
 import io.marcus.infrastructure.persistence.mapper.BotMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -43,5 +45,21 @@ public class JpaBotRepositoryImpl implements BotRepository {
     @Override
     public Optional<Bot> findByBotId(String botId) {
         return springDataBotRepository.findByBotId(botId).map(botMapper::toDomain);
+    }
+
+    @Override
+    public List<Bot> findAllActive() {
+        return springDataBotRepository.findByStatus(BotStatus.ACTIVE)
+                .stream()
+                .map(botMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<Bot> findAllByDeveloperId(String developerId) {
+        return springDataBotRepository.findByDeveloperId(developerId)
+                .stream()
+                .map(botMapper::toDomain)
+                .toList();
     }
 }

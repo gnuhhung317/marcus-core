@@ -12,11 +12,13 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 
-public class UserSubscription extends BaseModel{
+public class UserSubscription extends BaseModel {
+
     private String userSubscriptionId;
     private String botId;
     private String userId;
     private String packageId;
+    private String wsToken;
     private SubscriptionStatus status;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
