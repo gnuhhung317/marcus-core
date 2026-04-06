@@ -32,9 +32,10 @@ public class ListMySubscriptionsUseCase {
         String currentUserId = identityService.getCurrentUserId()
                 .orElseThrow(() -> new UnauthenticatedException("No authenticated user found"));
 
-        if (!userRepository.existsByIdAndRole(currentUserId, Role.USER)) {
-            throw new ForbiddenOperationException("Only trader can view subscriptions");
-        }
+//        For now, we temporarily allow all users to have subscriptions :D every one want to use good strategy right:D
+//        if (!userRepository.existsByIdAndRole(currentUserId, Role.USER)) {
+//            throw new ForbiddenOperationException("Only trader can view subscriptions");
+//        }
 
         List<UserSubscription> subscriptions = userSubscriptionPersistencePort.findActiveByUserId(currentUserId);
         List<SubscriptionSummaryResult> summaryResults = subscriptions.stream()
