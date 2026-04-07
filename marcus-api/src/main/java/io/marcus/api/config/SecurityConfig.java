@@ -35,9 +35,18 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/register", "/auth/login", "/auth/refresh", "/api/v1/auth/**").permitAll()
-                .requestMatchers("/signal/**", "/api/v1/signals/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/signal/**", "/signals/**", "/api/signals/**", "/api/v1/signals/**").permitAll()
                 .requestMatchers("/routing/**", "/api/v1/routing/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/bots", "/api/bots", "/api/v1/bots").permitAll()
+                .requestMatchers(
+                    HttpMethod.GET,
+                    "/market/overview", "/api/market/overview", "/api/v1/market/overview",
+                    "/academy/courses", "/api/academy/courses", "/api/v1/academy/courses",
+                    "/academy/metrics", "/api/academy/metrics", "/api/v1/academy/metrics",
+                    "/content/blog/posts", "/api/content/blog/posts", "/api/v1/content/blog/posts",
+                    "/content/research/reports", "/api/content/research/reports", "/api/v1/content/research/reports",
+                    "/content/research/reports/library", "/api/content/research/reports/library", "/api/v1/content/research/reports/library"
+                ).permitAll()
                 .requestMatchers(HttpMethod.GET, "/bots/my-bots", "/api/bots/my-bots", "/api/v1/bots/my-bots").hasRole(Role.DEVELOPER.name())
                 .requestMatchers(HttpMethod.POST, "/bots", "/api/bots", "/api/v1/bots", "/bots/register", "/api/bots/register", "/api/v1/bots/register").hasRole(Role.DEVELOPER.name())
                 .requestMatchers(HttpMethod.GET, "/subscriptions", "/subscriptions/my-subscriptions", "/api/subscriptions", "/api/subscriptions/my-subscriptions", "/api/v1/subscriptions", "/api/v1/subscriptions/my-subscriptions").hasRole(Role.USER.name())

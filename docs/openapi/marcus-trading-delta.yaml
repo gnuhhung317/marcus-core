@@ -20,6 +20,9 @@ tags:
   - name: paper
   - name: profile
   - name: system
+  - name: academy
+  - name: content
+  - name: market
 
 paths:
   /auth/register:
@@ -143,6 +146,48 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  /bots/{botId}:
+    get:
+      tags: [bots]
+      operationId: getBotDetail
+      summary: Get a single bot by ID.
+      parameters:
+        - $ref: '#/components/parameters/BotId'
+      responses:
+        '200':
+          description: Bot detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BotDetailResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /bots/{botId}/performance:
+    get:
+      tags: [bots]
+      operationId: getBotPerformance
+      summary: Get performance metrics for a given bot.
+      parameters:
+        - $ref: '#/components/parameters/BotId'
+      responses:
+        '200':
+          description: Bot performance metrics.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BotPerformanceResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /bots/my-bots:
     get:
       tags: [bots]
@@ -202,6 +247,87 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  /signals:
+    post:
+      tags: [system]
+      operationId: submitSignal
+      summary: Ingest a trading signal into Marcus routing pipeline.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignalSubmissionRequest'
+      responses:
+        '200':
+          description: Signal accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignalSubmissionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+    get:
+      tags: [system]
+      operationId: listSignals
+      summary: List recent signals.
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, DISPATCHED, FAILED, ALL]
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Signals.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SignalItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /portfolio/summary:
+    get:
+      tags: [dashboard]
+      operationId: getPortfolioSummary
+      summary: Load portfolio summary for current user.
+      responses:
+        '200':
+          description: Portfolio summary.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioSummaryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /portfolio/positions:
+    get:
+      tags: [dashboard]
+      operationId: listPortfolioPositions
+      summary: Load open portfolio positions.
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Open positions.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PositionItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /dashboard/overview:
     get:
       tags: [dashboard]
@@ -252,6 +378,24 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ExchangeAllocationItem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /executions:
+    get:
+      tags: [system]
+      operationId: listExecutions
+      summary: Load paginated execution log entries.
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Execution log page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutionLogPage'
         '401':
           $ref: '#/components/responses/Unauthorized'
 
@@ -501,6 +645,162 @@ paths:
                 items:
                   $ref: '#/components/schemas/StrategySpotlight'
 
+  /academy/courses:
+    get:
+      tags: [academy]
+      operationId: listAcademyCourses
+      summary: List academy courses and learner progress metadata.
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Academy courses.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcademyCoursesResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /academy/metrics:
+    get:
+      tags: [academy]
+      operationId: getAcademyMetrics
+      summary: Get academy KPI summary cards.
+      responses:
+        '200':
+          description: Academy metrics.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcademyMetricsResponse'
+
+  /content/blog/posts:
+    get:
+      tags: [content]
+      operationId: listBlogPosts
+      summary: List blog posts with category and search filters.
+      parameters:
+        - $ref: '#/components/parameters/Q'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - name: category
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Blog post page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogPostsResponse'
+
+  /content/blog/posts/{postId}:
+    get:
+      tags: [content]
+      operationId: getBlogPostDetail
+      summary: Get a single blog post by ID.
+      parameters:
+        - $ref: '#/components/parameters/PostId'
+      responses:
+        '200':
+          description: Blog post detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BlogPostDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /content/newsletter/subscriptions:
+    post:
+      tags: [content]
+      operationId: subscribeNewsletter
+      summary: Subscribe email to Marcus newsletter feed.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewsletterSubscriptionRequest'
+      responses:
+        '201':
+          description: Subscribed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewsletterSubscriptionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /content/research/reports:
+    get:
+      tags: [content]
+      operationId: listResearchReports
+      summary: List research reports for portal cards.
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Research report page.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResearchReportsResponse'
+
+  /content/research/reports/library:
+    get:
+      tags: [content]
+      operationId: listResearchLibraryFiles
+      summary: List downloadable files in research library widget.
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Library files.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ResearchLibraryFile'
+
+  /content/research/reports/{reportId}/download:
+    post:
+      tags: [content]
+      operationId: requestResearchReportDownload
+      summary: Request downloadable URL for selected research report.
+      parameters:
+        - $ref: '#/components/parameters/ReportId'
+      responses:
+        '200':
+          description: Download URL generated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResearchReportDownloadResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /market/overview:
+    get:
+      tags: [market]
+      operationId: getMarketOverview
+      summary: Get market pulse stats for home and market pages.
+      responses:
+        '200':
+          description: Market pulse overview.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketOverviewResponse'
+
   /paper/session:
     get:
       tags: [paper]
@@ -513,6 +813,48 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaperSessionSummaryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /bots/validate:
+    post:
+      tags: [bots]
+      operationId: validateBotConfiguration
+      summary: Validate bot wizard payload before registration.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BotConfigurationValidationRequest'
+      responses:
+        '200':
+          description: Validation result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BotConfigurationValidationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /bots/drafts:
+    post:
+      tags: [bots]
+      operationId: saveBotDraft
+      summary: Save or update bot wizard draft for current user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveBotDraftRequest'
+      responses:
+        '200':
+          description: Draft saved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaveBotDraftResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
 
@@ -753,6 +1095,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/ExecutionLogPage'
 
+  /system/webhook-health:
+    get:
+      tags: [system]
+      operationId: getWebhookHealth
+      summary: Load webhook and stream processing latency health.
+      responses:
+        '200':
+          description: Webhook latency and status summary.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookHealthResponse'
+
 components:
   parameters:
     BotId:
@@ -769,6 +1124,18 @@ components:
         type: string
     ApiKeyId:
       name: apiKeyId
+      in: path
+      required: true
+      schema:
+        type: string
+    PostId:
+      name: postId
+      in: path
+      required: true
+      schema:
+        type: string
+    ReportId:
+      name: reportId
       in: path
       required: true
       schema:
@@ -996,6 +1363,163 @@ components:
         tradingPair:
           type: string
         exchange:
+          type: string
+
+    BotDetailResponse:
+      type: object
+      properties:
+        botId:
+          type: string
+        botName:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        tradingPair:
+          type: string
+        exchange:
+          type: string
+        developerId:
+          type: string
+        apiKey:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        performance:
+          $ref: '#/components/schemas/BotPerformanceResponse'
+
+    BotPerformanceResponse:
+      type: object
+      properties:
+        annualReturn:
+          type: number
+          format: double
+        maxDrawdown:
+          type: number
+          format: double
+        sharpe:
+          type: number
+          format: double
+        winRate:
+          type: number
+          format: double
+        avgTradeReturn:
+          type: number
+          format: double
+        tradesPerDay:
+          type: number
+          format: double
+
+    SignalSubmissionRequest:
+      type: object
+      required: [signalId, botId, exchangeSlug, symbol, action, price, timestamp]
+      properties:
+        signalId:
+          type: string
+        botId:
+          type: string
+        exchangeSlug:
+          type: string
+        symbol:
+          type: string
+        action:
+          type: string
+          enum: [OPEN_LONG, OPEN_SHORT, CLOSE_LONG, CLOSE_SHORT, UPDATE_TP_SL]
+        price:
+          type: number
+          format: double
+        metadata:
+          type: object
+          additionalProperties:
+            type: object
+        timestamp:
+          type: string
+          format: date-time
+
+    SignalSubmissionResponse:
+      type: object
+      properties:
+        signalId:
+          type: string
+        status:
+          type: string
+        acceptedAt:
+          type: string
+          format: date-time
+
+    SignalItem:
+      type: object
+      properties:
+        signalId:
+          type: string
+        botId:
+          type: string
+        exchangeSlug:
+          type: string
+        symbol:
+          type: string
+        action:
+          type: string
+        price:
+          type: number
+          format: double
+        status:
+          type: string
+        generatedTimestamp:
+          type: string
+          format: date-time
+
+    PortfolioSummaryResponse:
+      type: object
+      properties:
+        totalEquity:
+          type: number
+          format: double
+        virtualBalance:
+          type: number
+          format: double
+        openPnl:
+          type: number
+          format: double
+        buyingPower:
+          type: number
+          format: double
+        activePositions:
+          type: integer
+        allocationByExchange:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExchangeAllocationItem'
+
+    PositionItem:
+      type: object
+      properties:
+        positionId:
+          type: string
+        botId:
+          type: string
+        assetPair:
+          type: string
+        side:
+          type: string
+        quantity:
+          type: number
+          format: double
+        entryPrice:
+          type: number
+          format: double
+        currentPrice:
+          type: number
+          format: double
+        unrealizedPnl:
+          type: number
+          format: double
+        status:
           type: string
 
     SubscribeBotResult:
@@ -1508,6 +2032,266 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ExecutionLogItem'
+
+    AcademyCourseSummary:
+      type: object
+      properties:
+        courseId:
+          type: string
+        title:
+          type: string
+        level:
+          type: string
+          enum: [FOUNDATION, ADVANCED, EXPERT]
+        progress:
+          type: integer
+        modules:
+          type: integer
+        durationHours:
+          type: number
+          format: double
+
+    AcademyCoursesResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AcademyCourseSummary'
+
+    AcademyMetricsResponse:
+      type: object
+      properties:
+        activeStudents:
+          type: integer
+        strategiesDeployed:
+          type: integer
+        averagePerformancePercent:
+          type: number
+          format: double
+        academyRating:
+          type: number
+          format: double
+
+    BlogPostSummary:
+      type: object
+      properties:
+        postId:
+          type: string
+        title:
+          type: string
+        category:
+          type: string
+        excerpt:
+          type: string
+        authorName:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+        readTimeMinutes:
+          type: integer
+
+    BlogPostsResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BlogPostSummary'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+
+    BlogPostDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/BlogPostSummary'
+        - type: object
+          properties:
+            contentMarkdown:
+              type: string
+            tags:
+              type: array
+              items:
+                type: string
+
+    NewsletterSubscriptionRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+
+    NewsletterSubscriptionResponse:
+      type: object
+      properties:
+        subscriptionId:
+          type: string
+        status:
+          type: string
+          enum: [SUBSCRIBED, PENDING_CONFIRMATION]
+
+    ResearchReportSummary:
+      type: object
+      properties:
+        reportId:
+          type: string
+        title:
+          type: string
+        category:
+          type: string
+        summary:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+        readTimeMinutes:
+          type: integer
+
+    ResearchReportsResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResearchReportSummary'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+
+    ResearchLibraryFile:
+      type: object
+      properties:
+        fileId:
+          type: string
+        title:
+          type: string
+        format:
+          type: string
+        sizeMb:
+          type: number
+          format: double
+
+    ResearchReportDownloadResponse:
+      type: object
+      properties:
+        reportId:
+          type: string
+        downloadUrl:
+          type: string
+          format: uri
+        expiresAt:
+          type: string
+          format: date-time
+
+    MarketOverviewResponse:
+      type: object
+      properties:
+        topVolume24h:
+          type: number
+          format: double
+        activeStrategies:
+          type: integer
+        liveTickers:
+          type: array
+          items:
+            type: object
+            properties:
+              symbol:
+                type: string
+              asset:
+                type: string
+              price:
+                type: number
+                format: double
+              change24h:
+                type: number
+                format: double
+
+    BotConfigurationValidationRequest:
+      type: object
+      required: [strategyName, tradingPair, riskProfile]
+      properties:
+        strategyName:
+          type: string
+        tradingPair:
+          type: string
+        riskProfile:
+          type: string
+          enum: [CONSERVATIVE, BALANCED, AGGRESSIVE]
+        maxDrawdownPercent:
+          type: number
+          format: double
+        leverage:
+          type: number
+          format: double
+
+    BotConfigurationValidationResponse:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        messages:
+          type: array
+          items:
+            type: string
+
+    SaveBotDraftRequest:
+      type: object
+      required: [name, payload]
+      properties:
+        name:
+          type: string
+        payload:
+          type: object
+          additionalProperties:
+            type: object
+
+    SaveBotDraftResponse:
+      type: object
+      properties:
+        draftId:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+
+    WebhookLatencyBin:
+      type: object
+      properties:
+        intervalLabel:
+          type: string
+        averageLatencyMs:
+          type: number
+          format: double
+
+    WebhookHealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [UP, DEGRADED, DOWN]
+        checkedAt:
+          type: string
+          format: date-time
+        averageLatencyMs:
+          type: number
+          format: double
+        throughputPerMinute:
+          type: integer
+        bins:
+          type: array
+          items:
+            $ref: '#/components/schemas/WebhookLatencyBin'
 
     ErrorResponse:
       type: object

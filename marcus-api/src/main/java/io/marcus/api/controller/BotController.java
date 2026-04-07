@@ -3,13 +3,16 @@ package io.marcus.api.controller;
 import io.marcus.application.dto.BotSummaryResult;
 import io.marcus.application.dto.BotRegistrationResult;
 import io.marcus.application.dto.RegisterBotRequest;
+import io.marcus.application.usecase.GetBotDetailUseCase;
 import io.marcus.application.usecase.ListDeveloperBotsUseCase;
 import io.marcus.application.usecase.ListPublicBotsUseCase;
 import io.marcus.application.usecase.RegisterBotUseCase;
+import io.marcus.domain.port.TerminalReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,6 +28,7 @@ public class BotController {
     private final RegisterBotUseCase registerBotUseCase;
     private final ListPublicBotsUseCase listPublicBotsUseCase;
     private final ListDeveloperBotsUseCase listDeveloperBotsUseCase;
+    private final GetBotDetailUseCase getBotDetailUseCase;
 
     @GetMapping
     public ResponseEntity<List<BotSummaryResult>> getPublicBots() {
@@ -34,6 +38,11 @@ public class BotController {
     @GetMapping("/my-bots")
     public ResponseEntity<List<BotSummaryResult>> getMyBots() {
         return ResponseEntity.ok(listDeveloperBotsUseCase.execute());
+    }
+
+    @GetMapping("/{botId}")
+    public ResponseEntity<TerminalReadPort.BotDetailSnapshot> getBotDetail(@PathVariable String botId) {
+        return ResponseEntity.ok(getBotDetailUseCase.execute(botId));
     }
 
     @PostMapping({"", "/register"})
