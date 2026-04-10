@@ -9,6 +9,8 @@ public interface TerminalReadPort {
 
     DashboardOverviewSnapshot getDashboardOverview(String userId);
 
+        List<TimeSeriesPointSnapshot> listDashboardEquitySeries(String userId, String range);
+
     List<ExchangeAllocationSnapshot> listExchangeAllocation(String userId);
 
     StrategyDetailSnapshot getStrategyDetail(String strategyId);
@@ -30,13 +32,31 @@ public interface TerminalReadPort {
 
     LeaderboardFeaturedSnapshot listLeaderboardFeatured();
 
+        List<StrategySpotlightSnapshot> listLeaderboardSpotlights();
+
     PaperSessionSummarySnapshot getPaperSessionSummary(String userId);
 
     List<PaperSignalSnapshot> listPaperSignals(String status, int limit);
 
+        PaperExecutionLogPageSnapshot listPaperExecutionLogs(String userId, String cursor, int limit);
+
+        PaperOrderSnapshot createPaperOrder(String userId, PaperOrderCreateSnapshot request);
+
+        PaperSessionStateSnapshot pausePaperSession(String userId);
+
+        PaperSessionStateSnapshot resumePaperSession(String userId);
+
     UserProfileSnapshot getCurrentUserProfile(String userId);
 
+        UserPreferencesSnapshot updateCurrentUserPreferences(String userId, UserPreferencesUpdateSnapshot request);
+
     List<ApiKeySummarySnapshot> listCurrentUserApiKeys(String userId);
+
+        CreateApiKeySnapshot createCurrentUserApiKey(String userId, String label);
+
+        void deleteCurrentUserApiKey(String userId, String apiKeyId);
+
+        LoginActivityPageSnapshot listCurrentUserLoginActivities(String userId, int page, int size);
 
     List<SignalItemSnapshot> listSignals(String status, int limit);
 
@@ -129,9 +149,7 @@ public interface TerminalReadPort {
 
     record LeaderboardStrategiesPageSnapshot(
             List<LeaderboardStrategySnapshot> items,
-            int page,
-            int size,
-            long totalElements
+            OffsetPaginationMetaSnapshot meta
     ) {
     }
 
@@ -144,6 +162,14 @@ public interface TerminalReadPort {
     }
 
     record LeaderboardFeaturedSnapshot(List<LeaderboardFeaturedItemSnapshot> items) {
+    }
+
+    record StrategySpotlightSnapshot(
+            String strategyId,
+            String strategyName,
+            String market,
+            double oneDayReturn
+    ) {
     }
 
     record PaperSessionSummarySnapshot(
@@ -166,7 +192,64 @@ public interface TerminalReadPort {
     ) {
     }
 
+    record PaperOrderCreateSnapshot(
+            String assetPair,
+            String orderType,
+            String side,
+            double quantity,
+            Double limitPrice
+    ) {
+    }
+
+    record PaperOrderSnapshot(
+            String orderId,
+            String status,
+            double executedPrice
+    ) {
+    }
+
+    record PaperSessionStateSnapshot(
+            String sessionId,
+            String status
+    ) {
+    }
+
+    record PaperExecutionLogItemSnapshot(
+            LocalDateTime timestamp,
+            String level,
+            String message
+    ) {
+    }
+
+    record CursorPaginationMetaSnapshot(
+            String cursor,
+            String nextCursor,
+            int limit,
+            boolean hasMore
+    ) {
+    }
+
+    record PaperExecutionLogPageSnapshot(
+            List<PaperExecutionLogItemSnapshot> items,
+            CursorPaginationMetaSnapshot meta
+    ) {
+    }
+
     record UserProfileSnapshot(String userId, String username, String email, String role) {
+    }
+
+    record UserPreferencesUpdateSnapshot(
+            String timezone,
+            String locale,
+            Boolean emailNotificationsEnabled
+    ) {
+    }
+
+    record UserPreferencesSnapshot(
+            String timezone,
+            String locale,
+            boolean emailNotificationsEnabled
+    ) {
     }
 
     record ApiKeySummarySnapshot(
@@ -175,6 +258,36 @@ public interface TerminalReadPort {
             String maskedKey,
             LocalDateTime createdAt,
             LocalDateTime lastUsedAt
+    ) {
+    }
+
+    record CreateApiKeySnapshot(
+            String apiKeyId,
+            String key,
+            String label
+    ) {
+    }
+
+    record LoginActivitySnapshot(
+            LocalDateTime occurredAt,
+            String ipAddress,
+            String userAgent,
+            boolean success
+    ) {
+    }
+
+    record LoginActivityPageSnapshot(
+            List<LoginActivitySnapshot> items,
+            OffsetPaginationMetaSnapshot meta
+    ) {
+    }
+
+    record OffsetPaginationMetaSnapshot(
+            int page,
+            int size,
+            long totalElements,
+            int totalPages,
+            boolean hasNext
     ) {
     }
 

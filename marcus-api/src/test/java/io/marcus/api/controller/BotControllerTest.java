@@ -7,6 +7,7 @@ import io.marcus.application.dto.BotSummaryResult;
 import io.marcus.application.dto.BotRegistrationResult;
 import io.marcus.application.dto.RegisterBotRequest;
 import io.marcus.application.exception.ForbiddenOperationException;
+import io.marcus.application.usecase.GetBotDetailUseCase;
 import io.marcus.application.usecase.ListDeveloperBotsUseCase;
 import io.marcus.application.usecase.ListPublicBotsUseCase;
 import io.marcus.application.usecase.RegisterBotUseCase;
@@ -49,6 +50,9 @@ class BotControllerTest {
 
     @MockBean
     private ListDeveloperBotsUseCase listDeveloperBotsUseCase;
+
+        @MockBean
+        private GetBotDetailUseCase getBotDetailUseCase;
 
     @MockBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;

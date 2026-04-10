@@ -5,6 +5,8 @@ import io.marcus.api.security.JwtAuthenticationFilter;
 import io.marcus.application.dto.MySubscriptionsResult;
 import io.marcus.application.dto.SubscribeBotResult;
 import io.marcus.application.dto.SubscriptionSummaryResult;
+import io.marcus.application.exception.ForbiddenOperationException;
+import io.marcus.application.exception.UnauthenticatedException;
 import io.marcus.application.usecase.ListMySubscriptionsUseCase;
 import io.marcus.application.usecase.SubscribeBotUseCase;
 import io.marcus.domain.exception.BotNotFoundException;
@@ -109,5 +111,34 @@ class SubscriptionControllerTest {
                 .andExpect(jsonPath("$.code").value("BOT_NOT_FOUND"))
                 .andExpect(jsonPath("$.message").value("Bot not found: bot_missing"))
                 .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void shouldReturnUnauthorizedWhenSubscribeWithoutAuthenticatedUser() throws Exception {
+        when(subscribeBotUseCase.execute("bot_1"))
+                .thenThrow(new UnauthenticatedException("No authenticated user found"));
+
+        mockMvc.perform(post("/api/v1/subscriptions/bot_1"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.path").value("/api/v1/subscriptions/bot_1"))
+                .andExpect(jsonPath("$.traceId").isNotEmpty())
+                .andExpect(jsonPath("$.timestamp").isNotEmpty());
+    }
+
+    @Test
+    void shouldReturnForbiddenWhenListMySubscriptionsForNonTraderRole() throws Exception {
+        when(listMySubscriptionsUseCase.execute())
+                .thenThrow(new ForbiddenOperationException("Only trader can view subscriptions"));
+
+        mockMvc.perform(get("/api/v1/subscriptions/my-subscriptions"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+                .andExpect(jsonPath("$.message").value("Only trader can view subscriptions"))
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.path").value("/api/v1/subscriptions/my-subscriptions"))
+                .andExpect(jsonPath("$.traceId").isNotEmpty())
+                .andExpect(jsonPath("$.timestamp").isNotEmpty());
     }
 }

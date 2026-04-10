@@ -7,12 +7,16 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 @Component
 public class StaticTerminalReadAdapter implements TerminalReadPort {
 
     private static final LocalDateTime BASE_TIME = LocalDateTime.of(2026, 1, 1, 9, 0);
+    private final ConcurrentMap<String, String> paperSessionStates = new ConcurrentHashMap<>();
 
     @Override
     public BotDetailSnapshot getBotDetail(String botId) {
@@ -51,6 +55,12 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
         double winRate = scaled(normalizedUserId + ":win-rate", 0.35, 0.89);
         int activeBots = boundedInt(normalizedUserId + ":active-bots", 1, 9);
         return new DashboardOverviewSnapshot(totalEquity, openPnl, winRate, activeBots);
+    }
+
+    @Override
+    public List<TimeSeriesPointSnapshot> listDashboardEquitySeries(String userId, String range) {
+        String normalizedUserId = normalize(userId, "user-demo-001");
+        return listSeries(normalizedUserId + ":dashboard-series", range);
     }
 
     @Override
@@ -188,7 +198,7 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
             items.add(new LeaderboardStrategySnapshot(
                     rank,
                     strategyId,
-                    "Momentum " + rankMetricValue.toUpperCase(Locale.ROOT) + " " + rank,
+                    assetValue + " Momentum " + rankMetricValue.toUpperCase(Locale.ROOT) + " " + rank,
                     marketValue + " Desk",
                     cagr,
                     sharpe,
@@ -196,7 +206,16 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
             ));
         }
 
-        return new LeaderboardStrategiesPageSnapshot(items, normalizedPage, normalizedSize, 500L);
+        long totalElements = 500L;
+        int totalPages = (int) Math.ceil(totalElements / (double) normalizedSize);
+        OffsetPaginationMetaSnapshot meta = new OffsetPaginationMetaSnapshot(
+            normalizedPage,
+            normalizedSize,
+            totalElements,
+            totalPages,
+            normalizedPage + 1 < totalPages
+        );
+        return new LeaderboardStrategiesPageSnapshot(items, meta);
     }
 
     @Override
@@ -210,15 +229,25 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
     }
 
     @Override
+    public List<StrategySpotlightSnapshot> listLeaderboardSpotlights() {
+        return List.of(
+                new StrategySpotlightSnapshot("strat-spotlight-1", "Neutron Drift", "CRYPTO", 0.0312),
+                new StrategySpotlightSnapshot("strat-spotlight-2", "FX Pulse", "FOREX", 0.0185),
+                new StrategySpotlightSnapshot("strat-spotlight-3", "Commod Scan", "COMMODITIES", -0.0074)
+        );
+    }
+
+    @Override
     public PaperSessionSummarySnapshot getPaperSessionSummary(String userId) {
         String normalizedUserId = normalize(userId, "user-demo-001");
+        String currentState = paperSessionStates.computeIfAbsent(normalizedUserId, ignored -> "RUNNING");
         double virtualBalance = scaled(normalizedUserId + ":paper-balance", 5_000.0, 50_000.0);
         double openPnl = scaled(normalizedUserId + ":paper-pnl", -850.0, 1_950.0);
         double buyingPower = round2(virtualBalance * scaled(normalizedUserId + ":paper-power", 0.45, 0.88));
 
         return new PaperSessionSummarySnapshot(
                 "ps-" + shortCode(normalizedUserId),
-                "RUNNING",
+            currentState,
                 virtualBalance,
                 openPnl,
                 buyingPower
@@ -254,6 +283,76 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
     }
 
     @Override
+    public PaperExecutionLogPageSnapshot listPaperExecutionLogs(String userId, String cursor, int limit) {
+        String normalizedUserId = normalize(userId, "user-demo-001");
+        int normalizedLimit = Math.max(1, Math.min(limit, 200));
+        int offset = decodeCursorOffset(cursor);
+
+        List<PaperExecutionLogItemSnapshot> items = new ArrayList<>(normalizedLimit);
+        for (int index = 0; index < normalizedLimit; index++) {
+            int absoluteIndex = offset + index;
+            String seed = normalizedUserId + ":paper-log:" + absoluteIndex;
+            items.add(new PaperExecutionLogItemSnapshot(
+                    timeAt(seed, -absoluteIndex),
+                    (absoluteIndex % 10 == 0) ? "WARN" : "INFO",
+                    "Paper execution event #" + boundedInt(seed, 1000, 9999)
+            ));
+        }
+
+        int nextOffset = offset + normalizedLimit;
+        boolean hasMore = nextOffset < 1_000;
+        CursorPaginationMetaSnapshot meta = new CursorPaginationMetaSnapshot(
+                cursor,
+                hasMore ? "paper-cursor-" + nextOffset : null,
+                normalizedLimit,
+                hasMore
+        );
+        return new PaperExecutionLogPageSnapshot(items, meta);
+    }
+
+    @Override
+    public PaperOrderSnapshot createPaperOrder(String userId, PaperOrderCreateSnapshot request) {
+        String normalizedUserId = normalize(userId, "user-demo-001");
+        String seed = normalizedUserId
+                + ":"
+                + request.assetPair()
+                + ":"
+                + request.orderType()
+                + ":"
+                + request.side()
+                + ":"
+                + request.quantity();
+
+        double executedPrice;
+        if ("LIMIT".equalsIgnoreCase(request.orderType())) {
+            Double limitPrice = request.limitPrice();
+            executedPrice = round4(limitPrice == null ? 0.0 : limitPrice.doubleValue());
+        } else {
+            executedPrice = scaled(seed + ":executed", 20.0, 180.0);
+        }
+
+        return new PaperOrderSnapshot(
+                "ord_" + maskedBlock(seed, 8),
+                "ACCEPTED",
+                executedPrice
+        );
+    }
+
+    @Override
+    public PaperSessionStateSnapshot pausePaperSession(String userId) {
+        String normalizedUserId = normalize(userId, "user-demo-001");
+        paperSessionStates.put(normalizedUserId, "PAUSED");
+        return new PaperSessionStateSnapshot("ps-" + shortCode(normalizedUserId), "PAUSED");
+    }
+
+    @Override
+    public PaperSessionStateSnapshot resumePaperSession(String userId) {
+        String normalizedUserId = normalize(userId, "user-demo-001");
+        paperSessionStates.put(normalizedUserId, "RUNNING");
+        return new PaperSessionStateSnapshot("ps-" + shortCode(normalizedUserId), "RUNNING");
+    }
+
+    @Override
     public UserProfileSnapshot getCurrentUserProfile(String userId) {
         String normalizedUserId = normalize(userId, "user-demo-001");
         String code = shortCode(normalizedUserId);
@@ -262,6 +361,21 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
                 "trader_" + code,
                 "trader." + code + "@marcus.local",
                 "USER"
+        );
+    }
+
+    @Override
+    public UserPreferencesSnapshot updateCurrentUserPreferences(String userId, UserPreferencesUpdateSnapshot request) {
+        String normalizedUserId = normalize(userId, "user-demo-001");
+        String timezone = normalize(request.timezone(), "UTC");
+        String locale = normalize(request.locale(), "en-US");
+        boolean emailEnabled = request.emailNotificationsEnabled() == null
+                || request.emailNotificationsEnabled();
+
+        return new UserPreferencesSnapshot(
+                timezone,
+                locale,
+                emailEnabled && !normalizedUserId.isBlank()
         );
     }
 
@@ -285,6 +399,84 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
                         timeAt(normalizedUserId + ":key2:last", -10)
                 )
         );
+    }
+
+    @Override
+    public CreateApiKeySnapshot createCurrentUserApiKey(String userId, String label) {
+        String normalizedUserId = normalize(userId, "user-demo-001");
+        String normalizedLabel = normalize(label, "Default Key");
+        String seed = normalizedUserId + ":" + normalizedLabel.toLowerCase(Locale.ROOT);
+        String code = shortCode(seed);
+
+        return new CreateApiKeySnapshot(
+                "key-" + code,
+                "mk_live_" + maskedBlock(seed, 18),
+                normalizedLabel
+        );
+    }
+
+    @Override
+    public void deleteCurrentUserApiKey(String userId, String apiKeyId) {
+        normalize(userId, "user-demo-001");
+        String normalizedApiKeyId = normalize(apiKeyId, "");
+        if (!normalizedApiKeyId.startsWith("key-")) {
+            throw new NoSuchElementException("API key not found: " + normalizedApiKeyId);
+        }
+    }
+
+    @Override
+    public LoginActivityPageSnapshot listCurrentUserLoginActivities(String userId, int page, int size) {
+        String normalizedUserId = normalize(userId, "user-demo-001");
+        int normalizedPage = Math.max(page, 0);
+        int normalizedSize = Math.max(1, Math.min(size, 100));
+
+        long totalElements = 120L;
+        int totalPages = (int) Math.ceil(totalElements / (double) normalizedSize);
+        int offset = normalizedPage * normalizedSize;
+
+        List<LoginActivitySnapshot> items = new ArrayList<>(normalizedSize);
+        for (int index = 0; index < normalizedSize; index++) {
+            int absoluteIndex = offset + index;
+            String seed = normalizedUserId + ":login:" + absoluteIndex;
+            items.add(new LoginActivitySnapshot(
+                    timeAt(seed, -absoluteIndex),
+                    "192.168." + boundedInt(seed + ":oct3", 0, 255) + "." + boundedInt(seed + ":oct4", 1, 254),
+                    "MarcusTerminal/" + boundedInt(seed + ":ua", 2, 9) + "." + boundedInt(seed + ":ua-minor", 0, 9),
+                    boundedInt(seed + ":success", 0, 100) > 8
+            ));
+        }
+
+        OffsetPaginationMetaSnapshot meta = new OffsetPaginationMetaSnapshot(
+                normalizedPage,
+                normalizedSize,
+                totalElements,
+                totalPages,
+                normalizedPage + 1 < totalPages
+        );
+        return new LoginActivityPageSnapshot(items, meta);
+    }
+
+    private List<TimeSeriesPointSnapshot> listSeries(String seedPrefix, String range) {
+        String normalizedRange = normalize(range, "1M").toUpperCase(Locale.ROOT);
+
+        int points = switch (normalizedRange) {
+            case "1D" -> 24;
+            case "1W" -> 7;
+            case "1M" -> 30;
+            case "YTD" -> 24;
+            case "ALL" -> 36;
+            default -> throw new IllegalArgumentException("Unsupported range: " + range);
+        };
+
+        double baseValue = scaled(seedPrefix + ":base", 90.0, 135.0);
+        List<TimeSeriesPointSnapshot> result = new ArrayList<>(points);
+        for (int index = 0; index < points; index++) {
+            double drift = scaled(seedPrefix + ":drift:" + index, -1.20, 2.20);
+            double wave = Math.sin((index + 1) / 3.0) * 0.85;
+            baseValue = round4(baseValue + drift * 0.25 + wave * 0.15);
+            result.add(new TimeSeriesPointSnapshot(seriesTimestamp(points, index, normalizedRange), baseValue));
+        }
+        return result;
     }
 
     @Override
@@ -351,6 +543,19 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? fallback : trimmed;
+    }
+
+    private int decodeCursorOffset(String cursor) {
+        String normalizedCursor = normalize(cursor, "paper-cursor-0");
+        if (!normalizedCursor.startsWith("paper-cursor-")) {
+            return 0;
+        }
+        String raw = normalizedCursor.substring("paper-cursor-".length());
+        try {
+            return Math.max(Integer.parseInt(raw), 0);
+        } catch (NumberFormatException exception) {
+            return 0;
+        }
     }
 
     private String shortCode(String key) {

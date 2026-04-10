@@ -6,23 +6,35 @@ info:
     Contract-first delta for Marcus trading integration.
     This version completes High and Medium priority operations and standardizes
     reusable error responses.
+  license:
+    name: Proprietary
+    url: https://marcus.local/license
 
 servers:
   - url: /api/v1
 
+security:
+  - bearerAuth: []
+
 tags:
   - name: auth
-  - name: bots
-  - name: subscriptions
+    description: Authentication and token lifecycle operations.
+  - name: discovery
+    description: Bot discovery and content exploration endpoints.
   - name: dashboard
+    description: Portfolio and dashboard analytics endpoints.
   - name: strategies
+    description: Strategy details, metrics, and activity endpoints.
+  - name: exports
+    description: Export request operations for strategy reports.
   - name: leaderboard
+    description: Leaderboard ranking and spotlight data endpoints.
   - name: paper
+    description: Paper trading simulation session and order endpoints.
   - name: profile
+    description: Current user profile and preferences management.
   - name: system
-  - name: academy
-  - name: content
-  - name: market
+    description: Internal signal and platform health endpoints.
 
 paths:
   /auth/register:
@@ -92,7 +104,7 @@ paths:
 
   /bots:
     get:
-      tags: [bots]
+      tags: [discovery]
       operationId: listPublicBotsWithFilters
       summary: List public bots with optional filters and pagination.
       parameters:
@@ -117,13 +129,29 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/BotSummary'
+                $ref: '#/components/schemas/BotSummaryPage'
+              examples:
+                default:
+                  value:
+                    items:
+                      - botId: bot_001
+                        botName: BTC Momentum
+                        description: Momentum strategy for BTCUSDT
+                        status: ACTIVE
+                        tradingPair: BTCUSDT
+                        exchange: binance
+                    meta:
+                      page: 0
+                      size: 20
+                      totalElements: 1
+                      totalPages: 1
+                      hasNext: false
         '400':
           $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
     post:
-      tags: [bots]
+      tags: [discovery]
       operationId: registerBot
       summary: Register a bot (developer role).
       requestBody:
@@ -145,10 +173,16 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /bots/{botId}:
     get:
-      tags: [bots]
+      tags: [discovery]
       operationId: getBotDetail
       summary: Get a single bot by ID.
       parameters:
@@ -166,10 +200,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /bots/{botId}/performance:
     get:
-      tags: [bots]
+      tags: [discovery]
       operationId: getBotPerformance
       summary: Get performance metrics for a given bot.
       parameters:
@@ -187,10 +223,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /bots/my-bots:
     get:
-      tags: [bots]
+      tags: [discovery]
       operationId: listDeveloperBots
       summary: List bots owned by current developer.
       responses:
@@ -206,10 +244,12 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /subscriptions/{botId}:
     post:
-      tags: [subscriptions]
+      tags: [discovery]
       operationId: subscribeBot
       summary: Subscribe current user to bot strategy.
       parameters:
@@ -229,10 +269,16 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /subscriptions/my-subscriptions:
     get:
-      tags: [subscriptions]
+      tags: [discovery]
       operationId: listMySubscriptions
       summary: List subscriptions for current user.
       responses:
@@ -246,6 +292,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /signals:
     post:
@@ -271,6 +319,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '422':
           $ref: '#/components/responses/ValidationFailed'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
     get:
       tags: [system]
       operationId: listSignals
@@ -293,6 +343,8 @@ paths:
                   $ref: '#/components/schemas/SignalItem'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /portfolio/summary:
     get:
@@ -308,6 +360,8 @@ paths:
                 $ref: '#/components/schemas/PortfolioSummaryResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /portfolio/positions:
     get:
@@ -327,6 +381,8 @@ paths:
                   $ref: '#/components/schemas/PositionItem'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /dashboard/overview:
     get:
@@ -340,8 +396,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DashboardOverviewResponse'
+              examples:
+                default:
+                  value:
+                    totalEquity: 12500.25
+                    openPnl: 132.4
+                    winRate: 0.61
+                    activeBots: 3
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /dashboard/equity-series:
     get:
@@ -363,6 +428,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /dashboard/exchange-allocation:
     get:
@@ -380,6 +447,8 @@ paths:
                   $ref: '#/components/schemas/ExchangeAllocationItem'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /executions:
     get:
@@ -398,6 +467,8 @@ paths:
                 $ref: '#/components/schemas/ExecutionLogPage'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /strategies/{strategyId}:
     get:
@@ -413,10 +484,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/StrategyDetailResponse'
+              examples:
+                default:
+                  value:
+                    strategyId: stg_001
+                    strategyName: Momentum Alpha
+                    ownerName: Marcus Labs
+                    market: CRYPTO
+                    status: ACTIVE
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /strategies/{strategyId}/metrics:
     get:
@@ -443,6 +524,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /strategies/{strategyId}/performance-series:
     get:
@@ -467,6 +550,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /strategies/{strategyId}/trades:
     get:
@@ -492,6 +577,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /strategies/{strategyId}/favorite:
     post:
@@ -517,10 +604,14 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /strategies/{strategyId}/export/pdf:
     post:
-      tags: [strategies]
+      tags: [exports]
       operationId: exportStrategyReportPdf
       summary: Request PDF strategy report export.
       parameters:
@@ -536,10 +627,14 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /strategies/{strategyId}/export/json:
     post:
-      tags: [strategies]
+      tags: [exports]
       operationId: exportStrategySnapshotJson
       summary: Request JSON snapshot export.
       parameters:
@@ -555,6 +650,10 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /strategies/{strategyId}/paper-history:
     get:
@@ -581,6 +680,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /leaderboard/strategies:
     get:
@@ -616,6 +717,8 @@ paths:
                 $ref: '#/components/schemas/LeaderboardStrategiesPage'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /leaderboard/featured:
     get:
@@ -629,6 +732,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LeaderboardFeaturedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /leaderboard/spotlights:
     get:
@@ -644,10 +751,14 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/StrategySpotlight'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /academy/courses:
     get:
-      tags: [academy]
+      tags: [discovery]
       operationId: listAcademyCourses
       summary: List academy courses and learner progress metadata.
       parameters:
@@ -661,10 +772,12 @@ paths:
                 $ref: '#/components/schemas/AcademyCoursesResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /academy/metrics:
     get:
-      tags: [academy]
+      tags: [discovery]
       operationId: getAcademyMetrics
       summary: Get academy KPI summary cards.
       responses:
@@ -674,10 +787,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AcademyMetricsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /content/blog/posts:
     get:
-      tags: [content]
+      tags: [discovery]
       operationId: listBlogPosts
       summary: List blog posts with category and search filters.
       parameters:
@@ -695,10 +812,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BlogPostsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /content/blog/posts/{postId}:
     get:
-      tags: [content]
+      tags: [discovery]
       operationId: getBlogPostDetail
       summary: Get a single blog post by ID.
       parameters:
@@ -712,10 +833,12 @@ paths:
                 $ref: '#/components/schemas/BlogPostDetailResponse'
         '404':
           $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /content/newsletter/subscriptions:
     post:
-      tags: [content]
+      tags: [discovery]
       operationId: subscribeNewsletter
       summary: Subscribe email to Marcus newsletter feed.
       requestBody:
@@ -733,10 +856,16 @@ paths:
                 $ref: '#/components/schemas/NewsletterSubscriptionResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /content/research/reports:
     get:
-      tags: [content]
+      tags: [discovery]
       operationId: listResearchReports
       summary: List research reports for portal cards.
       parameters:
@@ -753,10 +882,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ResearchReportsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /content/research/reports/library:
     get:
-      tags: [content]
+      tags: [discovery]
       operationId: listResearchLibraryFiles
       summary: List downloadable files in research library widget.
       parameters:
@@ -770,10 +903,14 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ResearchLibraryFile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /content/research/reports/{reportId}/download:
     post:
-      tags: [content]
+      tags: [discovery]
       operationId: requestResearchReportDownload
       summary: Request downloadable URL for selected research report.
       parameters:
@@ -787,10 +924,12 @@ paths:
                 $ref: '#/components/schemas/ResearchReportDownloadResponse'
         '404':
           $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /market/overview:
     get:
-      tags: [market]
+      tags: [discovery]
       operationId: getMarketOverview
       summary: Get market pulse stats for home and market pages.
       responses:
@@ -800,6 +939,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MarketOverviewResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /paper/session:
     get:
@@ -815,10 +958,12 @@ paths:
                 $ref: '#/components/schemas/PaperSessionSummaryResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /bots/validate:
     post:
-      tags: [bots]
+      tags: [discovery]
       operationId: validateBotConfiguration
       summary: Validate bot wizard payload before registration.
       requestBody:
@@ -836,10 +981,14 @@ paths:
                 $ref: '#/components/schemas/BotConfigurationValidationResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /bots/drafts:
     post:
-      tags: [bots]
+      tags: [discovery]
       operationId: saveBotDraft
       summary: Save or update bot wizard draft for current user.
       requestBody:
@@ -857,6 +1006,10 @@ paths:
                 $ref: '#/components/schemas/SaveBotDraftResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /paper/signals:
     get:
@@ -883,6 +1036,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /paper/orders:
     post:
@@ -902,12 +1057,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaperOrderResponse'
+              examples:
+                default:
+                  value:
+                    orderId: ord_001
+                    status: ACCEPTED
+                    executedPrice: 64500.5
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '422':
           $ref: '#/components/responses/ValidationFailed'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /paper/session/pause:
     post:
@@ -923,6 +1086,10 @@ paths:
                 $ref: '#/components/schemas/PaperSessionStateResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /paper/session/resume:
     post:
@@ -938,6 +1105,10 @@ paths:
                 $ref: '#/components/schemas/PaperSessionStateResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /paper/logs:
     get:
@@ -956,6 +1127,8 @@ paths:
                 $ref: '#/components/schemas/PaperExecutionLogPage'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /users/me:
     get:
@@ -969,8 +1142,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserProfileResponse'
+              examples:
+                default:
+                  value:
+                    userId: usr_001
+                    username: trader.one
+                    email: trader.one@marcus.local
+                    role: USER
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /users/me/preferences:
     put:
@@ -994,6 +1176,10 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /users/me/api-keys:
     get:
@@ -1011,6 +1197,8 @@ paths:
                   $ref: '#/components/schemas/ApiKeySummary'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
     post:
       tags: [profile]
       operationId: createApiKey
@@ -1032,6 +1220,12 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /users/me/api-keys/{apiKeyId}:
     delete:
@@ -1047,6 +1241,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /users/me/login-activities:
     get:
@@ -1065,6 +1261,8 @@ paths:
                 $ref: '#/components/schemas/LoginActivityPage'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /system/connectivity:
     get:
@@ -1078,6 +1276,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ConnectivityHealthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /system/execution-logs:
     get:
@@ -1094,6 +1296,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ExecutionLogPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /system/webhook-health:
     get:
@@ -1107,8 +1313,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WebhookHealthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   parameters:
     BotId:
       name: botId
@@ -1254,6 +1470,39 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
 
   schemas:
+    OffsetPaginationMeta:
+      type: object
+      required: [page, size, totalElements, totalPages, hasNext]
+      properties:
+        page:
+          type: integer
+          minimum: 0
+        size:
+          type: integer
+          minimum: 1
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        hasNext:
+          type: boolean
+
+    CursorPaginationMeta:
+      type: object
+      required: [cursor, nextCursor, limit, hasMore]
+      properties:
+        cursor:
+          type: string
+          nullable: true
+        nextCursor:
+          type: string
+          nullable: true
+        limit:
+          type: integer
+        hasMore:
+          type: boolean
+
     LoginRequest:
       type: object
       required: [username, password]
@@ -1364,6 +1613,17 @@ components:
           type: string
         exchange:
           type: string
+
+    BotSummaryPage:
+      type: object
+      required: [items, meta]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BotSummary'
+        meta:
+          $ref: '#/components/schemas/OffsetPaginationMeta'
 
     BotDetailResponse:
       type: object
@@ -1659,13 +1919,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TradeLogItem'
-        page:
-          type: integer
-        size:
-          type: integer
-        totalElements:
-          type: integer
-          format: int64
+        meta:
+          $ref: '#/components/schemas/OffsetPaginationMeta'
 
     FavoriteStrategyRequest:
       type: object
@@ -1717,13 +1972,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PaperTradeHistoryItem'
-        page:
-          type: integer
-        size:
-          type: integer
-        totalElements:
-          type: integer
-          format: int64
+        meta:
+          $ref: '#/components/schemas/OffsetPaginationMeta'
 
     LeaderboardStrategyItem:
       type: object
@@ -1753,13 +2003,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/LeaderboardStrategyItem'
-        page:
-          type: integer
-        size:
-          type: integer
-        totalElements:
-          type: integer
-          format: int64
+        meta:
+          $ref: '#/components/schemas/OffsetPaginationMeta'
 
     LeaderboardFeaturedItem:
       type: object
@@ -1885,12 +2130,12 @@ components:
     PaperExecutionLogPage:
       type: object
       properties:
-        cursor:
-          type: string
         items:
           type: array
           items:
             $ref: '#/components/schemas/PaperExecutionLogItem'
+        meta:
+          $ref: '#/components/schemas/CursorPaginationMeta'
 
     UserProfileResponse:
       type: object
@@ -1977,13 +2222,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/LoginActivityItem'
-        page:
-          type: integer
-        size:
-          type: integer
-        totalElements:
-          type: integer
-          format: int64
+        meta:
+          $ref: '#/components/schemas/OffsetPaginationMeta'
 
     ConnectivityHealthDependency:
       type: object
@@ -2026,12 +2266,12 @@ components:
     ExecutionLogPage:
       type: object
       properties:
-        cursor:
-          type: string
         items:
           type: array
           items:
             $ref: '#/components/schemas/ExecutionLogItem'
+        meta:
+          $ref: '#/components/schemas/CursorPaginationMeta'
 
     AcademyCourseSummary:
       type: object
@@ -2099,13 +2339,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/BlogPostSummary'
-        page:
-          type: integer
-        size:
-          type: integer
-        totalElements:
-          type: integer
-          format: int64
+        meta:
+          $ref: '#/components/schemas/OffsetPaginationMeta'
 
     BlogPostDetailResponse:
       allOf:
@@ -2160,13 +2395,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ResearchReportSummary'
-        page:
-          type: integer
-        size:
-          type: integer
-        totalElements:
-          type: integer
-          format: int64
+        meta:
+          $ref: '#/components/schemas/OffsetPaginationMeta'
 
     ResearchLibraryFile:
       type: object
@@ -2312,6 +2542,13 @@ components:
         timestamp:
           type: string
           format: date-time
+      example:
+        code: BAD_REQUEST
+        message: Bot name is required
+        status: 400
+        traceId: 7dc5e5b8-3136-4b71-8540-b6f85cb3b6b3
+        path: /api/v1/bots
+        timestamp: '2026-04-10T10:00:00Z'
 
     FieldValidationError:
       type: object
@@ -2332,3 +2569,13 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/FieldValidationError'
+      example:
+        code: VALIDATION_FAILED
+        message: Validation failed
+        status: 422
+        traceId: 643ad58e-13a8-4f38-9bf1-6be7f0a093f0
+        path: /api/v1/paper/orders
+        timestamp: '2026-04-10T10:00:00Z'
+        errors:
+          - field: quantity
+            reason: must be greater than 0

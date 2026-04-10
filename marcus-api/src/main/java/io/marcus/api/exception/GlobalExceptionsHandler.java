@@ -1,6 +1,7 @@
 package io.marcus.api.exception;
 
 import io.marcus.application.exception.ForbiddenOperationException;
+import io.marcus.application.exception.ResourceConflictException;
 import io.marcus.application.exception.UnauthenticatedException;
 import io.marcus.domain.exception.BotNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,40 +14,51 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 
 @RestControllerAdvice
 public class GlobalExceptionsHandler {
 
     @ExceptionHandler(BotNotFoundException.class)
-    public ResponseEntity<ApiErrorResponse> handleBotNotFound(BotNotFoundException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleBotNotFound(BotNotFoundException ex, HttpServletRequest request) {
         return buildErrorResponse(HttpStatus.NOT_FOUND, "BOT_NOT_FOUND", ex.getMessage(), request);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ApiErrorResponse> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, "BAD_REQUEST", ex.getMessage(), request);
     }
 
+        @ExceptionHandler(NoSuchElementException.class)
+        public ResponseEntity<ErrorResponse> handleNotFound(NoSuchElementException ex, HttpServletRequest request) {
+                return buildErrorResponse(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage(), request);
+        }
+
+    @ExceptionHandler(ResourceConflictException.class)
+    public ResponseEntity<ErrorResponse> handleResourceConflict(ResourceConflictException ex, HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), request);
+    }
+
     @ExceptionHandler(UnauthenticatedException.class)
-    public ResponseEntity<ApiErrorResponse> handleUnauthenticated(UnauthenticatedException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleUnauthenticated(UnauthenticatedException ex, HttpServletRequest request) {
         return buildErrorResponse(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", ex.getMessage(), request);
     }
 
     @ExceptionHandler(ForbiddenOperationException.class)
-    public ResponseEntity<ApiErrorResponse> handleForbiddenOperation(ForbiddenOperationException ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleForbiddenOperation(ForbiddenOperationException ex, HttpServletRequest request) {
         return buildErrorResponse(HttpStatus.FORBIDDEN, "FORBIDDEN", ex.getMessage(), request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiValidationErrorResponse> handleMethodArgumentNotValid(
+    public ResponseEntity<ValidationErrorResponse> handleMethodArgumentNotValid(
             MethodArgumentNotValidException ex,
             HttpServletRequest request
     ) {
-        List<ApiFieldError> errors = ex.getBindingResult()
+        List<FieldValidationError> errors = ex.getBindingResult()
                 .getFieldErrors()
                 .stream()
-                .map(fieldError -> new ApiFieldError(
+                .map(fieldError -> new FieldValidationError(
                         fieldError.getField(),
                         fieldError.getDefaultMessage() == null ? "Invalid value" : fieldError.getDefaultMessage()
                 ))
@@ -62,13 +74,13 @@ public class GlobalExceptionsHandler {
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<ApiValidationErrorResponse> handleConstraintViolation(
+    public ResponseEntity<ValidationErrorResponse> handleConstraintViolation(
             ConstraintViolationException ex,
             HttpServletRequest request
     ) {
-        List<ApiFieldError> errors = ex.getConstraintViolations()
+        List<FieldValidationError> errors = ex.getConstraintViolations()
                 .stream()
-                .map(violation -> new ApiFieldError(
+                .map(violation -> new FieldValidationError(
                         violation.getPropertyPath().toString(),
                         violation.getMessage()
                 ))
@@ -84,7 +96,7 @@ public class GlobalExceptionsHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiErrorResponse> handleUnexpected(Exception ex, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex, HttpServletRequest request) {
         return buildErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "INTERNAL_SERVER_ERROR",
@@ -93,13 +105,13 @@ public class GlobalExceptionsHandler {
         );
     }
 
-    private ResponseEntity<ApiErrorResponse> buildErrorResponse(
+    private ResponseEntity<ErrorResponse> buildErrorResponse(
             HttpStatus status,
             String code,
             String message,
             HttpServletRequest request
     ) {
-        ApiErrorResponse response = new ApiErrorResponse(
+        ErrorResponse response = new ErrorResponse(
                 code,
                 message,
                 status.value(),
@@ -113,14 +125,14 @@ public class GlobalExceptionsHandler {
                 .body(response);
     }
 
-    private ResponseEntity<ApiValidationErrorResponse> buildValidationErrorResponse(
+    private ResponseEntity<ValidationErrorResponse> buildValidationErrorResponse(
             HttpStatus status,
             String code,
             String message,
-            List<ApiFieldError> errors,
+            List<FieldValidationError> errors,
             HttpServletRequest request
     ) {
-        ApiValidationErrorResponse response = new ApiValidationErrorResponse(
+        ValidationErrorResponse response = new ValidationErrorResponse(
                 code,
                 message,
                 status.value(),

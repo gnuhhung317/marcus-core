@@ -1,11 +1,13 @@
 package io.marcus.api.controller;
 
 import io.marcus.application.usecase.GetDashboardExchangeAllocationUseCase;
+import io.marcus.application.usecase.GetDashboardEquitySeriesUseCase;
 import io.marcus.application.usecase.GetDashboardOverviewUseCase;
 import io.marcus.domain.port.TerminalReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -17,11 +19,19 @@ import java.util.List;
 public class DashboardController {
 
     private final GetDashboardOverviewUseCase getDashboardOverviewUseCase;
+    private final GetDashboardEquitySeriesUseCase getDashboardEquitySeriesUseCase;
     private final GetDashboardExchangeAllocationUseCase getDashboardExchangeAllocationUseCase;
 
     @GetMapping("/overview")
     public ResponseEntity<TerminalReadPort.DashboardOverviewSnapshot> getOverview() {
         return ResponseEntity.ok(getDashboardOverviewUseCase.execute());
+    }
+
+    @GetMapping("/equity-series")
+    public ResponseEntity<List<TerminalReadPort.TimeSeriesPointSnapshot>> getEquitySeries(
+            @RequestParam String range
+    ) {
+        return ResponseEntity.ok(getDashboardEquitySeriesUseCase.execute(range));
     }
 
     @GetMapping("/exchange-allocation")
