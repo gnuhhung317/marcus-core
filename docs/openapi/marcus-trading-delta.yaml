@@ -1,0 +1,46 @@
+﻿openapi: 3.0.3
+info:
+  title: Marcus Trading API Delta
+  version: 0.2.0
+  description: Contract delta for Marcus trading integration.
+  license:
+    name: Proprietary
+    url: https://marcus.local/license
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: system
+    description: System and health endpoints.
+paths:
+  /system/health:
+    get:
+      tags:
+        - system
+      operationId: getSystemHealth
+      summary: Returns service health status.
+      responses:
+        "200":
+          description: Service health response.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "401":
+          description: Unauthorized.
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          example: UP
