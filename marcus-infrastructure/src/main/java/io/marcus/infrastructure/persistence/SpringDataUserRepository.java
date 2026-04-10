@@ -12,5 +12,7 @@ public interface SpringDataUserRepository extends JpaRepository<UserEntity, Stri
     @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END FROM UserEntity u WHERE u.userId = :id AND u.role = :role")
     boolean existsByIdAndRole(String id, Role role);
 
+    Optional<UserEntity> findByUserId(String userId);
+
     Optional<UserEntity> findByUsername(String username);
 }
