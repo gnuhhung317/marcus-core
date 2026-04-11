@@ -9,5 +9,6 @@ public record MySubscriptionsResult(
         String wsToken,
         String localExecutorInstruction,
         List<SubscriptionSummaryResult> subscriptions
-) {
+        ) {
+
 }

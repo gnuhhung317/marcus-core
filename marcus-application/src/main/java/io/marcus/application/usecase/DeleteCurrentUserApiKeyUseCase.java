@@ -16,6 +16,11 @@ public class DeleteCurrentUserApiKeyUseCase {
     public void execute(String apiKeyId) {
         String userId = identityService.getCurrentUserId()
                 .orElseThrow(() -> new UnauthenticatedException("No authenticated user found"));
-        terminalReadPort.deleteCurrentUserApiKey(userId, apiKeyId);
+
+        if (apiKeyId == null || apiKeyId.isBlank()) {
+            throw new IllegalArgumentException("API key id is required");
+        }
+
+        terminalReadPort.deleteCurrentUserApiKey(userId, apiKeyId.trim());
     }
 }

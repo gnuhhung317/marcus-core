@@ -16,7 +16,40 @@ spring:
   flyway:
     enabled: false
     baseline-on-migrate: true
+  data:
+    redis:
+      host: 200.200.201.4
+      port: 6379
+  kafka:
+    bootstrap-servers: 200.200.201.4:9092
+    consumer:
+      group-id: marcus-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: io.marcus.domain.model
+        spring.json.value.default.type: io.marcus.domain.model.Signal
+        spring.json.use.type.headers: false
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+
+    listener:
+      ack-mode: record   # xử lý từng message
+
 marcus:
+  messaging:
+    signal-storage-topic: trading-signals
+    signal-storage-group: marcus-signal-storage
+    signal-storage-batch-size: 100
+    signal-routing-topic: trading-signals-routing
+    signal-dispatcher-group: marcus-signal-dispatcher
+    signal-dispatch-broadcast-channel: marcus:signals:dispatch:broadcast
+
   security:
     master-key: coleemchangkhocchutnaocoleemchangquantamanhrasao
     salt: 944440b12311f820b2cf6acd2290b497
@@ -24,3 +57,6 @@ marcus:
       secret: marcus-super-secret-key-change-me-at-least-32-bytes
       access-token-expiration-seconds: 3600
       refresh-token-expiration-seconds: 604800
+
+  server:
+    port: 8080

@@ -8,7 +8,9 @@ import org.springframework.stereotype.Component;
 public class SignalMapper {
 
     public Signal toDomain(SignalEntity entity) {
-        if (entity == null) return null;
+        if (entity == null) {
+            return null;
+        }
         return Signal.builder()
                 .signalId(entity.getSignalId())
                 .botId(entity.getBotId())
@@ -18,6 +20,7 @@ public class SignalMapper {
                 .takeProfit(entity.getTakeProfit())
                 .status(entity.getStatus())
                 .generatedTimestamp(entity.getGeneratedTimestamp())
+                .metadata(entity.getMetadata())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .deletedAt(entity.getDeletedAt())
@@ -25,7 +28,9 @@ public class SignalMapper {
     }
 
     public SignalEntity toEntity(Signal domain) {
-        if (domain == null) return null;
+        if (domain == null) {
+            return null;
+        }
         return SignalEntity.builder()
                 .signalId(domain.getSignalId())
                 .botId(domain.getBotId())
@@ -35,6 +40,7 @@ public class SignalMapper {
                 .takeProfit(domain.getTakeProfit())
                 .status(domain.getStatus())
                 .generatedTimestamp(domain.getGeneratedTimestamp())
+                .metadata(domain.getMetadata())
                 .createdAt(domain.getCreatedAt())
                 .updatedAt(domain.getUpdatedAt())
                 .deletedAt(domain.getDeletedAt())

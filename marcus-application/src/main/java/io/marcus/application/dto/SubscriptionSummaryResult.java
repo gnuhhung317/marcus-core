@@ -11,5 +11,6 @@ public record SubscriptionSummaryResult(
         String tradingPair,
         String status,
         LocalDateTime subscribedAt
-) {
+        ) {
+
 }

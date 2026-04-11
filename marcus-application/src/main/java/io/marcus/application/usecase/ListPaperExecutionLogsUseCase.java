@@ -16,7 +16,10 @@ public class ListPaperExecutionLogsUseCase {
     public TerminalReadPort.PaperExecutionLogPageSnapshot execute(String cursor, int limit) {
         String userId = identityService.getCurrentUserId()
                 .orElseThrow(() -> new UnauthenticatedException("No authenticated user found"));
+
         int normalizedLimit = Math.max(1, Math.min(limit, 200));
-        return terminalReadPort.listPaperExecutionLogs(userId, cursor, normalizedLimit);
+        String normalizedCursor = cursor == null || cursor.isBlank() ? null : cursor.trim();
+
+        return terminalReadPort.listPaperExecutionLogs(userId, normalizedCursor, normalizedLimit);
     }
 }

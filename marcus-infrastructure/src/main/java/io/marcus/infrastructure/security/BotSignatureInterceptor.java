@@ -4,64 +4,96 @@ import io.marcus.infrastructure.crypto.HmacSignatureValidator;
 import io.marcus.infrastructure.security.wrapper.MultiReadHttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.Locale;
 
 @Component
-@RequiredArgsConstructor
-@Slf4j
 public class BotSignatureInterceptor implements HandlerInterceptor {
+
+    private static final Logger log = LoggerFactory.getLogger(BotSignatureInterceptor.class);
+    private static final String HEADER_TIMESTAMP = "X-Timestamp";
+    private static final String HEADER_API_KEY = "X-Bot-Api-Key";
+    private static final String HEADER_SIGNATURE = "X-Signature";
+    private static final int IDEMPOTENCY_WINDOW_SECONDS = 60;
+    private static final long MAX_TIMESTAMP_SKEW_MILLIS = 60_000L;
+
     private final StringRedisTemplate redisTemplate;
     private final HmacSignatureValidator hmacSignatureValidator;
     private final BotSecretProvider botSecretProvider;
-    private static final int IDEMPOTENCY_WINDOW_SECONDS = 60;
+
+    public BotSignatureInterceptor(
+            StringRedisTemplate redisTemplate,
+            HmacSignatureValidator hmacSignatureValidator,
+            BotSecretProvider botSecretProvider
+    ) {
+        this.redisTemplate = redisTemplate;
+        this.hmacSignatureValidator = hmacSignatureValidator;
+        this.botSecretProvider = botSecretProvider;
+    }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
 
-        // 1. Check if the endpoint even has our annotation
-        if (handler instanceof HandlerMethod) {
-            HandlerMethod handlerMethod = (HandlerMethod) handler;
-            if (!handlerMethod.hasMethodAnnotation(RequireBotSignature.class)) {
-                return true; // No tag? Let it pass immediately.
-            }
+        if (!(handler instanceof HandlerMethod)) {
+            return true;
         }
 
-        // 2. Extract Headers: X-Timestamp, X-Bot-Api-Key, X-Signature
-        String timestampHeader = request.getHeader("X-Timestamp");
-        String apiKey = request.getHeader("X-Bot-Api-Key");
-        String signature = request.getHeader("X-Signature");
+        String timestampHeader = request.getHeader(HEADER_TIMESTAMP);
+        String apiKey = request.getHeader(HEADER_API_KEY);
+        String signatureHeader = request.getHeader(HEADER_SIGNATURE);
 
-        if (timestampHeader == null || apiKey == null || signature == null) {
+        if (timestampHeader == null || apiKey == null || signatureHeader == null) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return false;
         }
 
-        long timestamp = Long.parseLong(timestampHeader);
+        timestampHeader = timestampHeader.trim();
+        apiKey = apiKey.trim();
+        String normalizedSignature = signatureHeader.trim().toLowerCase(Locale.ROOT);
 
-        // 3. Prevent Replay Attack
-        if (timestamp < System.currentTimeMillis() - 5000) {
+        if (timestampHeader.isEmpty() || apiKey.isEmpty() || normalizedSignature.isEmpty()) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return false;
         }
 
-        // 4. Redis Idempotency Check
-        String redisKey = "idem:sig:" + signature;
-        Boolean isUnique = redisTemplate.opsForValue().setIfAbsent(redisKey, "1", Duration.ofSeconds(IDEMPOTENCY_WINDOW_SECONDS));
+        long timestamp;
+        try {
+            timestamp = Long.parseLong(timestampHeader);
+        } catch (NumberFormatException ex) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return false;
+        }
+
+        long now = System.currentTimeMillis();
+        if (Math.abs(now - timestamp) > MAX_TIMESTAMP_SKEW_MILLIS) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return false;
+        }
+
+        String redisKey = "idem:sig:" + apiKey + ":" + normalizedSignature;
+        Boolean isUnique;
+        try {
+            isUnique = redisTemplate.opsForValue().setIfAbsent(redisKey, "1", Duration.ofSeconds(IDEMPOTENCY_WINDOW_SECONDS));
+        } catch (Exception ex) {
+            log.warn("Idempotency check failed due to Redis error: {}", ex.getMessage());
+            response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+            return false;
+        }
+
         if (Boolean.FALSE.equals(isUnique)) {
-            log.warn("Idempotency Violation! Signature: {}", signature);
+            log.warn("Idempotency Violation! Signature: {}", normalizedSignature);
             response.setStatus(HttpServletResponse.SC_CONFLICT);
             return false;
         }
 
         String jsonBody;
-        // 5. Read body from our cached wrapper
         if (request instanceof MultiReadHttpServletRequestWrapper multiReadRequest) {
             jsonBody = multiReadRequest.getBody();
         } else {
@@ -70,14 +102,17 @@ public class BotSignatureInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        // 6. Calculate HMAC-SHA256
-        String botSecret = botSecretProvider.getEncryptedSecret(apiKey);
-        if (botSecret == null) {
-            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        String botSecret;
+        try {
+            botSecret = botSecretProvider.getEncryptedSecret(apiKey);
+        } catch (Exception ex) {
+            log.warn("Bot secret not found for API Key: {}", apiKey);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return false;
         }
 
-        boolean isValid = hmacSignatureValidator.isValid(jsonBody, botSecret, signature);
+        String signaturePayload = timestampHeader + "\n" + jsonBody;
+        boolean isValid = hmacSignatureValidator.isValid(signaturePayload, botSecret, normalizedSignature);
         if (!isValid) {
             log.warn("Invalid signature for API Key: {}", apiKey);
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
