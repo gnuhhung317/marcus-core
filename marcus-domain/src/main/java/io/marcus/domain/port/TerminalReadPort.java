@@ -7,6 +7,10 @@ public interface TerminalReadPort {
 
     BotDetailSnapshot getBotDetail(String botId);
 
+        BotDiscoveryPageSnapshot listPublicBots(String q, String asset, String risk, String sort, int page, int size);
+
+        FavoriteStrategySnapshot favoriteStrategy(String userId, String strategyId);
+
     DashboardOverviewSnapshot getDashboardOverview(String userId);
 
         List<TimeSeriesPointSnapshot> listDashboardEquitySeries(String userId, String range);
@@ -86,6 +90,30 @@ public interface TerminalReadPort {
             double winRate,
             double avgTradeReturn,
             double tradesPerDay
+    ) {
+    }
+
+    record BotDiscoverySnapshot(
+            String botId,
+            String botName,
+            String description,
+            String asset,
+            String risk,
+            double annualReturn,
+            double maxDrawdown,
+            int subscribers
+    ) {
+    }
+
+    record BotDiscoveryPageSnapshot(
+            List<BotDiscoverySnapshot> items,
+            OffsetPaginationMetaSnapshot meta
+    ) {
+    }
+
+    record FavoriteStrategySnapshot(
+            String strategyId,
+            boolean favorited
     ) {
     }
 

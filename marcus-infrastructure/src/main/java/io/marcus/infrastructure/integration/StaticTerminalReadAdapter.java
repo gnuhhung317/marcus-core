@@ -5,10 +5,12 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -16,7 +18,22 @@ import java.util.concurrent.ConcurrentMap;
 public class StaticTerminalReadAdapter implements TerminalReadPort {
 
     private static final LocalDateTime BASE_TIME = LocalDateTime.of(2026, 1, 1, 9, 0);
+    private static final List<DiscoveryBotSeed> PUBLIC_BOTS = List.of(
+            new DiscoveryBotSeed("bot-discovery-001", "Apex Momentum", "Trend-following crypto bot", "BTCUSDT", "LOW", 0.284, 0.084, 1240),
+            new DiscoveryBotSeed("bot-discovery-002", "Harbor Mean Reversion", "Mean reversion bot for ETH pairs", "ETHUSDT", "MEDIUM", 0.196, 0.132, 980),
+            new DiscoveryBotSeed("bot-discovery-003", "Orbit Breakout", "Volatility breakout on SOL markets", "SOLUSDT", "HIGH", 0.356, 0.218, 1525),
+            new DiscoveryBotSeed("bot-discovery-004", "Atlas Carry", "Low risk carry strategy for majors", "BTCUSDT", "LOW", 0.148, 0.062, 740),
+            new DiscoveryBotSeed("bot-discovery-005", "Pulse Range", "Range trading bot with tight stops", "BNBUSDT", "MEDIUM", 0.221, 0.101, 1112),
+            new DiscoveryBotSeed("bot-discovery-006", "Nimbus Scalper", "Intraday scalper tuned for micro trends", "ETHUSDT", "HIGH", 0.402, 0.247, 1688),
+            new DiscoveryBotSeed("bot-discovery-007", "Aurora Grid", "Grid execution bot for sideways markets", "XRPUSDT", "LOW", 0.173, 0.073, 606),
+            new DiscoveryBotSeed("bot-discovery-008", "Cipher Swing", "Swing strategy with broad asset coverage", "ADAUSDT", "MEDIUM", 0.247, 0.119, 889),
+            new DiscoveryBotSeed("bot-discovery-009", "Zenith Macro", "Macro overlay for cross-asset allocation", "EURUSD", "LOW", 0.132, 0.054, 512),
+            new DiscoveryBotSeed("bot-discovery-010", "Nova Pulse", "Event-driven crypto strategy", "BTCUSDT", "HIGH", 0.391, 0.264, 1410),
+            new DiscoveryBotSeed("bot-discovery-011", "Vector Drift", "Adaptive trend follower for FX", "GBPUSD", "MEDIUM", 0.215, 0.094, 733),
+            new DiscoveryBotSeed("bot-discovery-012", "Helix Edge", "Diversified bot with balanced risk", "SOLUSDT", "LOW", 0.264, 0.111, 1277)
+    );
     private final ConcurrentMap<String, String> paperSessionStates = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Set<String>> favoriteStrategiesByUser = new ConcurrentHashMap<>();
 
     @Override
     public BotDetailSnapshot getBotDetail(String botId) {
@@ -45,6 +62,51 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
                 timeAt(normalizedBotId, -2),
                 performance
         );
+    }
+
+    @Override
+    public BotDiscoveryPageSnapshot listPublicBots(String q, String asset, String risk, String sort, int page, int size) {
+        String normalizedQuery = normalize(q, null);
+        String normalizedAsset = normalize(asset, null);
+        String normalizedRisk = normalize(risk, "ALL").toUpperCase(Locale.ROOT);
+        String normalizedSort = normalize(sort, "-return").toLowerCase(Locale.ROOT);
+
+        List<BotDiscoverySnapshot> filtered = PUBLIC_BOTS.stream()
+                .filter(seed -> normalizedQuery == null || matchesQuery(seed, normalizedQuery))
+                .filter(seed -> normalizedAsset == null || seed.asset().equalsIgnoreCase(normalizedAsset))
+                .filter(seed -> "ALL".equals(normalizedRisk) || seed.risk().equalsIgnoreCase(normalizedRisk))
+            .sorted(comparatorForDiscoverySeed(normalizedSort))
+                .map(this::toDiscoverySnapshot)
+                .toList();
+
+        int normalizedPage = Math.max(page, 0);
+        int normalizedSize = Math.max(1, Math.min(size, 100));
+        int fromIndex = Math.min(normalizedPage * normalizedSize, filtered.size());
+        int toIndex = Math.min(fromIndex + normalizedSize, filtered.size());
+        List<BotDiscoverySnapshot> items = filtered.subList(fromIndex, toIndex);
+
+        long totalElements = filtered.size();
+        int totalPages = totalElements == 0 ? 0 : (int) Math.ceil(totalElements / (double) normalizedSize);
+        OffsetPaginationMetaSnapshot meta = new OffsetPaginationMetaSnapshot(
+                normalizedPage,
+                normalizedSize,
+                totalElements,
+                totalPages,
+                normalizedPage + 1 < totalPages
+        );
+        return new BotDiscoveryPageSnapshot(items, meta);
+    }
+
+    @Override
+    public FavoriteStrategySnapshot favoriteStrategy(String userId, String strategyId) {
+        String normalizedUserId = normalize(userId, "user-demo-001");
+        String normalizedStrategyId = normalize(strategyId, "strat-demo-001");
+
+        favoriteStrategiesByUser
+                .computeIfAbsent(normalizedUserId, ignored -> ConcurrentHashMap.newKeySet())
+                .add(normalizedStrategyId);
+
+        return new FavoriteStrategySnapshot(normalizedStrategyId, true);
     }
 
     @Override
@@ -308,6 +370,40 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
                 hasMore
         );
         return new PaperExecutionLogPageSnapshot(items, meta);
+    }
+
+    private BotDiscoverySnapshot toDiscoverySnapshot(DiscoveryBotSeed seed) {
+        return new BotDiscoverySnapshot(
+                seed.botId(),
+                seed.botName(),
+                seed.description(),
+                seed.asset(),
+                seed.risk(),
+                seed.annualReturn(),
+                seed.maxDrawdown(),
+                seed.subscribers()
+        );
+    }
+
+    private Comparator<DiscoveryBotSeed> comparatorForDiscoverySeed(String sort) {
+        return switch (sort) {
+            case "return" -> Comparator.comparingDouble(DiscoveryBotSeed::annualReturn);
+            case "-return" -> Comparator.comparingDouble(DiscoveryBotSeed::annualReturn).reversed();
+            case "drawdown" -> Comparator.comparingDouble(DiscoveryBotSeed::maxDrawdown);
+            case "-drawdown" -> Comparator.comparingDouble(DiscoveryBotSeed::maxDrawdown).reversed();
+            case "subscribers" -> Comparator.comparingInt(DiscoveryBotSeed::subscribers);
+            case "-subscribers" -> Comparator.comparingInt(DiscoveryBotSeed::subscribers).reversed();
+            default -> throw new IllegalArgumentException("Unsupported sort: " + sort);
+        };
+    }
+
+    private boolean matchesQuery(DiscoveryBotSeed seed, String query) {
+        String normalizedQuery = query.toLowerCase(Locale.ROOT);
+        return seed.botId().toLowerCase(Locale.ROOT).contains(normalizedQuery)
+                || seed.botName().toLowerCase(Locale.ROOT).contains(normalizedQuery)
+                || seed.description().toLowerCase(Locale.ROOT).contains(normalizedQuery)
+                || seed.asset().toLowerCase(Locale.ROOT).contains(normalizedQuery)
+                || seed.risk().toLowerCase(Locale.ROOT).contains(normalizedQuery);
     }
 
     @Override
@@ -623,5 +719,17 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
     private String marketFromSeed(String key) {
         String[] markets = {"CRYPTO", "FOREX", "COMMODITIES"};
         return markets[Math.floorMod(Objects.hash(key, "market"), markets.length)];
+    }
+
+    private record DiscoveryBotSeed(
+            String botId,
+            String botName,
+            String description,
+            String asset,
+            String risk,
+            double annualReturn,
+            double maxDrawdown,
+            int subscribers
+    ) {
     }
 }
