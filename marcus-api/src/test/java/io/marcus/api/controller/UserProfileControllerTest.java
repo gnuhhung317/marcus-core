@@ -74,15 +74,15 @@ class UserProfileControllerTest {
     @MockBean
     private BotSignatureInterceptor botSignatureInterceptor;
 
-        @BeforeEach
-        void setUpFilters() throws Exception {
-                doAnswer(invocation -> {
-                        FilterChain filterChain = invocation.getArgument(2);
-                        filterChain.doFilter(invocation.getArgument(0), invocation.getArgument(1));
-                        return null;
-                }).when(jwtAuthenticationFilter).doFilter(any(), any(), any());
-                when(botSignatureInterceptor.preHandle(any(), any(), any())).thenReturn(true);
-        }
+    @BeforeEach
+    void setUpFilters() throws Exception {
+        doAnswer(invocation -> {
+            FilterChain filterChain = invocation.getArgument(2);
+            filterChain.doFilter(invocation.getArgument(0), invocation.getArgument(1));
+            return null;
+        }).when(jwtAuthenticationFilter).doFilter(any(), any(), any());
+        when(botSignatureInterceptor.preHandle(any(), any(), any())).thenReturn(true);
+    }
 
     @Test
     @WithMockUser(roles = "TRADER")
@@ -96,8 +96,8 @@ class UserProfileControllerTest {
         when(updateCurrentUserPreferencesUseCase.execute(any(UpdateUserPreferencesRequest.class))).thenReturn(response);
 
         mockMvc.perform(put("/users/me/preferences")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.timezone").value("Asia/Ho_Chi_Minh"))
                 .andExpect(jsonPath("$.locale").value("vi-VN"))
@@ -114,8 +114,8 @@ class UserProfileControllerTest {
                 .thenThrow(new IllegalArgumentException("Timezone is required"));
 
         mockMvc.perform(put("/users/me/preferences")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$").value("Timezone is required"));
     }
@@ -155,8 +155,8 @@ class UserProfileControllerTest {
         when(createCurrentUserApiKeyUseCase.execute(any(CreateApiKeyRequest.class))).thenReturn(response);
 
         mockMvc.perform(post("/users/me/api-keys")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.apiKeyId").value("key-1"))
                 .andExpect(jsonPath("$.key").value("mk_live_secret"))
@@ -170,8 +170,8 @@ class UserProfileControllerTest {
         CreateApiKeyRequest request = new CreateApiKeyRequest("Primary key");
 
         mockMvc.perform(post("/users/me/api-keys")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isForbidden());
 
         verify(createCurrentUserApiKeyUseCase, never()).execute(any(CreateApiKeyRequest.class));
@@ -227,8 +227,8 @@ class UserProfileControllerTest {
         when(listCurrentUserLoginActivitiesUseCase.execute(1, 5)).thenReturn(response);
 
         mockMvc.perform(get("/users/me/login-activities")
-                        .queryParam("page", "1")
-                        .queryParam("size", "5"))
+                .queryParam("page", "1")
+                .queryParam("size", "5"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.meta.page").value(1))
                 .andExpect(jsonPath("$.meta.size").value(5));
