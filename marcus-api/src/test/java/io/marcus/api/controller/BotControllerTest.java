@@ -42,17 +42,17 @@ class BotControllerTest {
     @MockBean
     private RegisterBotUseCase registerBotUseCase;
 
-        @MockBean
-        private ListPublicBotsUseCase listPublicBotsUseCase;
+    @MockBean
+    private ListPublicBotsUseCase listPublicBotsUseCase;
 
-        @MockBean
-        private AccessTokenPort accessTokenPort;
+    @MockBean
+    private AccessTokenPort accessTokenPort;
 
-        @MockBean
-        private JwtAuthenticationFilter jwtAuthenticationFilter;
+    @MockBean
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
 
-        @MockBean
-        private BotSignatureInterceptor botSignatureInterceptor;
+    @MockBean
+    private BotSignatureInterceptor botSignatureInterceptor;
 
     @Test
     void shouldRegisterBotSuccessfully() throws Exception {
@@ -112,12 +112,12 @@ class BotControllerTest {
         when(listPublicBotsUseCase.execute(any(), any(), any(), any(), anyInt(), anyInt())).thenReturn(response);
 
         mockMvc.perform(get("/bots")
-                        .queryParam("q", "orbit")
-                        .queryParam("asset", "SOLUSDT")
-                        .queryParam("risk", "HIGH")
-                        .queryParam("sort", "-return")
-                        .queryParam("page", "1")
-                        .queryParam("size", "10"))
+                .queryParam("q", "orbit")
+                .queryParam("asset", "SOLUSDT")
+                .queryParam("risk", "HIGH")
+                .queryParam("sort", "-return")
+                .queryParam("page", "1")
+                .queryParam("size", "10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].botId").value("bot-discovery-003"))
                 .andExpect(jsonPath("$.items[0].asset").value("SOLUSDT"))

@@ -75,7 +75,7 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
                 .filter(seed -> normalizedQuery == null || matchesQuery(seed, normalizedQuery))
                 .filter(seed -> normalizedAsset == null || seed.asset().equalsIgnoreCase(normalizedAsset))
                 .filter(seed -> "ALL".equals(normalizedRisk) || seed.risk().equalsIgnoreCase(normalizedRisk))
-            .sorted(comparatorForDiscoverySeed(normalizedSort))
+                .sorted(comparatorForDiscoverySeed(normalizedSort))
                 .map(this::toDiscoverySnapshot)
                 .toList();
 
@@ -181,12 +181,18 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
         String normalizedRange = normalize(range, "1M").toUpperCase(Locale.ROOT);
 
         int points = switch (normalizedRange) {
-            case "1D" -> 24;
-            case "1W" -> 7;
-            case "1M" -> 30;
-            case "YTD" -> 24;
-            case "ALL" -> 36;
-            default -> 30;
+            case "1D" ->
+                24;
+            case "1W" ->
+                7;
+            case "1M" ->
+                30;
+            case "YTD" ->
+                24;
+            case "ALL" ->
+                36;
+            default ->
+                30;
         };
 
         double baseValue = scaled(normalizedStrategyId + ":series-base", 90.0, 135.0);
@@ -271,11 +277,11 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
         long totalElements = 500L;
         int totalPages = (int) Math.ceil(totalElements / (double) normalizedSize);
         OffsetPaginationMetaSnapshot meta = new OffsetPaginationMetaSnapshot(
-            normalizedPage,
-            normalizedSize,
-            totalElements,
-            totalPages,
-            normalizedPage + 1 < totalPages
+                normalizedPage,
+                normalizedSize,
+                totalElements,
+                totalPages,
+                normalizedPage + 1 < totalPages
         );
         return new LeaderboardStrategiesPageSnapshot(items, meta);
     }
@@ -309,7 +315,7 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
 
         return new PaperSessionSummarySnapshot(
                 "ps-" + shortCode(normalizedUserId),
-            currentState,
+                currentState,
                 virtualBalance,
                 openPnl,
                 buyingPower
@@ -387,13 +393,20 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
 
     private Comparator<DiscoveryBotSeed> comparatorForDiscoverySeed(String sort) {
         return switch (sort) {
-            case "return" -> Comparator.comparingDouble(DiscoveryBotSeed::annualReturn);
-            case "-return" -> Comparator.comparingDouble(DiscoveryBotSeed::annualReturn).reversed();
-            case "drawdown" -> Comparator.comparingDouble(DiscoveryBotSeed::maxDrawdown);
-            case "-drawdown" -> Comparator.comparingDouble(DiscoveryBotSeed::maxDrawdown).reversed();
-            case "subscribers" -> Comparator.comparingInt(DiscoveryBotSeed::subscribers);
-            case "-subscribers" -> Comparator.comparingInt(DiscoveryBotSeed::subscribers).reversed();
-            default -> throw new IllegalArgumentException("Unsupported sort: " + sort);
+            case "return" ->
+                Comparator.comparingDouble(DiscoveryBotSeed::annualReturn);
+            case "-return" ->
+                Comparator.comparingDouble(DiscoveryBotSeed::annualReturn).reversed();
+            case "drawdown" ->
+                Comparator.comparingDouble(DiscoveryBotSeed::maxDrawdown);
+            case "-drawdown" ->
+                Comparator.comparingDouble(DiscoveryBotSeed::maxDrawdown).reversed();
+            case "subscribers" ->
+                Comparator.comparingInt(DiscoveryBotSeed::subscribers);
+            case "-subscribers" ->
+                Comparator.comparingInt(DiscoveryBotSeed::subscribers).reversed();
+            default ->
+                throw new IllegalArgumentException("Unsupported sort: " + sort);
         };
     }
 
@@ -556,12 +569,18 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
         String normalizedRange = normalize(range, "1M").toUpperCase(Locale.ROOT);
 
         int points = switch (normalizedRange) {
-            case "1D" -> 24;
-            case "1W" -> 7;
-            case "1M" -> 30;
-            case "YTD" -> 24;
-            case "ALL" -> 36;
-            default -> throw new IllegalArgumentException("Unsupported range: " + range);
+            case "1D" ->
+                24;
+            case "1W" ->
+                7;
+            case "1M" ->
+                30;
+            case "YTD" ->
+                24;
+            case "ALL" ->
+                36;
+            default ->
+                throw new IllegalArgumentException("Unsupported range: " + range);
         };
 
         double baseValue = scaled(seedPrefix + ":base", 90.0, 135.0);
@@ -697,12 +716,18 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
 
     private LocalDateTime seriesTimestamp(int totalPoints, int index, String range) {
         return switch (range) {
-            case "1D" -> BASE_TIME.plusDays(96).minusHours(totalPoints - index);
-            case "1W" -> BASE_TIME.plusDays(96).minusDays(totalPoints - index);
-            case "1M" -> BASE_TIME.plusDays(96).minusDays(totalPoints - index);
-            case "YTD" -> BASE_TIME.plusDays(96).minusWeeks(totalPoints - index);
-            case "ALL" -> BASE_TIME.plusDays(96).minusMonths(totalPoints - index);
-            default -> BASE_TIME.plusDays(96).minusDays(totalPoints - index);
+            case "1D" ->
+                BASE_TIME.plusDays(96).minusHours(totalPoints - index);
+            case "1W" ->
+                BASE_TIME.plusDays(96).minusDays(totalPoints - index);
+            case "1M" ->
+                BASE_TIME.plusDays(96).minusDays(totalPoints - index);
+            case "YTD" ->
+                BASE_TIME.plusDays(96).minusWeeks(totalPoints - index);
+            case "ALL" ->
+                BASE_TIME.plusDays(96).minusMonths(totalPoints - index);
+            default ->
+                BASE_TIME.plusDays(96).minusDays(totalPoints - index);
         };
     }
 
@@ -730,6 +755,7 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
             double annualReturn,
             double maxDrawdown,
             int subscribers
-    ) {
+            ) {
+
     }
 }

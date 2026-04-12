@@ -7,13 +7,13 @@ public interface TerminalReadPort {
 
     BotDetailSnapshot getBotDetail(String botId);
 
-        BotDiscoveryPageSnapshot listPublicBots(String q, String asset, String risk, String sort, int page, int size);
+    BotDiscoveryPageSnapshot listPublicBots(String q, String asset, String risk, String sort, int page, int size);
 
-        FavoriteStrategySnapshot favoriteStrategy(String userId, String strategyId);
+    FavoriteStrategySnapshot favoriteStrategy(String userId, String strategyId);
 
     DashboardOverviewSnapshot getDashboardOverview(String userId);
 
-        List<TimeSeriesPointSnapshot> listDashboardEquitySeries(String userId, String range);
+    List<TimeSeriesPointSnapshot> listDashboardEquitySeries(String userId, String range);
 
     List<ExchangeAllocationSnapshot> listExchangeAllocation(String userId);
 
@@ -36,31 +36,31 @@ public interface TerminalReadPort {
 
     LeaderboardFeaturedSnapshot listLeaderboardFeatured();
 
-        List<StrategySpotlightSnapshot> listLeaderboardSpotlights();
+    List<StrategySpotlightSnapshot> listLeaderboardSpotlights();
 
     PaperSessionSummarySnapshot getPaperSessionSummary(String userId);
 
     List<PaperSignalSnapshot> listPaperSignals(String status, int limit);
 
-        PaperExecutionLogPageSnapshot listPaperExecutionLogs(String userId, String cursor, int limit);
+    PaperExecutionLogPageSnapshot listPaperExecutionLogs(String userId, String cursor, int limit);
 
-        PaperOrderSnapshot createPaperOrder(String userId, PaperOrderCreateSnapshot request);
+    PaperOrderSnapshot createPaperOrder(String userId, PaperOrderCreateSnapshot request);
 
-        PaperSessionStateSnapshot pausePaperSession(String userId);
+    PaperSessionStateSnapshot pausePaperSession(String userId);
 
-        PaperSessionStateSnapshot resumePaperSession(String userId);
+    PaperSessionStateSnapshot resumePaperSession(String userId);
 
     UserProfileSnapshot getCurrentUserProfile(String userId);
 
-        UserPreferencesSnapshot updateCurrentUserPreferences(String userId, UserPreferencesUpdateSnapshot request);
+    UserPreferencesSnapshot updateCurrentUserPreferences(String userId, UserPreferencesUpdateSnapshot request);
 
     List<ApiKeySummarySnapshot> listCurrentUserApiKeys(String userId);
 
-        CreateApiKeySnapshot createCurrentUserApiKey(String userId, String label);
+    CreateApiKeySnapshot createCurrentUserApiKey(String userId, String label);
 
-        void deleteCurrentUserApiKey(String userId, String apiKeyId);
+    void deleteCurrentUserApiKey(String userId, String apiKeyId);
 
-        LoginActivityPageSnapshot listCurrentUserLoginActivities(String userId, int page, int size);
+    LoginActivityPageSnapshot listCurrentUserLoginActivities(String userId, int page, int size);
 
     List<SignalItemSnapshot> listSignals(String status, int limit);
 
@@ -80,7 +80,8 @@ public interface TerminalReadPort {
             LocalDateTime createdAt,
             LocalDateTime updatedAt,
             BotPerformanceSnapshot performance
-    ) {
+            ) {
+
     }
 
     record BotPerformanceSnapshot(
@@ -90,7 +91,8 @@ public interface TerminalReadPort {
             double winRate,
             double avgTradeReturn,
             double tradesPerDay
-    ) {
+            ) {
+
     }
 
     record BotDiscoverySnapshot(
@@ -102,19 +104,22 @@ public interface TerminalReadPort {
             double annualReturn,
             double maxDrawdown,
             int subscribers
-    ) {
+            ) {
+
     }
 
     record BotDiscoveryPageSnapshot(
             List<BotDiscoverySnapshot> items,
             OffsetPaginationMetaSnapshot meta
-    ) {
+            ) {
+
     }
 
     record FavoriteStrategySnapshot(
             String strategyId,
             boolean favorited
-    ) {
+            ) {
+
     }
 
     record DashboardOverviewSnapshot(
@@ -122,10 +127,12 @@ public interface TerminalReadPort {
             double openPnl,
             double winRate,
             int activeBots
-    ) {
+            ) {
+
     }
 
     record ExchangeAllocationSnapshot(String exchange, double percentage) {
+
     }
 
     record StrategyDetailSnapshot(
@@ -134,7 +141,8 @@ public interface TerminalReadPort {
             String ownerName,
             String market,
             String status
-    ) {
+            ) {
+
     }
 
     record StrategyMetricsSnapshot(
@@ -144,10 +152,12 @@ public interface TerminalReadPort {
             double sortino,
             double calmar,
             double profitFactor
-    ) {
+            ) {
+
     }
 
     record TimeSeriesPointSnapshot(LocalDateTime timestamp, double value) {
+
     }
 
     record TradeLogSnapshot(
@@ -158,10 +168,12 @@ public interface TerminalReadPort {
             double entryPrice,
             double exitPrice,
             double netPnl
-    ) {
+            ) {
+
     }
 
     record TradeLogPageSnapshot(List<TradeLogSnapshot> items, int page, int size, long totalElements) {
+
     }
 
     record LeaderboardStrategySnapshot(
@@ -172,13 +184,15 @@ public interface TerminalReadPort {
             double cagr,
             double sharpe,
             double maxDrawdown
-    ) {
+            ) {
+
     }
 
     record LeaderboardStrategiesPageSnapshot(
             List<LeaderboardStrategySnapshot> items,
             OffsetPaginationMetaSnapshot meta
-    ) {
+            ) {
+
     }
 
     record LeaderboardFeaturedItemSnapshot(
@@ -186,10 +200,12 @@ public interface TerminalReadPort {
             String strategyName,
             String rankLabel,
             double sharpe
-    ) {
+            ) {
+
     }
 
     record LeaderboardFeaturedSnapshot(List<LeaderboardFeaturedItemSnapshot> items) {
+
     }
 
     record StrategySpotlightSnapshot(
@@ -197,7 +213,8 @@ public interface TerminalReadPort {
             String strategyName,
             String market,
             double oneDayReturn
-    ) {
+            ) {
+
     }
 
     record PaperSessionSummarySnapshot(
@@ -206,7 +223,8 @@ public interface TerminalReadPort {
             double virtualBalance,
             double openPnl,
             double buyingPower
-    ) {
+            ) {
+
     }
 
     record PaperSignalSnapshot(
@@ -217,7 +235,8 @@ public interface TerminalReadPort {
             double confidence,
             String status,
             LocalDateTime generatedAt
-    ) {
+            ) {
+
     }
 
     record PaperOrderCreateSnapshot(
@@ -226,27 +245,31 @@ public interface TerminalReadPort {
             String side,
             double quantity,
             Double limitPrice
-    ) {
+            ) {
+
     }
 
     record PaperOrderSnapshot(
             String orderId,
             String status,
             double executedPrice
-    ) {
+            ) {
+
     }
 
     record PaperSessionStateSnapshot(
             String sessionId,
             String status
-    ) {
+            ) {
+
     }
 
     record PaperExecutionLogItemSnapshot(
             LocalDateTime timestamp,
             String level,
             String message
-    ) {
+            ) {
+
     }
 
     record CursorPaginationMetaSnapshot(
@@ -254,30 +277,35 @@ public interface TerminalReadPort {
             String nextCursor,
             int limit,
             boolean hasMore
-    ) {
+            ) {
+
     }
 
     record PaperExecutionLogPageSnapshot(
             List<PaperExecutionLogItemSnapshot> items,
             CursorPaginationMetaSnapshot meta
-    ) {
+            ) {
+
     }
 
     record UserProfileSnapshot(String userId, String username, String email, String role) {
+
     }
 
     record UserPreferencesUpdateSnapshot(
             String timezone,
             String locale,
             Boolean emailNotificationsEnabled
-    ) {
+            ) {
+
     }
 
     record UserPreferencesSnapshot(
             String timezone,
             String locale,
             boolean emailNotificationsEnabled
-    ) {
+            ) {
+
     }
 
     record ApiKeySummarySnapshot(
@@ -286,14 +314,16 @@ public interface TerminalReadPort {
             String maskedKey,
             LocalDateTime createdAt,
             LocalDateTime lastUsedAt
-    ) {
+            ) {
+
     }
 
     record CreateApiKeySnapshot(
             String apiKeyId,
             String key,
             String label
-    ) {
+            ) {
+
     }
 
     record LoginActivitySnapshot(
@@ -301,13 +331,15 @@ public interface TerminalReadPort {
             String ipAddress,
             String userAgent,
             boolean success
-    ) {
+            ) {
+
     }
 
     record LoginActivityPageSnapshot(
             List<LoginActivitySnapshot> items,
             OffsetPaginationMetaSnapshot meta
-    ) {
+            ) {
+
     }
 
     record OffsetPaginationMetaSnapshot(
@@ -316,7 +348,8 @@ public interface TerminalReadPort {
             long totalElements,
             int totalPages,
             boolean hasNext
-    ) {
+            ) {
+
     }
 
     record SignalItemSnapshot(
@@ -328,22 +361,27 @@ public interface TerminalReadPort {
             double price,
             String status,
             LocalDateTime generatedTimestamp
-    ) {
+            ) {
+
     }
 
     record ConnectivityHealthDependencySnapshot(String name, String status, int latencyMs) {
+
     }
 
     record ConnectivityHealthSnapshot(
             String overallStatus,
             LocalDateTime checkedAt,
             List<ConnectivityHealthDependencySnapshot> dependencies
-    ) {
+            ) {
+
     }
 
     record ExecutionLogItemSnapshot(LocalDateTime timestamp, String level, String source, String message) {
+
     }
 
     record ExecutionLogPageSnapshot(String cursor, List<ExecutionLogItemSnapshot> items) {
+
     }
 }

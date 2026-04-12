@@ -48,21 +48,21 @@ class ListPublicBotsUseCaseTest {
 
     @Test
     void shouldRejectUnsupportedRiskFilter() {
-                IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () ->
-                listPublicBotsUseCase.execute(null, null, "EXTREME", "-return", 0, 20)
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, ()
+                -> listPublicBotsUseCase.execute(null, null, "EXTREME", "-return", 0, 20)
         );
 
-                org.junit.jupiter.api.Assertions.assertEquals("Unsupported risk: EXTREME", thrown.getMessage());
+        org.junit.jupiter.api.Assertions.assertEquals("Unsupported risk: EXTREME", thrown.getMessage());
         verifyNoInteractions(terminalReadPort);
     }
 
     @Test
     void shouldRejectUnsupportedSortFilter() {
-                IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () ->
-                listPublicBotsUseCase.execute(null, null, "LOW", "alpha", 0, 20)
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, ()
+                -> listPublicBotsUseCase.execute(null, null, "LOW", "alpha", 0, 20)
         );
 
-                org.junit.jupiter.api.Assertions.assertEquals("Unsupported sort: alpha", thrown.getMessage());
+        org.junit.jupiter.api.Assertions.assertEquals("Unsupported sort: alpha", thrown.getMessage());
         verifyNoInteractions(terminalReadPort);
     }
 }
