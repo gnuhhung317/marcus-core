@@ -27,4 +27,11 @@ public class JpaUserCredentialQueryAdapter implements UserCredentialQueryPort {
     public Optional<User> findByUsername(String username) {
         return springDataUserRepository.findByUsername(username).map(userMapper::toDomain);
     }
+
+    @Override
+    public Optional<User> findByUsernameOrEmail(String loginIdentifier) {
+        return springDataUserRepository.findByUsernameIgnoreCase(loginIdentifier)
+                .or(() -> springDataUserRepository.findByEmailIgnoreCase(loginIdentifier))
+                .map(userMapper::toDomain);
+    }
 }
