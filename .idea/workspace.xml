@@ -5,15 +5,27 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="74b35c14-9a2b-4622-9055-8322a9b4b6bf" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/marcus-api/src/main/resources/application-test.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docker-compose.yml" beforeDir="false" afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/marcus-api/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-api/pom.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/api/config/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/api/config/SecurityConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/api/controller/AuthController.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/api/controller/AuthController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/api/controller/BotController.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/api/controller/BotController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/api/controller/SignalController.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/api/controller/SignalController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/api/controller/StrategyController.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/api/controller/StrategyController.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/marcus-api/src/main/resources/application.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-api/src/main/resources/application.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/service/IdentityService.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/service/IdentityService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/marcus-infrastructure/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-infrastructure/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-application/src/main/java/io/marcus/application/dto/RegisterBotRequest.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-application/src/main/java/io/marcus/application/dto/RegisterBotRequest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-application/src/main/java/io/marcus/application/usecase/AuthenticateUserUseCase.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-application/src/main/java/io/marcus/application/usecase/AuthenticateUserUseCase.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/model/UserSubscription.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/model/UserSubscription.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/port/PasswordHashPort.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/port/PasswordHashPort.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/port/UserCredentialQueryPort.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/port/UserCredentialQueryPort.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/port/UserSubscriptionPersistencePort.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/port/UserSubscriptionPersistencePort.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/JpaUserCredentialQueryAdapter.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/JpaUserCredentialQueryAdapter.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/SpringDataUserRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/SpringDataUserRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/SpringSecurityIdentityService.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/SpringSecurityIdentityService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/mapper/UserMapper.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/mapper/UserMapper.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/BcryptPasswordHashAdapter.java" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/BcryptPasswordHashAdapter.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/marcus-infrastructure/src/main/resources/application.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/marcus-infrastructure/src/main/resources/application.yaml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -91,9 +103,9 @@
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "Spring Boot.MarcusParentApplication.executor": "Debug",
     "com.codeium.enabled": "true",
-    "git-widget-placeholder": "feature/authen",
+    "git-widget-placeholder": "main",
     "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "D:/Code/Projects/DATN/signal-core-backend",
+    "last_opened_file_path": "D:/Code/Projects/DATN/signal-core-backend/marcus-api/src/main/resources",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -112,6 +124,9 @@
     <option name="notificationShown" value="true" />
   </component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="D:\Code\Projects\DATN\signal-core-backend\marcus-api\src\main\resources" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="D:\Code\Projects\DATN\signal-core-backend\marcus-application\src\main\java\io\marcus\application" />
       <recent name="D:\Code\Projects\DATN\signal-core-backend\marcus-infrastructure\src\main\java\io\marcus\" />
@@ -125,6 +140,7 @@
   </component>
   <component name="RunManager">
     <configuration name="MarcusParentApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <option name="ACTIVE_PROFILES" value="test" />
       <module name="marcus-api" />
       <option name="SPRING_BOOT_MAIN_CLASS" value="io.marcus.MarcusParentApplication" />
       <method v="2">
@@ -158,6 +174,8 @@
       <workItem from="1773730650060" duration="10723000" />
       <workItem from="1773892810094" duration="3238000" />
       <workItem from="1773905843287" duration="2756000" />
+      <workItem from="1775964402588" duration="61000" />
+      <workItem from="1776953080782" duration="5946000" />
     </task>
     <servers />
   </component>
@@ -171,6 +189,21 @@
           <url>file://$PROJECT_DIR$/marcus-domain/src/main/java/io/marcus/domain/repository/BotRepository.java</url>
           <line>11</line>
           <option name="timeStamp" value="2" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/api/controller/LeaderboardController.java</url>
+          <line>32</line>
+          <option name="timeStamp" value="3" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/api/security/JwtAuthenticationFilter.java</url>
+          <line>35</line>
+          <option name="timeStamp" value="6" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/marcus-api/src/main/java/io/marcus/api/security/JwtAuthenticationFilter.java</url>
+          <line>51</line>
+          <option name="timeStamp" value="8" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

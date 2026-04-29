@@ -9,9 +9,11 @@ import io.marcus.domain.port.PasswordHashPort;
 import io.marcus.domain.port.RefreshTokenPort;
 import io.marcus.domain.port.UserCredentialQueryPort;
 import io.marcus.domain.vo.AuthenticatedUser;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 public class AuthenticateUserUseCase {
 
     private final UserCredentialQueryPort userCredentialQueryPort;
@@ -30,10 +32,37 @@ public class AuthenticateUserUseCase {
     }
 
     public LoginResponse execute(LoginRequest loginRequest) {
-        User user = userCredentialQueryPort.findByUsername(loginRequest.username())
-                .orElseThrow(() -> new UnauthenticatedException("Invalid username or password"));
+        String loginIdentifier = normalizeLoginIdentifier(loginRequest.username());
 
-        if (!passwordHashPort.matches(loginRequest.password(), user.getPasswordHash())) {
+        log.info("Auth login attempt received for identifier='{}'", maskLoginIdentifier(loginIdentifier));
+
+        if (loginIdentifier.isBlank()) {
+            log.warn("Auth login rejected because identifier is blank");
+            throw new UnauthenticatedException("Invalid username or password");
+        }
+
+        if (loginRequest.password() == null || loginRequest.password().isBlank()) {
+            log.warn("Auth login rejected for identifier='{}' because password is blank", maskLoginIdentifier(loginIdentifier));
+            throw new UnauthenticatedException("Invalid username or password");
+        }
+
+        User user = userCredentialQueryPort.findByUsernameOrEmail(loginIdentifier)
+                .orElseThrow(() -> {
+                    log.warn("Auth login user not found for identifier='{}'", maskLoginIdentifier(loginIdentifier));
+                    return new UnauthenticatedException("Invalid username or password");
+                });
+
+        log.info("Auth login user resolved: userId='{}', username='{}', email='{}', role='{}'",
+                user.getUserId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getRole());
+
+        boolean passwordMatched = passwordHashPort.matches(loginRequest.password(), user.getPasswordHash());
+        log.info("Auth password match result for userId='{}': {}", user.getUserId(), passwordMatched);
+
+        if (!passwordMatched) {
+            log.warn("Auth login rejected for userId='{}' because password mismatch", user.getUserId());
             throw new UnauthenticatedException("Invalid username or password");
         }
 
@@ -51,5 +80,29 @@ public class AuthenticateUserUseCase {
                 user.getUsername(),
                 user.getRole().name()
         );
+    }
+
+    private String normalizeLoginIdentifier(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.trim();
+    }
+
+    private String maskLoginIdentifier(String value) {
+        if (value == null || value.isBlank()) {
+            return "<blank>";
+        }
+
+        int atIndex = value.indexOf('@');
+        if (atIndex > 1) {
+            return value.charAt(0) + "***" + value.substring(atIndex);
+        }
+
+        if (value.length() <= 4) {
+            return "****";
+        }
+
+        return value.substring(0, 2) + "***" + value.substring(value.length() - 2);
     }
 }
