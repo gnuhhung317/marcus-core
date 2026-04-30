@@ -53,6 +53,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/login", "/auth/refresh", "/auth/register", "/api/v1/auth/**").permitAll()
                 .requestMatchers("/signal/**", "/api/v1/signals/**").permitAll()
+                .requestMatchers("/ws/**", "/api/v1/ws/**").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/bots/register").hasRole(Role.DEVELOPER.name())
                 .anyRequest().authenticated())

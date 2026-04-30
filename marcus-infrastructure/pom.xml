@@ -63,6 +63,12 @@
             <artifactId>spring-kafka</artifactId>
         </dependency>
 
+        <!-- Kafka clients with JsonSerializer/JsonDeserializer support -->
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
