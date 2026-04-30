@@ -28,6 +28,9 @@ public class SignalEntity extends BaseEntity {
     @Column(nullable = false)
     private String botId;
 
+    @Column(nullable = false)
+    private String symbol;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private SignalAction action;

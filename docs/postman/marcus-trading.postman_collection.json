@@ -1,0 +1,444 @@
+{
+  "info": {
+    "_postman_id": "7f2272ae-4448-4d6c-b6a3-4d9f1f65e8d8",
+    "name": "Marcus Trading API",
+    "description": "Collection generated from Marcus backend controllers. Import the environment first, log in once, and the access token will be saved into {{jwt}}.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register user",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"demo.trader\",\"displayName\":\"Demo Trader\",\"password\":\"Password123!\",\"email\":\"demo.trader@example.com\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/auth/register"
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\":\"demo.trader\",\"password\":\"Password123!\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const response = pm.response.json();",
+                  "  if (response.accessToken) { pm.environment.set('jwt', response.accessToken); }",
+                  "  if (response.refreshToken) { pm.environment.set('refreshToken', response.refreshToken); }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh token",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"refreshToken\":\"{{refreshToken}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/auth/refresh"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get overview",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/dashboard/overview"
+          }
+        },
+        {
+          "name": "Get equity series",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/dashboard/equity-series?range=30d"
+          }
+        },
+        {
+          "name": "Get exchange allocation",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/dashboard/exchange-allocation"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bots",
+      "item": [
+        {
+          "name": "Register bot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"description\":\"Momentum bot for BTC/USDT\",\"tradingPair\":\"BTC/USDT\",\"botName\":\"Momentum Alpha\",\"exchange\":\"BINANCE\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/bots/register"
+          }
+        },
+        {
+          "name": "List public bots",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/bots?q=&asset=&risk=&sort=-return&page=0&size=20"
+          }
+        },
+        {
+          "name": "Get bot detail",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/bots/{{botId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Leaderboard",
+      "item": [
+        {
+          "name": "List strategies",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/leaderboard/strategies?timeframe=24h&market=spot&asset=BTC&rankMetric=return&page=0&size=20"
+          }
+        },
+        {
+          "name": "List featured",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/leaderboard/featured"
+          }
+        },
+        {
+          "name": "List spotlights",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/leaderboard/spotlights"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paper",
+      "item": [
+        {
+          "name": "Get session summary",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/paper/session"
+          }
+        },
+        {
+          "name": "List signals",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/paper/signals?status=ALL&limit=50"
+          }
+        },
+        {
+          "name": "List logs",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/paper/logs?cursor={{paperCursor}}&limit=50"
+          }
+        },
+        {
+          "name": "Create paper order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"assetPair\":\"BTC/USDT\",\"orderType\":\"MARKET\",\"side\":\"BUY\",\"quantity\":0.01,\"limitPrice\":null}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/paper/orders"
+          }
+        },
+        {
+          "name": "Pause session",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/paper/session/pause"
+          }
+        },
+        {
+          "name": "Resume session",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/paper/session/resume"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Strategies",
+      "item": [
+        {
+          "name": "Favorite strategy",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/strategies/{{strategyId}}/favorite"
+          }
+        },
+        {
+          "name": "List strategy trades",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/strategies/{{strategyId}}/trades?page=0&size=8&asset=BTC"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Subscriptions",
+      "item": [
+        {
+          "name": "Subscribe to bot",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/subscriptions/{{botId}}"
+          }
+        },
+        {
+          "name": "Unsubscribe from bot",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/subscriptions/{{botId}}"
+          }
+        },
+        {
+          "name": "Connect executor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"wsToken\":\"{{jwt}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/subscriptions/{{botId}}/connect"
+          }
+        },
+        {
+          "name": "List active for bot",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/subscriptions/{{botId}}/active"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get me",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users/me"
+          }
+        },
+        {
+          "name": "List API keys",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users/me/api-keys"
+          }
+        },
+        {
+          "name": "Update preferences",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"timezone\":\"Asia/Ho_Chi_Minh\",\"locale\":\"vi-VN\",\"emailNotificationsEnabled\":true}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/users/me/preferences"
+          }
+        },
+        {
+          "name": "Create API key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"label\":\"Postman Test Key\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/users/me/api-keys"
+          }
+        },
+        {
+          "name": "Delete API key",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/users/me/api-keys/{{apiKeyId}}"
+          }
+        },
+        {
+          "name": "List login activities",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/users/me/login-activities?page=0&size=20"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Signal",
+      "item": [
+        {
+          "name": "Capture signal",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"signalId\":\"sig-demo-001\",\"botId\":\"demo-bot-id\",\"action\":\"BUY\",\"entry\":65432.1,\"stopLoss\":64800.0,\"takeProfit\":67000.0,\"status\":\"NEW\",\"generatedTimestamp\":\"2026-04-30T10:00:00\",\"metadata\":{\"source\":\"postman\"}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/signals"
+          }
+        }
+      ]
+    }
+  ]
+}
