@@ -30,6 +30,7 @@ public class RegisterUserUseCase {
         String normalizedUsername = normalizeUsername(registerUserRequest);
         String normalizedEmail = requireTrimmed(registerUserRequest.email(), "Email is required");
         String rawPassword = requireTrimmed(registerUserRequest.password(), "Password is required");
+        Role requestedRole = resolveRequestedRole(registerUserRequest.role());
 
         if (userUniquenessPort.existsByUsername(normalizedUsername)) {
             throw new IllegalArgumentException("Username already exists");
@@ -44,7 +45,7 @@ public class RegisterUserUseCase {
                 .username(normalizedUsername)
                 .passwordHash(passwordHashPort.encode(rawPassword))
                 .email(normalizedEmail)
-                .role(Role.USER)
+                .role(requestedRole)
                 .build();
 
         User savedUser = userRegistrationPort.save(user);
@@ -87,5 +88,17 @@ public class RegisterUserUseCase {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private Role resolveRequestedRole(Role requestedRole) {
+        if (requestedRole == null) {
+            return Role.USER;
+        }
+
+        if (requestedRole == Role.ADMIN) {
+            throw new IllegalArgumentException("Cannot request ADMIN role during public registration");
+        }
+
+        return requestedRole;
     }
 }

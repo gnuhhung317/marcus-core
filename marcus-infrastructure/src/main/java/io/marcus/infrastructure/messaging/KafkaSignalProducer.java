@@ -12,6 +12,10 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @RequiredArgsConstructor
 public class KafkaSignalProducer implements SignalRepository {
+
+
+
+
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
     private final String SIGNAL_TOPIC = "trading-signals";

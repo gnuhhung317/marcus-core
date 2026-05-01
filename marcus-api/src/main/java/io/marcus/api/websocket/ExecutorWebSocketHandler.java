@@ -2,6 +2,7 @@ package io.marcus.api.websocket;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.marcus.api.websocket.executor.ExecutorEventEventHandler;
 import io.marcus.domain.port.UserSubscriptionPersistencePort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
     private final ObjectMapper objectMapper;
     private final ExecutorSessionRegistry sessionRegistry;
     private final UserSubscriptionPersistencePort userSubscriptionPersistencePort;
+    private final ExecutorEventEventHandler executorEventEventHandler;
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
@@ -31,21 +33,35 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-        JsonNode root = objectMapper.readTree(message.getPayload());
-        String frameType = root.path("type").asText("").trim().toLowerCase();
+        try {
+            JsonNode root = objectMapper.readTree(message.getPayload());
+            String frameType = root.path("type").asText("").trim().toLowerCase();
 
-        if ("subscribe".equals(frameType)) {
-            handleSubscribe(session, root);
-            return;
+            if ("subscribe".equals(frameType)) {
+                handleSubscribe(session, root);
+                return;
+            }
+
+            if ("heartbeat".equals(frameType)) {
+                sendFrame(session, buildAckFrame("heartbeat", "ok", null));
+                return;
+            }
+
+            if ("execution_event".equals(frameType)) {
+                executorEventEventHandler.handleExecutionEvent(session, root);
+                return;
+            }
+
+            sendFrame(session, buildErrorFrame("unsupported_frame", "Unsupported frame type: " + frameType));
+            session.close(CloseStatus.PROTOCOL_ERROR);
+        } catch (Exception e) {
+            log.error("Error handling WebSocket message", e);
+            try {
+                sendFrame(session, buildErrorFrame("internal_error", "Error processing message: " + e.getMessage()));
+            } catch (IOException ioe) {
+                log.error("Error sending error frame", ioe);
+            }
         }
-
-        if ("heartbeat".equals(frameType)) {
-            sendFrame(session, buildAckFrame("heartbeat", "ok", null));
-            return;
-        }
-
-        sendFrame(session, buildErrorFrame("unsupported_frame", "Unsupported frame type: " + frameType));
-        session.close(CloseStatus.PROTOCOL_ERROR);
     }
 
     private void handleSubscribe(WebSocketSession session, JsonNode root) throws IOException {
@@ -96,7 +112,8 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
         return frame;
     }
 
-    private void sendFrame(WebSocketSession session, Map<String, Object> frame) throws IOException {
+    public void sendFrame(WebSocketSession session, Map<String, Object> frame) throws IOException {
         session.sendMessage(new TextMessage(objectMapper.writeValueAsString(frame)));
     }
 }
+
