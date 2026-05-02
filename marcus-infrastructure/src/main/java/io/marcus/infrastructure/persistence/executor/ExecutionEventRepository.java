@@ -9,8 +9,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Spring Data repository for ExecutionEventEntity.
- * Provides basic CRUD and custom query operations.
+ * Spring Data repository for ExecutionEventEntity. Provides basic CRUD and
+ * custom query operations.
  */
 @Repository
 public interface ExecutionEventRepository extends JpaRepository<ExecutionEventEntity, Long> {

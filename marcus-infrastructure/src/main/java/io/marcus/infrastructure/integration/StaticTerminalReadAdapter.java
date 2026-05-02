@@ -89,14 +89,14 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
         List<BotDiscoverySnapshot> filtered = springDataBotRepository.findAllWithExchange()
                 .stream()
                 .map(bot -> toDiscoverySnapshot(
-                        bot,
-                        subscribersByBotId.getOrDefault(bot.getBotId(), 0L),
-                        calculateBotMetrics(
-                                bot.getBotId(),
-                                signalsByBotId.getOrDefault(bot.getBotId(), List.of()),
-                                subscribersByBotId.getOrDefault(bot.getBotId(), 0L)
-                        )
-                ))
+                bot,
+                subscribersByBotId.getOrDefault(bot.getBotId(), 0L),
+                calculateBotMetrics(
+                        bot.getBotId(),
+                        signalsByBotId.getOrDefault(bot.getBotId(), List.of()),
+                        subscribersByBotId.getOrDefault(bot.getBotId(), 0L)
+                )
+        ))
                 .filter(snapshot -> normalizedQuery == null || matchesQuery(snapshot, normalizedQuery))
                 .filter(snapshot -> normalizedAsset == null || snapshot.asset().equalsIgnoreCase(normalizedAsset))
                 .filter(snapshot -> "ALL".equals(normalizedRisk) || snapshot.risk().equalsIgnoreCase(normalizedRisk))
@@ -135,7 +135,7 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
         List<SignalEntity> relatedSignals = springDataSignalRepository.findAll()
                 .stream()
                 .filter(signal -> activeSubscriptions.stream()
-                        .anyMatch(subscription -> Objects.equals(subscription.getBotId(), signal.getBotId())))
+                .anyMatch(subscription -> Objects.equals(subscription.getBotId(), signal.getBotId())))
                 .toList();
 
         double score = relatedSignals.stream().mapToDouble(this::deriveSignalReturn).sum();
@@ -351,13 +351,20 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
 
     private Comparator<BotDiscoverySnapshot> comparatorForDiscoverySnapshot(String sort) {
         return switch (sort) {
-            case "return" -> Comparator.comparingDouble(BotDiscoverySnapshot::annualReturn);
-            case "-return" -> Comparator.comparingDouble(BotDiscoverySnapshot::annualReturn).reversed();
-            case "drawdown" -> Comparator.comparingDouble(BotDiscoverySnapshot::maxDrawdown);
-            case "-drawdown" -> Comparator.comparingDouble(BotDiscoverySnapshot::maxDrawdown).reversed();
-            case "subscribers" -> Comparator.comparingInt(BotDiscoverySnapshot::subscribers);
-            case "-subscribers" -> Comparator.comparingInt(BotDiscoverySnapshot::subscribers).reversed();
-            default -> throw new IllegalArgumentException("Unsupported sort: " + sort);
+            case "return" ->
+                Comparator.comparingDouble(BotDiscoverySnapshot::annualReturn);
+            case "-return" ->
+                Comparator.comparingDouble(BotDiscoverySnapshot::annualReturn).reversed();
+            case "drawdown" ->
+                Comparator.comparingDouble(BotDiscoverySnapshot::maxDrawdown);
+            case "-drawdown" ->
+                Comparator.comparingDouble(BotDiscoverySnapshot::maxDrawdown).reversed();
+            case "subscribers" ->
+                Comparator.comparingInt(BotDiscoverySnapshot::subscribers);
+            case "-subscribers" ->
+                Comparator.comparingInt(BotDiscoverySnapshot::subscribers).reversed();
+            default ->
+                throw new IllegalArgumentException("Unsupported sort: " + sort);
         };
     }
 
@@ -426,8 +433,10 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
         }
 
         double direction = switch (signal.getAction()) {
-            case OPEN_SHORT, CLOSE_SHORT -> -1.0d;
-            default -> 1.0d;
+            case OPEN_SHORT, CLOSE_SHORT ->
+                -1.0d;
+            default ->
+                1.0d;
         };
         return round4(((referencePrice - entry) / Math.abs(entry)) * direction);
     }
@@ -476,12 +485,18 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
 
     private int pointsForRange(String range) {
         return switch (range) {
-            case "1D" -> 24;
-            case "1W" -> 7;
-            case "1M" -> 30;
-            case "YTD" -> 24;
-            case "ALL" -> 36;
-            default -> 30;
+            case "1D" ->
+                24;
+            case "1W" ->
+                7;
+            case "1M" ->
+                30;
+            case "YTD" ->
+                24;
+            case "ALL" ->
+                36;
+            default ->
+                30;
         };
     }
 
@@ -498,7 +513,8 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
             double tradesPerDay,
             String risk,
             long subscribers
-    ) {
+            ) {
+
     }
 
     private double round4(double value) {

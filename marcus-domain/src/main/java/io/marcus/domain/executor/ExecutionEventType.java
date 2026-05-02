@@ -1,20 +1,18 @@
 package io.marcus.domain.executor;
 
 /**
- * Event types for executor-backend synchronization.
- * Defines the complete set of execution events that can occur during trading.
+ * Event types for executor-backend synchronization. Defines the complete set of
+ * execution events that can occur during trading.
  */
 public enum ExecutionEventType {
     // Signal lifecycle
     SIGNAL_ACCEPTED("signal.accepted"),
     SIGNAL_REJECTED("signal.rejected"),
-
     // Order lifecycle
     ORDER_PLACED("order.placed"),
     ORDER_FAILED("order.failed"),
     ORDER_FILLED("order.filled"),
     ORDER_CANCELED("order.canceled"),
-
     // Position lifecycle
     POSITION_OPENED("position.opened"),
     POSITION_UPDATED("position.updated"),

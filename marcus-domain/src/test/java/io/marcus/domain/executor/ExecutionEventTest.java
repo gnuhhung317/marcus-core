@@ -44,27 +44,27 @@ class ExecutionEventTest {
 
     @Test
     void testExecutionEventNullValidation() {
-        assertThrows(NullPointerException.class, () ->
-                ExecutionEvent.create(null, "sig-1", 0, ExecutionEventType.SIGNAL_ACCEPTED, Instant.now(), null, new HashMap<>())
+        assertThrows(NullPointerException.class, ()
+                -> ExecutionEvent.create(null, "sig-1", 0, ExecutionEventType.SIGNAL_ACCEPTED, Instant.now(), null, new HashMap<>())
         );
 
-        assertThrows(NullPointerException.class, () ->
-                ExecutionEvent.create("evt-1", null, 0, ExecutionEventType.SIGNAL_ACCEPTED, Instant.now(), null, new HashMap<>())
+        assertThrows(NullPointerException.class, ()
+                -> ExecutionEvent.create("evt-1", null, 0, ExecutionEventType.SIGNAL_ACCEPTED, Instant.now(), null, new HashMap<>())
         );
 
-        assertThrows(NullPointerException.class, () ->
-                ExecutionEvent.create("evt-1", "sig-1", 0, null, Instant.now(), null, new HashMap<>())
+        assertThrows(NullPointerException.class, ()
+                -> ExecutionEvent.create("evt-1", "sig-1", 0, null, Instant.now(), null, new HashMap<>())
         );
 
-        assertThrows(NullPointerException.class, () ->
-                ExecutionEvent.create("evt-1", "sig-1", 0, ExecutionEventType.SIGNAL_ACCEPTED, null, null, new HashMap<>())
+        assertThrows(NullPointerException.class, ()
+                -> ExecutionEvent.create("evt-1", "sig-1", 0, ExecutionEventType.SIGNAL_ACCEPTED, null, null, new HashMap<>())
         );
     }
 
     @Test
     void testExecutionEventSequenceValidation() {
-        assertThrows(IllegalArgumentException.class, () ->
-                ExecutionEvent.create("evt-1", "sig-1", -1, ExecutionEventType.SIGNAL_ACCEPTED, Instant.now(), null, new HashMap<>())
+        assertThrows(IllegalArgumentException.class, ()
+                -> ExecutionEvent.create("evt-1", "sig-1", -1, ExecutionEventType.SIGNAL_ACCEPTED, Instant.now(), null, new HashMap<>())
         );
     }
 

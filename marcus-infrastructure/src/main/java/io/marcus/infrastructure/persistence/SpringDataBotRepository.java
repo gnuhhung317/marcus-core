@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface SpringDataBotRepository extends JpaRepository<BotEntity, String> {
+
     @Query("select b from BotEntity b left join fetch b.exchange")
     List<BotEntity> findAllWithExchange();
 
@@ -16,5 +17,6 @@ public interface SpringDataBotRepository extends JpaRepository<BotEntity, String
     Optional<BotEntity> findByBotIdWithExchange(@Param("botId") String botId);
 
     Optional<BotEntity> findByBotId(String botId);
+
     Optional<BotEntity> findByApiKey(String apiKey);
 }

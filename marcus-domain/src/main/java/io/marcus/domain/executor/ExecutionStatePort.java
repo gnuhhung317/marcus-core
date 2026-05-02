@@ -3,16 +3,16 @@ package io.marcus.domain.executor;
 import java.util.Optional;
 
 /**
- * Port interface for managing execution state per signal.
- * Implemented by infrastructure layer (persistence adapters).
- * 
+ * Port interface for managing execution state per signal. Implemented by
+ * infrastructure layer (persistence adapters).
+ *
  * Tracks the current lifecycle state of a signal, order, and position.
  */
 public interface ExecutionStatePort {
 
     /**
      * Get the current execution state for a signal.
-     * 
+     *
      * @param signalId the signal identifier
      * @return the current execution state
      */
@@ -20,7 +20,7 @@ public interface ExecutionStatePort {
 
     /**
      * Create a new execution state for an accepted signal.
-     * 
+     *
      * @param signalId the signal identifier
      * @return the new execution state
      * @throws IllegalArgumentException if signal already has a state
@@ -29,7 +29,7 @@ public interface ExecutionStatePort {
 
     /**
      * Create a new execution state for a rejected signal (terminal).
-     * 
+     *
      * @param signalId the signal identifier
      * @return the new execution state
      * @throws IllegalArgumentException if signal already has a state
@@ -38,7 +38,7 @@ public interface ExecutionStatePort {
 
     /**
      * Update execution state after order is placed.
-     * 
+     *
      * @param signalId the signal identifier
      * @param newLastSequence the new sequence number
      * @param sentAt timestamp of the event
@@ -48,7 +48,7 @@ public interface ExecutionStatePort {
 
     /**
      * Update execution state after order is filled.
-     * 
+     *
      * @param signalId the signal identifier
      * @param newLastSequence the new sequence number
      * @param sentAt timestamp of the event
@@ -58,7 +58,7 @@ public interface ExecutionStatePort {
 
     /**
      * Update execution state after order fails (terminal for order).
-     * 
+     *
      * @param signalId the signal identifier
      * @param newLastSequence the new sequence number
      * @param sentAt timestamp of the event
@@ -68,7 +68,7 @@ public interface ExecutionStatePort {
 
     /**
      * Update execution state after order is canceled (terminal for order).
-     * 
+     *
      * @param signalId the signal identifier
      * @param newLastSequence the new sequence number
      * @param sentAt timestamp of the event
@@ -78,7 +78,7 @@ public interface ExecutionStatePort {
 
     /**
      * Update execution state after position opens.
-     * 
+     *
      * @param signalId the signal identifier
      * @param newLastSequence the new sequence number
      * @param sentAt timestamp of the event
@@ -88,7 +88,7 @@ public interface ExecutionStatePort {
 
     /**
      * Update execution state during position updates (PnL changes, etc.).
-     * 
+     *
      * @param signalId the signal identifier
      * @param newLastSequence the new sequence number
      * @param sentAt timestamp of the event
@@ -98,7 +98,7 @@ public interface ExecutionStatePort {
 
     /**
      * Update execution state after position closes (terminal for signal).
-     * 
+     *
      * @param signalId the signal identifier
      * @param newLastSequence the new sequence number
      * @param sentAt timestamp of the event
@@ -108,16 +108,16 @@ public interface ExecutionStatePort {
 
     /**
      * Check if position is closed (no further events allowed).
-     * 
+     *
      * @param signalId the signal identifier
      * @return true if position is closed
      */
     boolean isPositionClosed(String signalId);
 
     /**
-     * Get the last accepted sequence number for a signal.
-     * Returns -1 if no events have been accepted yet.
-     * 
+     * Get the last accepted sequence number for a signal. Returns -1 if no
+     * events have been accepted yet.
+     *
      * @param signalId the signal identifier
      * @return last accepted sequence or -1
      */

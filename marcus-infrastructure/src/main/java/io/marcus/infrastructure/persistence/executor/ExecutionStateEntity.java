@@ -4,14 +4,14 @@ import jakarta.persistence.*;
 import java.time.Instant;
 
 /**
- * JPA entity for tracking execution state per signal.
- * Stores: signal state, order state, position state, last sequence number.
+ * JPA entity for tracking execution state per signal. Stores: signal state,
+ * order state, position state, last sequence number.
  */
 @Entity
 @Table(
         name = "execution_state",
         indexes = {
-                @Index(name = "idx_signal_id_state", columnList = "signal_id", unique = true)
+            @Index(name = "idx_signal_id_state", columnList = "signal_id", unique = true)
         }
 )
 public class ExecutionStateEntity {
@@ -163,17 +163,17 @@ public class ExecutionStateEntity {
 
     @Override
     public String toString() {
-        return "ExecutionStateEntity{" +
-                "id=" + id +
-                ", signalId='" + signalId + '\'' +
-                ", signalState='" + signalState + '\'' +
-                ", orderState='" + orderState + '\'' +
-                ", positionState='" + positionState + '\'' +
-                ", lastSequence=" + lastSequence +
-                ", lastEventTime=" + lastEventTime +
-                ", closedAt=" + closedAt +
-                ", updatedAt=" + updatedAt +
-                ", version=" + version +
-                '}';
+        return "ExecutionStateEntity{"
+                + "id=" + id
+                + ", signalId='" + signalId + '\''
+                + ", signalState='" + signalState + '\''
+                + ", orderState='" + orderState + '\''
+                + ", positionState='" + positionState + '\''
+                + ", lastSequence=" + lastSequence
+                + ", lastEventTime=" + lastEventTime
+                + ", closedAt=" + closedAt
+                + ", updatedAt=" + updatedAt
+                + ", version=" + version
+                + '}';
     }
 }

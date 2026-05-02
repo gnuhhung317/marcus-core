@@ -4,11 +4,12 @@ import java.time.Instant;
 import java.util.Objects;
 
 /**
- * Immutable value object representing an execution event from the executor client.
- * Once created, an ExecutionEvent cannot be modified.
- * Payload is stored as a generic Object to keep domain layer framework-independent.
+ * Immutable value object representing an execution event from the executor
+ * client. Once created, an ExecutionEvent cannot be modified. Payload is stored
+ * as a generic Object to keep domain layer framework-independent.
  */
 public final class ExecutionEvent {
+
     private final String eventId;
     private final String signalId;
     private final int sequence;
@@ -93,18 +94,22 @@ public final class ExecutionEvent {
      * Check if this event is a position-closing event (terminal for signal).
      */
     public boolean isPositionClosing() {
-        return eventType == ExecutionEventType.POSITION_CLOSED ||
-               eventType == ExecutionEventType.SIGNAL_REJECTED;
+        return eventType == ExecutionEventType.POSITION_CLOSED
+                || eventType == ExecutionEventType.SIGNAL_REJECTED;
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         ExecutionEvent that = (ExecutionEvent) o;
-        return sequence == that.sequence &&
-               Objects.equals(eventId, that.eventId) &&
-               Objects.equals(signalId, that.signalId);
+        return sequence == that.sequence
+                && Objects.equals(eventId, that.eventId)
+                && Objects.equals(signalId, that.signalId);
     }
 
     @Override
@@ -114,14 +119,14 @@ public final class ExecutionEvent {
 
     @Override
     public String toString() {
-        return "ExecutionEvent{" +
-                "eventId='" + eventId + '\'' +
-                ", signalId='" + signalId + '\'' +
-                ", sequence=" + sequence +
-                ", eventType=" + eventType +
-                ", sentAt=" + sentAt +
-                ", exchangeTime=" + exchangeTime +
-                ", createdAt=" + createdAt +
-                '}';
+        return "ExecutionEvent{"
+                + "eventId='" + eventId + '\''
+                + ", signalId='" + signalId + '\''
+                + ", sequence=" + sequence
+                + ", eventType=" + eventType
+                + ", sentAt=" + sentAt
+                + ", exchangeTime=" + exchangeTime
+                + ", createdAt=" + createdAt
+                + '}';
     }
 }

@@ -13,9 +13,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Infrastructure adapter for ExecutionEventPort.
- * Persists and retrieves execution events using Spring Data JPA.
- * Handles conversion between domain ExecutionEvent and JPA ExecutionEventEntity.
+ * Infrastructure adapter for ExecutionEventPort. Persists and retrieves
+ * execution events using Spring Data JPA. Handles conversion between domain
+ * ExecutionEvent and JPA ExecutionEventEntity.
  */
 @Component
 public class ExecutionEventAdapter implements ExecutionEventPort {
@@ -92,4 +92,3 @@ public class ExecutionEventAdapter implements ExecutionEventPort {
         );
     }
 }
-
