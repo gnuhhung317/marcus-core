@@ -16,7 +16,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-
+@RestController
+@RequestMapping({"/signals", "/api/signals", "/api/v1/signals"})
+@RequiredArgsConstructor
+public class SignalController {
 
     private final CaptureSignalUseCase captureSignalUseCase;
     private final ListSignalsUseCase listSignalsUseCase;
@@ -26,13 +29,11 @@ import java.util.List;
     public ResponseEntity<Void> captureSignal(
             @RequestBody Signal signal
     ) {
-
-        //FIXME: validate later
         captureSignalUseCase.execute(signal);
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping({"/signals", "/api/signals", "/api/v1/signals"})
+    @GetMapping
     public ResponseEntity<List<TerminalReadPort.SignalItemSnapshot>> listSignals(
             @RequestParam(required = false, defaultValue = "ALL") String status,
             @RequestParam(required = false, defaultValue = "50") int limit

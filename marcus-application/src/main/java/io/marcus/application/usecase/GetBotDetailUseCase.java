@@ -16,8 +16,4 @@ public class GetBotDetailUseCase {
         }
         return terminalReadPort.getBotDetail(botId.trim());
     }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 07cc74d5f615dfb2d511f1f2832e810f702e72e8
