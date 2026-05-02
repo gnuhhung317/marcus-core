@@ -82,7 +82,7 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
-        sessionRegistry.register(botId, session);
+        sessionRegistry.register(wsToken, botId, session);
         userSubscriptionPersistencePort.markExecutorConnected(subscription.get().getUserSubscriptionId(), true);
         sendFrame(session, buildAckFrame("subscribe", "ok", botId));
     }
