@@ -8,7 +8,9 @@ import org.springframework.stereotype.Component;
 public class SignalMapper {
 
     public Signal toDomain(SignalEntity entity) {
-        if (entity == null) return null;
+        if (entity == null) {
+            return null;
+        }
         return Signal.builder()
                 .signalId(entity.getSignalId())
                 .botId(entity.getBotId())
@@ -26,7 +28,9 @@ public class SignalMapper {
     }
 
     public SignalEntity toEntity(Signal domain) {
-        if (domain == null) return null;
+        if (domain == null) {
+            return null;
+        }
         return SignalEntity.builder()
                 .signalId(domain.getSignalId())
                 .botId(domain.getBotId())

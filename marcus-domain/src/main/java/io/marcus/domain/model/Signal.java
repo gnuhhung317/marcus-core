@@ -18,6 +18,7 @@ import java.util.Map;
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 public class Signal extends BaseModel {
+
     private String signalId;
     private String botId;
     private String symbol;

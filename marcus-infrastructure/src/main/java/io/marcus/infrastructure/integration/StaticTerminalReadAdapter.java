@@ -1,82 +1,106 @@
 package io.marcus.infrastructure.integration;
 
 import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.vo.SubscriptionStatus;
+import io.marcus.infrastructure.integration.demo.DemoTerminalReadAdapter;
+import io.marcus.infrastructure.persistence.SpringDataBotRepository;
+import io.marcus.infrastructure.persistence.SpringDataSignalRepository;
+import io.marcus.infrastructure.persistence.SpringDataUserSubscriptionRepository;
+import io.marcus.infrastructure.persistence.entity.BotEntity;
+import io.marcus.infrastructure.persistence.entity.SignalEntity;
+import io.marcus.infrastructure.persistence.entity.UserSubscriptionEntity;
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 
 @Component
+@Primary
+@RequiredArgsConstructor
 public class StaticTerminalReadAdapter implements TerminalReadPort {
 
     private static final LocalDateTime BASE_TIME = LocalDateTime.of(2026, 1, 1, 9, 0);
-    private static final List<DiscoveryBotSeed> PUBLIC_BOTS = List.of(
-            new DiscoveryBotSeed("bot-discovery-001", "Apex Momentum", "Trend-following crypto bot", "BTCUSDT", "LOW", 0.284, 0.084, 1240),
-            new DiscoveryBotSeed("bot-discovery-002", "Harbor Mean Reversion", "Mean reversion bot for ETH pairs", "ETHUSDT", "MEDIUM", 0.196, 0.132, 980),
-            new DiscoveryBotSeed("bot-discovery-003", "Orbit Breakout", "Volatility breakout on SOL markets", "SOLUSDT", "HIGH", 0.356, 0.218, 1525),
-            new DiscoveryBotSeed("bot-discovery-004", "Atlas Carry", "Low risk carry strategy for majors", "BTCUSDT", "LOW", 0.148, 0.062, 740),
-            new DiscoveryBotSeed("bot-discovery-005", "Pulse Range", "Range trading bot with tight stops", "BNBUSDT", "MEDIUM", 0.221, 0.101, 1112),
-            new DiscoveryBotSeed("bot-discovery-006", "Nimbus Scalper", "Intraday scalper tuned for micro trends", "ETHUSDT", "HIGH", 0.402, 0.247, 1688),
-            new DiscoveryBotSeed("bot-discovery-007", "Aurora Grid", "Grid execution bot for sideways markets", "XRPUSDT", "LOW", 0.173, 0.073, 606),
-            new DiscoveryBotSeed("bot-discovery-008", "Cipher Swing", "Swing strategy with broad asset coverage", "ADAUSDT", "MEDIUM", 0.247, 0.119, 889),
-            new DiscoveryBotSeed("bot-discovery-009", "Zenith Macro", "Macro overlay for cross-asset allocation", "EURUSD", "LOW", 0.132, 0.054, 512),
-            new DiscoveryBotSeed("bot-discovery-010", "Nova Pulse", "Event-driven crypto strategy", "BTCUSDT", "HIGH", 0.391, 0.264, 1410),
-            new DiscoveryBotSeed("bot-discovery-011", "Vector Drift", "Adaptive trend follower for FX", "GBPUSD", "MEDIUM", 0.215, 0.094, 733),
-            new DiscoveryBotSeed("bot-discovery-012", "Helix Edge", "Diversified bot with balanced risk", "SOLUSDT", "LOW", 0.264, 0.111, 1277)
-    );
-    private final ConcurrentMap<String, String> paperSessionStates = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, Set<String>> favoriteStrategiesByUser = new ConcurrentHashMap<>();
+
+    private final SpringDataBotRepository springDataBotRepository;
+    private final SpringDataSignalRepository springDataSignalRepository;
+    private final SpringDataUserSubscriptionRepository springDataUserSubscriptionRepository;
+    private final DemoTerminalReadAdapter demoTerminalReadAdapter;
 
     @Override
+    @Transactional(readOnly = true)
     public BotDetailSnapshot getBotDetail(String botId) {
         String normalizedBotId = normalize(botId, "bot-demo-001");
-        String code = shortCode(normalizedBotId);
+        BotEntity bot = springDataBotRepository.findByBotIdWithExchange(normalizedBotId)
+                .orElseThrow(() -> new NoSuchElementException("Bot not found: " + normalizedBotId));
 
-        BotPerformanceSnapshot performance = new BotPerformanceSnapshot(
-                scaled(normalizedBotId + ":annual", 0.14, 0.65),
-                scaled(normalizedBotId + ":drawdown", 0.03, 0.22),
-                scaled(normalizedBotId + ":sharpe", 0.70, 2.35),
-                scaled(normalizedBotId + ":win", 0.40, 0.92),
-                scaled(normalizedBotId + ":trade-return", -0.01, 0.06),
-                scaled(normalizedBotId + ":tpd", 0.8, 6.4)
-        );
-
+        BotMetrics metrics = calculateBotMetrics(normalizedBotId);
         return new BotDetailSnapshot(
                 normalizedBotId,
-                "Marcus " + code.toUpperCase(Locale.ROOT),
-                "Deterministic placeholder strategy for terminal integration.",
-                "ACTIVE",
-                pairFromSeed(normalizedBotId),
-                exchangeFromSeed(normalizedBotId),
-                "dev-" + code,
-                "mk_" + maskedBlock(normalizedBotId, 6),
-                timeAt(normalizedBotId, -45),
-                timeAt(normalizedBotId, -2),
-                performance
+                bot.getName(),
+                bot.getDescription(),
+                bot.getStatus() != null ? bot.getStatus().name() : null,
+                bot.getTradingPair(),
+                resolveExchangeId(bot),
+                bot.getDeveloperId(),
+                bot.getApiKey(),
+                bot.getCreatedAt(),
+                bot.getUpdatedAt(),
+                new BotPerformanceSnapshot(
+                        metrics.annualReturn(),
+                        metrics.maxDrawdown(),
+                        metrics.sharpe(),
+                        metrics.winRate(),
+                        metrics.avgTradeReturn(),
+                        metrics.tradesPerDay()
+                )
         );
     }
 
     @Override
+    @Transactional(readOnly = true)
     public BotDiscoveryPageSnapshot listPublicBots(String q, String asset, String risk, String sort, int page, int size) {
         String normalizedQuery = normalize(q, null);
         String normalizedAsset = normalize(asset, null);
         String normalizedRisk = normalize(risk, "ALL").toUpperCase(Locale.ROOT);
         String normalizedSort = normalize(sort, "-return").toLowerCase(Locale.ROOT);
 
-        List<BotDiscoverySnapshot> filtered = PUBLIC_BOTS.stream()
-                .filter(seed -> normalizedQuery == null || matchesQuery(seed, normalizedQuery))
-                .filter(seed -> normalizedAsset == null || seed.asset().equalsIgnoreCase(normalizedAsset))
-                .filter(seed -> "ALL".equals(normalizedRisk) || seed.risk().equalsIgnoreCase(normalizedRisk))
-                .sorted(comparatorForDiscoverySeed(normalizedSort))
-                .map(this::toDiscoverySnapshot)
+        Map<String, Long> subscribersByBotId = springDataUserSubscriptionRepository
+                .findAll()
+                .stream()
+                .filter(entity -> entity.getStatus() == SubscriptionStatus.ACTIVE)
+                .collect(Collectors.groupingBy(UserSubscriptionEntity::getBotId, Collectors.counting()));
+
+        Map<String, List<SignalEntity>> signalsByBotId = springDataSignalRepository.findAll()
+                .stream()
+                .collect(Collectors.groupingBy(SignalEntity::getBotId));
+
+        List<BotDiscoverySnapshot> filtered = springDataBotRepository.findAllWithExchange()
+                .stream()
+                .map(bot -> toDiscoverySnapshot(
+                        bot,
+                        subscribersByBotId.getOrDefault(bot.getBotId(), 0L),
+                        calculateBotMetrics(
+                                bot.getBotId(),
+                                signalsByBotId.getOrDefault(bot.getBotId(), List.of()),
+                                subscribersByBotId.getOrDefault(bot.getBotId(), 0L)
+                        )
+                ))
+                .filter(snapshot -> normalizedQuery == null || matchesQuery(snapshot, normalizedQuery))
+                .filter(snapshot -> normalizedAsset == null || snapshot.asset().equalsIgnoreCase(normalizedAsset))
+                .filter(snapshot -> "ALL".equals(normalizedRisk) || snapshot.risk().equalsIgnoreCase(normalizedRisk))
+                .sorted(comparatorForDiscoverySnapshot(normalizedSort))
                 .toList();
 
         int normalizedPage = Math.max(page, 0);
@@ -99,142 +123,120 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
 
     @Override
     public FavoriteStrategySnapshot favoriteStrategy(String userId, String strategyId) {
-        String normalizedUserId = normalize(userId, "user-demo-001");
-        String normalizedStrategyId = normalize(strategyId, "strat-demo-001");
-
-        favoriteStrategiesByUser
-                .computeIfAbsent(normalizedUserId, ignored -> ConcurrentHashMap.newKeySet())
-                .add(normalizedStrategyId);
-
-        return new FavoriteStrategySnapshot(normalizedStrategyId, true);
+        return demoTerminalReadAdapter.favoriteStrategy(userId, strategyId);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public DashboardOverviewSnapshot getDashboardOverview(String userId) {
         String normalizedUserId = normalize(userId, "user-demo-001");
-        double totalEquity = scaled(normalizedUserId + ":equity", 8_500.0, 68_000.0);
-        double openPnl = scaled(normalizedUserId + ":pnl", -1_450.0, 2_850.0);
-        double winRate = scaled(normalizedUserId + ":win-rate", 0.35, 0.89);
-        int activeBots = boundedInt(normalizedUserId + ":active-bots", 1, 9);
+        List<UserSubscriptionEntity> activeSubscriptions = springDataUserSubscriptionRepository
+                .findByUserIdAndStatusOrderByCreatedAtDesc(normalizedUserId, SubscriptionStatus.ACTIVE);
+        List<SignalEntity> relatedSignals = springDataSignalRepository.findAll()
+                .stream()
+                .filter(signal -> activeSubscriptions.stream()
+                        .anyMatch(subscription -> Objects.equals(subscription.getBotId(), signal.getBotId())))
+                .toList();
+
+        double score = relatedSignals.stream().mapToDouble(this::deriveSignalReturn).sum();
+        long successfulSignals = relatedSignals.stream()
+                .filter(signal -> deriveSignalReturn(signal) > 0)
+                .count();
+
+        double totalEquity = round2(10_000.0 + activeSubscriptions.size() * 250.0 + score * 1_000.0);
+        double openPnl = round2(score * 1_000.0);
+        double winRate = relatedSignals.isEmpty() ? 0.0 : round4(successfulSignals / (double) relatedSignals.size());
+        int activeBots = activeSubscriptions.size();
         return new DashboardOverviewSnapshot(totalEquity, openPnl, winRate, activeBots);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<TimeSeriesPointSnapshot> listDashboardEquitySeries(String userId, String range) {
         String normalizedUserId = normalize(userId, "user-demo-001");
-        return listSeries(normalizedUserId + ":dashboard-series", range);
-    }
+        String normalizedRange = normalize(range, "1M").toUpperCase(Locale.ROOT);
+        int points = pointsForRange(normalizedRange);
 
-    @Override
-    public List<ExchangeAllocationSnapshot> listExchangeAllocation(String userId) {
-        String normalizedUserId = normalize(userId, "user-demo-001");
+        List<String> subscribedBotIds = springDataUserSubscriptionRepository
+                .findByUserIdAndStatusOrderByCreatedAtDesc(normalizedUserId, SubscriptionStatus.ACTIVE)
+                .stream()
+                .map(UserSubscriptionEntity::getBotId)
+                .toList();
 
-        double first = scaled(normalizedUserId + ":alloc-1", 0.20, 0.45);
-        double second = scaled(normalizedUserId + ":alloc-2", 0.15, 0.35);
-        double third = round2(1.0 - first - second);
+        List<SignalEntity> orderedSignals = springDataSignalRepository.findAll()
+                .stream()
+                .filter(signal -> subscribedBotIds.contains(signal.getBotId()))
+                .filter(signal -> signal.getGeneratedTimestamp() != null)
+                .sorted(Comparator.comparing(SignalEntity::getGeneratedTimestamp))
+                .toList();
 
-        if (third < 0.10) {
-            third = 0.10;
-            second = round2(1.0 - first - third);
+        if (orderedSignals.isEmpty()) {
+            return List.of();
         }
 
-        return List.of(
-                new ExchangeAllocationSnapshot("BINANCE", round2(first)),
-                new ExchangeAllocationSnapshot("BYBIT", round2(second)),
-                new ExchangeAllocationSnapshot("OKX", round2(third))
-        );
-    }
-
-    @Override
-    public StrategyDetailSnapshot getStrategyDetail(String strategyId) {
-        String normalizedStrategyId = normalize(strategyId, "strat-demo-001");
-        String code = shortCode(normalizedStrategyId);
-
-        return new StrategyDetailSnapshot(
-                normalizedStrategyId,
-                "Strategy " + code.toUpperCase(Locale.ROOT),
-                "Marcus Labs",
-                marketFromSeed(normalizedStrategyId),
-                "ACTIVE"
-        );
-    }
-
-    @Override
-    public StrategyMetricsSnapshot getStrategyMetrics(String strategyId, String feeMode) {
-        String normalizedStrategyId = normalize(strategyId, "strat-demo-001");
-        boolean afterFees = "AFTER_FEES".equalsIgnoreCase(normalize(feeMode, "RAW"));
-
-        double feePenalty = afterFees ? 0.92 : 1.0;
-        return new StrategyMetricsSnapshot(
-                round4(scaled(normalizedStrategyId + ":annual", 0.12, 0.74) * feePenalty),
-                scaled(normalizedStrategyId + ":drawdown", 0.02, 0.28),
-                round4(scaled(normalizedStrategyId + ":sharpe", 0.60, 2.60) * feePenalty),
-                round4(scaled(normalizedStrategyId + ":sortino", 0.90, 3.40) * feePenalty),
-                round4(scaled(normalizedStrategyId + ":calmar", 0.50, 2.10) * feePenalty),
-                round4(scaled(normalizedStrategyId + ":pf", 1.05, 3.25) * feePenalty)
-        );
-    }
-
-    @Override
-    public List<TimeSeriesPointSnapshot> listStrategyPerformanceSeries(String strategyId, String range) {
-        String normalizedStrategyId = normalize(strategyId, "strat-demo-001");
-        String normalizedRange = normalize(range, "1M").toUpperCase(Locale.ROOT);
-
-        int points = switch (normalizedRange) {
-            case "1D" ->
-                24;
-            case "1W" ->
-                7;
-            case "1M" ->
-                30;
-            case "YTD" ->
-                24;
-            case "ALL" ->
-                36;
-            default ->
-                30;
-        };
-
-        double baseValue = scaled(normalizedStrategyId + ":series-base", 90.0, 135.0);
-        List<TimeSeriesPointSnapshot> result = new ArrayList<>(points);
-        for (int index = 0; index < points; index++) {
-            double drift = scaled(normalizedStrategyId + ":series-drift:" + index, -1.20, 2.20);
-            double wave = Math.sin((index + 1) / 3.0) * 0.85;
-            baseValue = round4(baseValue + drift * 0.25 + wave * 0.15);
-            result.add(new TimeSeriesPointSnapshot(seriesTimestamp(points, index, normalizedRange), baseValue));
+        int startIndex = Math.max(0, orderedSignals.size() - points);
+        List<SignalEntity> window = orderedSignals.subList(startIndex, orderedSignals.size());
+        List<TimeSeriesPointSnapshot> result = new ArrayList<>(window.size());
+        double cumulative = 0.0;
+        for (SignalEntity signal : window) {
+            cumulative += deriveSignalReturn(signal);
+            result.add(new TimeSeriesPointSnapshot(signal.getGeneratedTimestamp(), round4(10_000.0 + cumulative * 1_000.0)));
         }
         return result;
     }
 
     @Override
-    public TradeLogPageSnapshot listStrategyTrades(String strategyId, int page, int size, String asset) {
-        String normalizedStrategyId = normalize(strategyId, "strat-demo-001");
-        int normalizedPage = Math.max(page, 0);
-        int normalizedSize = Math.max(1, Math.min(size, 100));
-        String assetPair = normalize(asset, pairFromSeed(normalizedStrategyId));
+    @Transactional(readOnly = true)
+    public List<ExchangeAllocationSnapshot> listExchangeAllocation(String userId) {
+        String normalizedUserId = normalize(userId, "user-demo-001");
+        Map<String, String> exchangeByBotId = springDataBotRepository.findAllWithExchange()
+                .stream()
+                .collect(Collectors.toMap(
+                        BotEntity::getBotId,
+                        this::resolveExchangeLabel,
+                        (left, right) -> left,
+                        LinkedHashMap::new
+                ));
 
-        List<TradeLogSnapshot> items = new ArrayList<>(normalizedSize);
-        int start = normalizedPage * normalizedSize;
-        for (int index = 0; index < normalizedSize; index++) {
-            int absoluteIndex = start + index;
-            boolean longSide = (absoluteIndex % 2) == 0;
-            double entry = scaled(normalizedStrategyId + ":entry:" + absoluteIndex, 20.0, 180.0);
-            double exit = entry + scaled(normalizedStrategyId + ":exit:" + absoluteIndex, -8.0, 12.0);
-            double amount = scaled(normalizedStrategyId + ":size:" + absoluteIndex, 0.2, 4.5);
-            double pnl = round4((exit - entry) * amount * (longSide ? 1.0 : -1.0));
+        List<UserSubscriptionEntity> activeSubscriptions = springDataUserSubscriptionRepository
+                .findByUserIdAndStatusOrderByCreatedAtDesc(normalizedUserId, SubscriptionStatus.ACTIVE);
 
-            items.add(new TradeLogSnapshot(
-                    timeAt(normalizedStrategyId + ":trade:" + absoluteIndex, -absoluteIndex - 1),
-                    assetPair,
-                    longSide ? "LONG" : "SHORT",
-                    amount,
-                    round4(entry),
-                    round4(exit),
-                    pnl
-            ));
+        Map<String, Long> countsByExchange = activeSubscriptions.stream()
+                .collect(Collectors.groupingBy(
+                        subscription -> exchangeByBotId.getOrDefault(subscription.getBotId(), "UNASSIGNED"),
+                        LinkedHashMap::new,
+                        Collectors.counting()
+                ));
+
+        long total = countsByExchange.values().stream().mapToLong(Long::longValue).sum();
+        if (total == 0L) {
+            return List.of();
         }
 
-        return new TradeLogPageSnapshot(items, normalizedPage, normalizedSize, 320L);
+        return countsByExchange.entrySet().stream()
+                .map(entry -> new ExchangeAllocationSnapshot(entry.getKey(), round2(entry.getValue() / (double) total)))
+                .sorted((left, right) -> Double.compare(right.percentage(), left.percentage()))
+                .toList();
+    }
+
+    @Override
+    public StrategyDetailSnapshot getStrategyDetail(String strategyId) {
+        return demoTerminalReadAdapter.getStrategyDetail(strategyId);
+    }
+
+    @Override
+    public StrategyMetricsSnapshot getStrategyMetrics(String strategyId, String feeMode) {
+        return demoTerminalReadAdapter.getStrategyMetrics(strategyId, feeMode);
+    }
+
+    @Override
+    public List<TimeSeriesPointSnapshot> listStrategyPerformanceSeries(String strategyId, String range) {
+        return demoTerminalReadAdapter.listStrategyPerformanceSeries(strategyId, range);
+    }
+
+    @Override
+    public TradeLogPageSnapshot listStrategyTrades(String strategyId, int page, int size, String asset) {
+        return demoTerminalReadAdapter.listStrategyTrades(strategyId, page, size, asset);
     }
 
     @Override
@@ -246,410 +248,265 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
             int page,
             int size
     ) {
-        String timeframeValue = normalize(timeframe, "ALL").toUpperCase(Locale.ROOT);
-        String marketValue = normalize(market, "CRYPTO").toUpperCase(Locale.ROOT);
-        String assetValue = normalize(asset, "BTCUSDT").toUpperCase(Locale.ROOT);
-        String rankMetricValue = normalize(rankMetric, "sharpe").toLowerCase(Locale.ROOT);
-
-        int normalizedPage = Math.max(page, 0);
-        int normalizedSize = Math.max(1, Math.min(size, 100));
-
-        List<LeaderboardStrategySnapshot> items = new ArrayList<>(normalizedSize);
-        int startRank = normalizedPage * normalizedSize + 1;
-        for (int index = 0; index < normalizedSize; index++) {
-            int rank = startRank + index;
-            String strategyId = "strat-" + timeframeValue.toLowerCase(Locale.ROOT) + "-" + rank;
-            double sharpe = scaled(strategyId + ":sharpe", 0.70, 2.80);
-            double cagr = scaled(strategyId + ":cagr", 0.10, 0.85);
-            double maxDrawdown = scaled(strategyId + ":mdd", 0.03, 0.32);
-
-            items.add(new LeaderboardStrategySnapshot(
-                    rank,
-                    strategyId,
-                    assetValue + " Momentum " + rankMetricValue.toUpperCase(Locale.ROOT) + " " + rank,
-                    marketValue + " Desk",
-                    cagr,
-                    sharpe,
-                    maxDrawdown
-            ));
-        }
-
-        long totalElements = 500L;
-        int totalPages = (int) Math.ceil(totalElements / (double) normalizedSize);
-        OffsetPaginationMetaSnapshot meta = new OffsetPaginationMetaSnapshot(
-                normalizedPage,
-                normalizedSize,
-                totalElements,
-                totalPages,
-                normalizedPage + 1 < totalPages
-        );
-        return new LeaderboardStrategiesPageSnapshot(items, meta);
+        return demoTerminalReadAdapter.listLeaderboardStrategies(timeframe, market, asset, rankMetric, page, size);
     }
 
     @Override
     public LeaderboardFeaturedSnapshot listLeaderboardFeatured() {
-        List<LeaderboardFeaturedItemSnapshot> items = List.of(
-                new LeaderboardFeaturedItemSnapshot("strat-featured-1", "Apex Trend", "TOP 1", 2.41),
-                new LeaderboardFeaturedItemSnapshot("strat-featured-2", "Quantum Mean", "TOP 2", 2.08),
-                new LeaderboardFeaturedItemSnapshot("strat-featured-3", "Sigma Breakout", "TOP 3", 1.97)
-        );
-        return new LeaderboardFeaturedSnapshot(items);
+        return demoTerminalReadAdapter.listLeaderboardFeatured();
     }
 
     @Override
     public List<StrategySpotlightSnapshot> listLeaderboardSpotlights() {
-        return List.of(
-                new StrategySpotlightSnapshot("strat-spotlight-1", "Neutron Drift", "CRYPTO", 0.0312),
-                new StrategySpotlightSnapshot("strat-spotlight-2", "FX Pulse", "FOREX", 0.0185),
-                new StrategySpotlightSnapshot("strat-spotlight-3", "Commod Scan", "COMMODITIES", -0.0074)
-        );
+        return demoTerminalReadAdapter.listLeaderboardSpotlights();
     }
 
     @Override
     public PaperSessionSummarySnapshot getPaperSessionSummary(String userId) {
-        String normalizedUserId = normalize(userId, "user-demo-001");
-        String currentState = paperSessionStates.computeIfAbsent(normalizedUserId, ignored -> "RUNNING");
-        double virtualBalance = scaled(normalizedUserId + ":paper-balance", 5_000.0, 50_000.0);
-        double openPnl = scaled(normalizedUserId + ":paper-pnl", -850.0, 1_950.0);
-        double buyingPower = round2(virtualBalance * scaled(normalizedUserId + ":paper-power", 0.45, 0.88));
-
-        return new PaperSessionSummarySnapshot(
-                "ps-" + shortCode(normalizedUserId),
-                currentState,
-                virtualBalance,
-                openPnl,
-                buyingPower
-        );
+        return demoTerminalReadAdapter.getPaperSessionSummary(userId);
     }
 
     @Override
     public List<PaperSignalSnapshot> listPaperSignals(String status, int limit) {
-        String normalizedStatus = normalize(status, "ALL").toUpperCase(Locale.ROOT);
-        int normalizedLimit = Math.max(1, Math.min(limit, 200));
-        List<String> statuses = normalizedStatus.equals("ALL")
-                ? List.of("ACTIVE", "EXECUTED", "EXPIRED")
-                : List.of(normalizedStatus);
-
-        List<PaperSignalSnapshot> items = new ArrayList<>(normalizedLimit);
-        for (int index = 0; index < normalizedLimit; index++) {
-            String statusValue = statuses.get(index % statuses.size());
-            String signalId = "paper-sig-" + (index + 1);
-            String botId = "bot-paper-" + ((index % 4) + 1);
-
-            items.add(new PaperSignalSnapshot(
-                    signalId,
-                    botId,
-                    pairFromSeed(signalId),
-                    (index % 2 == 0) ? "BUY" : "SELL",
-                    scaled(signalId + ":confidence", 0.50, 0.99),
-                    statusValue,
-                    timeAt(signalId, -index)
-            ));
-        }
-
-        return items;
+        return demoTerminalReadAdapter.listPaperSignals(status, limit);
     }
 
     @Override
     public PaperExecutionLogPageSnapshot listPaperExecutionLogs(String userId, String cursor, int limit) {
-        String normalizedUserId = normalize(userId, "user-demo-001");
-        int normalizedLimit = Math.max(1, Math.min(limit, 200));
-        int offset = decodeCursorOffset(cursor);
-
-        List<PaperExecutionLogItemSnapshot> items = new ArrayList<>(normalizedLimit);
-        for (int index = 0; index < normalizedLimit; index++) {
-            int absoluteIndex = offset + index;
-            String seed = normalizedUserId + ":paper-log:" + absoluteIndex;
-            items.add(new PaperExecutionLogItemSnapshot(
-                    timeAt(seed, -absoluteIndex),
-                    (absoluteIndex % 10 == 0) ? "WARN" : "INFO",
-                    "Paper execution event #" + boundedInt(seed, 1000, 9999)
-            ));
-        }
-
-        int nextOffset = offset + normalizedLimit;
-        boolean hasMore = nextOffset < 1_000;
-        CursorPaginationMetaSnapshot meta = new CursorPaginationMetaSnapshot(
-                cursor,
-                hasMore ? "paper-cursor-" + nextOffset : null,
-                normalizedLimit,
-                hasMore
-        );
-        return new PaperExecutionLogPageSnapshot(items, meta);
-    }
-
-    private BotDiscoverySnapshot toDiscoverySnapshot(DiscoveryBotSeed seed) {
-        return new BotDiscoverySnapshot(
-                seed.botId(),
-                seed.botName(),
-                seed.description(),
-                seed.asset(),
-                seed.risk(),
-                seed.annualReturn(),
-                seed.maxDrawdown(),
-                seed.subscribers()
-        );
-    }
-
-    private Comparator<DiscoveryBotSeed> comparatorForDiscoverySeed(String sort) {
-        return switch (sort) {
-            case "return" ->
-                Comparator.comparingDouble(DiscoveryBotSeed::annualReturn);
-            case "-return" ->
-                Comparator.comparingDouble(DiscoveryBotSeed::annualReturn).reversed();
-            case "drawdown" ->
-                Comparator.comparingDouble(DiscoveryBotSeed::maxDrawdown);
-            case "-drawdown" ->
-                Comparator.comparingDouble(DiscoveryBotSeed::maxDrawdown).reversed();
-            case "subscribers" ->
-                Comparator.comparingInt(DiscoveryBotSeed::subscribers);
-            case "-subscribers" ->
-                Comparator.comparingInt(DiscoveryBotSeed::subscribers).reversed();
-            default ->
-                throw new IllegalArgumentException("Unsupported sort: " + sort);
-        };
-    }
-
-    private boolean matchesQuery(DiscoveryBotSeed seed, String query) {
-        String normalizedQuery = query.toLowerCase(Locale.ROOT);
-        return seed.botId().toLowerCase(Locale.ROOT).contains(normalizedQuery)
-                || seed.botName().toLowerCase(Locale.ROOT).contains(normalizedQuery)
-                || seed.description().toLowerCase(Locale.ROOT).contains(normalizedQuery)
-                || seed.asset().toLowerCase(Locale.ROOT).contains(normalizedQuery)
-                || seed.risk().toLowerCase(Locale.ROOT).contains(normalizedQuery);
+        return demoTerminalReadAdapter.listPaperExecutionLogs(userId, cursor, limit);
     }
 
     @Override
     public PaperOrderSnapshot createPaperOrder(String userId, PaperOrderCreateSnapshot request) {
-        String normalizedUserId = normalize(userId, "user-demo-001");
-        String seed = normalizedUserId
-                + ":"
-                + request.assetPair()
-                + ":"
-                + request.orderType()
-                + ":"
-                + request.side()
-                + ":"
-                + request.quantity();
-
-        double executedPrice;
-        if ("LIMIT".equalsIgnoreCase(request.orderType())) {
-            Double limitPrice = request.limitPrice();
-            executedPrice = round4(limitPrice == null ? 0.0 : limitPrice.doubleValue());
-        } else {
-            executedPrice = scaled(seed + ":executed", 20.0, 180.0);
-        }
-
-        return new PaperOrderSnapshot(
-                "ord_" + maskedBlock(seed, 8),
-                "ACCEPTED",
-                executedPrice
-        );
+        return demoTerminalReadAdapter.createPaperOrder(userId, request);
     }
 
     @Override
     public PaperSessionStateSnapshot pausePaperSession(String userId) {
-        String normalizedUserId = normalize(userId, "user-demo-001");
-        paperSessionStates.put(normalizedUserId, "PAUSED");
-        return new PaperSessionStateSnapshot("ps-" + shortCode(normalizedUserId), "PAUSED");
+        return demoTerminalReadAdapter.pausePaperSession(userId);
     }
 
     @Override
     public PaperSessionStateSnapshot resumePaperSession(String userId) {
-        String normalizedUserId = normalize(userId, "user-demo-001");
-        paperSessionStates.put(normalizedUserId, "RUNNING");
-        return new PaperSessionStateSnapshot("ps-" + shortCode(normalizedUserId), "RUNNING");
+        return demoTerminalReadAdapter.resumePaperSession(userId);
     }
 
     @Override
     public UserProfileSnapshot getCurrentUserProfile(String userId) {
-        String normalizedUserId = normalize(userId, "user-demo-001");
-        String code = shortCode(normalizedUserId);
-        return new UserProfileSnapshot(
-                normalizedUserId,
-                "trader_" + code,
-                "trader." + code + "@marcus.local",
-                "USER"
-        );
+        return demoTerminalReadAdapter.getCurrentUserProfile(userId);
     }
 
     @Override
     public UserPreferencesSnapshot updateCurrentUserPreferences(String userId, UserPreferencesUpdateSnapshot request) {
-        String normalizedUserId = normalize(userId, "user-demo-001");
-        String timezone = normalize(request.timezone(), "UTC");
-        String locale = normalize(request.locale(), "en-US");
-        boolean emailEnabled = request.emailNotificationsEnabled() == null
-                || request.emailNotificationsEnabled();
-
-        return new UserPreferencesSnapshot(
-                timezone,
-                locale,
-                emailEnabled && !normalizedUserId.isBlank()
-        );
+        return demoTerminalReadAdapter.updateCurrentUserPreferences(userId, request);
     }
 
     @Override
     public List<ApiKeySummarySnapshot> listCurrentUserApiKeys(String userId) {
-        String normalizedUserId = normalize(userId, "user-demo-001");
-        String code = shortCode(normalizedUserId);
-        return List.of(
-                new ApiKeySummarySnapshot(
-                        "key-" + code + "-1",
-                        "Terminal Sync",
-                        "mk_live_****" + code.substring(0, 2),
-                        timeAt(normalizedUserId + ":key1", -120),
-                        timeAt(normalizedUserId + ":key1:last", -2)
-                ),
-                new ApiKeySummarySnapshot(
-                        "key-" + code + "-2",
-                        "Research Worker",
-                        "mk_live_****" + code.substring(code.length() - 2),
-                        timeAt(normalizedUserId + ":key2", -95),
-                        timeAt(normalizedUserId + ":key2:last", -10)
-                )
-        );
+        return demoTerminalReadAdapter.listCurrentUserApiKeys(userId);
     }
 
     @Override
     public CreateApiKeySnapshot createCurrentUserApiKey(String userId, String label) {
-        String normalizedUserId = normalize(userId, "user-demo-001");
-        String normalizedLabel = normalize(label, "Default Key");
-        String seed = normalizedUserId + ":" + normalizedLabel.toLowerCase(Locale.ROOT);
-        String code = shortCode(seed);
-
-        return new CreateApiKeySnapshot(
-                "key-" + code,
-                "mk_live_" + maskedBlock(seed, 18),
-                normalizedLabel
-        );
+        return demoTerminalReadAdapter.createCurrentUserApiKey(userId, label);
     }
 
     @Override
     public void deleteCurrentUserApiKey(String userId, String apiKeyId) {
-        normalize(userId, "user-demo-001");
-        String normalizedApiKeyId = normalize(apiKeyId, "");
-        if (!normalizedApiKeyId.startsWith("key-")) {
-            throw new NoSuchElementException("API key not found: " + normalizedApiKeyId);
-        }
+        demoTerminalReadAdapter.deleteCurrentUserApiKey(userId, apiKeyId);
     }
 
     @Override
     public LoginActivityPageSnapshot listCurrentUserLoginActivities(String userId, int page, int size) {
-        String normalizedUserId = normalize(userId, "user-demo-001");
-        int normalizedPage = Math.max(page, 0);
-        int normalizedSize = Math.max(1, Math.min(size, 100));
-
-        long totalElements = 120L;
-        int totalPages = (int) Math.ceil(totalElements / (double) normalizedSize);
-        int offset = normalizedPage * normalizedSize;
-
-        List<LoginActivitySnapshot> items = new ArrayList<>(normalizedSize);
-        for (int index = 0; index < normalizedSize; index++) {
-            int absoluteIndex = offset + index;
-            String seed = normalizedUserId + ":login:" + absoluteIndex;
-            items.add(new LoginActivitySnapshot(
-                    timeAt(seed, -absoluteIndex),
-                    "192.168." + boundedInt(seed + ":oct3", 0, 255) + "." + boundedInt(seed + ":oct4", 1, 254),
-                    "MarcusTerminal/" + boundedInt(seed + ":ua", 2, 9) + "." + boundedInt(seed + ":ua-minor", 0, 9),
-                    boundedInt(seed + ":success", 0, 100) > 8
-            ));
-        }
-
-        OffsetPaginationMetaSnapshot meta = new OffsetPaginationMetaSnapshot(
-                normalizedPage,
-                normalizedSize,
-                totalElements,
-                totalPages,
-                normalizedPage + 1 < totalPages
-        );
-        return new LoginActivityPageSnapshot(items, meta);
-    }
-
-    private List<TimeSeriesPointSnapshot> listSeries(String seedPrefix, String range) {
-        String normalizedRange = normalize(range, "1M").toUpperCase(Locale.ROOT);
-
-        int points = switch (normalizedRange) {
-            case "1D" ->
-                24;
-            case "1W" ->
-                7;
-            case "1M" ->
-                30;
-            case "YTD" ->
-                24;
-            case "ALL" ->
-                36;
-            default ->
-                throw new IllegalArgumentException("Unsupported range: " + range);
-        };
-
-        double baseValue = scaled(seedPrefix + ":base", 90.0, 135.0);
-        List<TimeSeriesPointSnapshot> result = new ArrayList<>(points);
-        for (int index = 0; index < points; index++) {
-            double drift = scaled(seedPrefix + ":drift:" + index, -1.20, 2.20);
-            double wave = Math.sin((index + 1) / 3.0) * 0.85;
-            baseValue = round4(baseValue + drift * 0.25 + wave * 0.15);
-            result.add(new TimeSeriesPointSnapshot(seriesTimestamp(points, index, normalizedRange), baseValue));
-        }
-        return result;
+        return demoTerminalReadAdapter.listCurrentUserLoginActivities(userId, page, size);
     }
 
     @Override
     public List<SignalItemSnapshot> listSignals(String status, int limit) {
-        String normalizedStatus = normalize(status, "ALL").toUpperCase(Locale.ROOT);
-        int normalizedLimit = Math.max(1, Math.min(limit, 200));
-
-        List<String> statuses = normalizedStatus.equals("ALL")
-                ? List.of("PENDING", "DISPATCHED", "FAILED")
-                : List.of(normalizedStatus);
-
-        List<SignalItemSnapshot> items = new ArrayList<>(normalizedLimit);
-        for (int index = 0; index < normalizedLimit; index++) {
-            String signalId = "sig-" + (index + 1);
-            String currentStatus = statuses.get(index % statuses.size());
-
-            items.add(new SignalItemSnapshot(
-                    signalId,
-                    "bot-" + ((index % 5) + 1),
-                    exchangeFromSeed(signalId).toLowerCase(Locale.ROOT),
-                    pairFromSeed(signalId),
-                    (index % 2 == 0) ? "OPEN_LONG" : "CLOSE_LONG",
-                    scaled(signalId + ":price", 45.0, 220.0),
-                    currentStatus,
-                    timeAt(signalId, -index)
-            ));
-        }
-
-        return items;
+        return demoTerminalReadAdapter.listSignals(status, limit);
     }
 
     @Override
     public ConnectivityHealthSnapshot getSystemConnectivityHealth() {
-        List<ConnectivityHealthDependencySnapshot> dependencies = List.of(
-                new ConnectivityHealthDependencySnapshot("postgres", "UP", 22),
-                new ConnectivityHealthDependencySnapshot("redis", "UP", 12),
-                new ConnectivityHealthDependencySnapshot("kafka", "DEGRADED", 87)
-        );
-        return new ConnectivityHealthSnapshot("DEGRADED", BASE_TIME.plusDays(96), dependencies);
+        return demoTerminalReadAdapter.getSystemConnectivityHealth();
     }
 
     @Override
     public ExecutionLogPageSnapshot listSystemExecutionLogs(String cursor, int limit) {
-        int normalizedLimit = Math.max(1, Math.min(limit, 200));
-        String normalizedCursor = normalize(cursor, "cursor-0");
+        return demoTerminalReadAdapter.listSystemExecutionLogs(cursor, limit);
+    }
 
-        List<ExecutionLogItemSnapshot> items = new ArrayList<>(normalizedLimit);
-        for (int index = 0; index < normalizedLimit; index++) {
-            int seq = boundedInt(normalizedCursor + ":" + index, 1000, 9999);
-            items.add(new ExecutionLogItemSnapshot(
-                    timeAt(normalizedCursor + ":log:" + index, -index),
-                    (index % 8 == 0) ? "WARN" : "INFO",
-                    "signal-router",
-                    "Execution event #" + seq + " processed"
-            ));
+    private BotDiscoverySnapshot toDiscoverySnapshot(BotEntity bot, long subscribers, BotMetrics metrics) {
+        return new BotDiscoverySnapshot(
+                bot.getBotId(),
+                bot.getName(),
+                bot.getDescription(),
+                bot.getTradingPair(),
+                deriveRisk(metrics),
+                metrics.annualReturn(),
+                metrics.maxDrawdown(),
+                (int) subscribers
+        );
+    }
+
+    private Comparator<BotDiscoverySnapshot> comparatorForDiscoverySnapshot(String sort) {
+        return switch (sort) {
+            case "return" -> Comparator.comparingDouble(BotDiscoverySnapshot::annualReturn);
+            case "-return" -> Comparator.comparingDouble(BotDiscoverySnapshot::annualReturn).reversed();
+            case "drawdown" -> Comparator.comparingDouble(BotDiscoverySnapshot::maxDrawdown);
+            case "-drawdown" -> Comparator.comparingDouble(BotDiscoverySnapshot::maxDrawdown).reversed();
+            case "subscribers" -> Comparator.comparingInt(BotDiscoverySnapshot::subscribers);
+            case "-subscribers" -> Comparator.comparingInt(BotDiscoverySnapshot::subscribers).reversed();
+            default -> throw new IllegalArgumentException("Unsupported sort: " + sort);
+        };
+    }
+
+    private boolean matchesQuery(BotDiscoverySnapshot snapshot, String query) {
+        String normalizedQuery = query.toLowerCase(Locale.ROOT);
+        return snapshot.botId().toLowerCase(Locale.ROOT).contains(normalizedQuery)
+                || snapshot.botName().toLowerCase(Locale.ROOT).contains(normalizedQuery)
+                || snapshot.description().toLowerCase(Locale.ROOT).contains(normalizedQuery)
+                || snapshot.asset().toLowerCase(Locale.ROOT).contains(normalizedQuery)
+                || snapshot.risk().toLowerCase(Locale.ROOT).contains(normalizedQuery);
+    }
+
+    private BotMetrics calculateBotMetrics(String botId) {
+        List<SignalEntity> signals = springDataSignalRepository.findAll().stream()
+                .filter(signal -> Objects.equals(signal.getBotId(), botId))
+                .toList();
+        long subscribers = springDataUserSubscriptionRepository.findAll().stream()
+                .filter(subscription -> subscription.getStatus() == SubscriptionStatus.ACTIVE)
+                .filter(subscription -> Objects.equals(subscription.getBotId(), botId))
+                .count();
+        return calculateBotMetrics(botId, signals, subscribers);
+    }
+
+    private BotMetrics calculateBotMetrics(String botId, List<SignalEntity> signals, long subscribers) {
+        if (signals == null || signals.isEmpty()) {
+            return new BotMetrics(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, deriveRisk(0.0, 0.0), subscribers);
         }
 
-        return new ExecutionLogPageSnapshot("cursor-" + maskedBlock(normalizedCursor, 8), items);
+        double annualReturn = round4(signals.stream().mapToDouble(this::deriveSignalReturn).average().orElse(0.0));
+        double maxDrawdown = round4(signals.stream().mapToDouble(this::deriveSignalDrawdown).max().orElse(0.0));
+        long profitableSignals = signals.stream().filter(signal -> deriveSignalReturn(signal) > 0).count();
+        double winRate = round4(profitableSignals / (double) signals.size());
+        double avgTradeReturn = round4(signals.stream().mapToDouble(this::deriveSignalReturn).average().orElse(0.0));
+        double tradesPerDay = round4(signals.size() / Math.max(1.0, calculateAgeDays(signals)));
+        double sharpe = round4(annualReturn / Math.max(0.01, maxDrawdown + 0.01));
+        return new BotMetrics(annualReturn, maxDrawdown, sharpe, winRate, avgTradeReturn, tradesPerDay, deriveRisk(annualReturn, maxDrawdown), subscribers);
+    }
+
+    private double calculateAgeDays(List<SignalEntity> signals) {
+        LocalDateTime earliest = signals.stream()
+                .map(SignalEntity::getGeneratedTimestamp)
+                .filter(Objects::nonNull)
+                .min(LocalDateTime::compareTo)
+                .orElse(BASE_TIME);
+        LocalDateTime latest = signals.stream()
+                .map(SignalEntity::getGeneratedTimestamp)
+                .filter(Objects::nonNull)
+                .max(LocalDateTime::compareTo)
+                .orElse(BASE_TIME.plusDays(1));
+        long days = java.time.Duration.between(earliest, latest).toDays();
+        return Math.max(days, 1L);
+    }
+
+    private double deriveSignalReturn(SignalEntity signal) {
+        double entry = toDouble(signal.getEntry());
+        if (entry == 0.0d) {
+            return 0.0d;
+        }
+
+        double referencePrice = toDouble(signal.getTakeProfit());
+        if (referencePrice == 0.0d) {
+            referencePrice = toDouble(signal.getStopLoss());
+        }
+        if (referencePrice == 0.0d) {
+            return 0.0d;
+        }
+
+        double direction = switch (signal.getAction()) {
+            case OPEN_SHORT, CLOSE_SHORT -> -1.0d;
+            default -> 1.0d;
+        };
+        return round4(((referencePrice - entry) / Math.abs(entry)) * direction);
+    }
+
+    private double deriveSignalDrawdown(SignalEntity signal) {
+        double entry = toDouble(signal.getEntry());
+        double stopLoss = toDouble(signal.getStopLoss());
+        if (entry == 0.0d || stopLoss == 0.0d) {
+            return 0.0d;
+        }
+        return round4(Math.max(0.0d, Math.abs(entry - stopLoss) / Math.abs(entry)));
+    }
+
+    private String deriveRisk(double annualReturn, double maxDrawdown) {
+        if (maxDrawdown >= 0.25d || annualReturn <= 0.05d) {
+            return "HIGH";
+        }
+        if (maxDrawdown >= 0.12d) {
+            return "MEDIUM";
+        }
+        return "LOW";
+    }
+
+    private String deriveRisk(BotMetrics metrics) {
+        return deriveRisk(metrics.annualReturn(), metrics.maxDrawdown());
+    }
+
+    private String resolveExchangeLabel(BotEntity bot) {
+        if (bot.getExchange() != null) {
+            if (bot.getExchange().getExchangeId() != null && !bot.getExchange().getExchangeId().isBlank()) {
+                return bot.getExchange().getExchangeId().toUpperCase(Locale.ROOT);
+            }
+            if (bot.getExchange().getName() != null && !bot.getExchange().getName().isBlank()) {
+                return bot.getExchange().getName().toUpperCase(Locale.ROOT);
+            }
+        }
+        if (bot.getTradingPair() != null && !bot.getTradingPair().isBlank()) {
+            return bot.getTradingPair().toUpperCase(Locale.ROOT);
+        }
+        return "UNASSIGNED";
+    }
+
+    private String resolveExchangeId(BotEntity bot) {
+        return resolveExchangeLabel(bot);
+    }
+
+    private int pointsForRange(String range) {
+        return switch (range) {
+            case "1D" -> 24;
+            case "1W" -> 7;
+            case "1M" -> 30;
+            case "YTD" -> 24;
+            case "ALL" -> 36;
+            default -> 30;
+        };
+    }
+
+    private double toDouble(BigDecimal value) {
+        return value == null ? 0.0d : value.doubleValue();
+    }
+
+    private record BotMetrics(
+            double annualReturn,
+            double maxDrawdown,
+            double sharpe,
+            double winRate,
+            double avgTradeReturn,
+            double tradesPerDay,
+            String risk,
+            long subscribers
+    ) {
+    }
+
+    private double round4(double value) {
+        return Math.round(value * 10_000.0) / 10_000.0;
+    }
+
+    private double round2(double value) {
+        return Math.round(value * 100.0) / 100.0;
     }
 
     private String normalize(String value, String fallback) {
@@ -658,104 +515,5 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? fallback : trimmed;
-    }
-
-    private int decodeCursorOffset(String cursor) {
-        String normalizedCursor = normalize(cursor, "paper-cursor-0");
-        if (!normalizedCursor.startsWith("paper-cursor-")) {
-            return 0;
-        }
-        String raw = normalizedCursor.substring("paper-cursor-".length());
-        try {
-            return Math.max(Integer.parseInt(raw), 0);
-        } catch (NumberFormatException exception) {
-            return 0;
-        }
-    }
-
-    private String shortCode(String key) {
-        int value = Math.abs(Objects.hash(key));
-        String raw = Integer.toHexString(value);
-        return raw.length() >= 6 ? raw.substring(0, 6) : String.format("%1$6s", raw).replace(' ', '0');
-    }
-
-    private String maskedBlock(String key, int length) {
-        String code = shortCode(key) + Integer.toHexString(Math.abs(Objects.hash(key, "mask")));
-        if (code.length() < length) {
-            code = code + "0".repeat(length - code.length());
-        }
-        return code.substring(0, length);
-    }
-
-    private int boundedInt(String key, int minInclusive, int maxInclusive) {
-        int span = maxInclusive - minInclusive + 1;
-        int offset = Math.floorMod(Objects.hash(key), span);
-        return minInclusive + offset;
-    }
-
-    private double scaled(String key, double minInclusive, double maxInclusive) {
-        int base = Math.floorMod(Objects.hash(key), 10_000);
-        double ratio = base / 9_999.0;
-        double value = minInclusive + (maxInclusive - minInclusive) * ratio;
-        return round4(value);
-    }
-
-    private double round2(double value) {
-        return Math.round(value * 100.0) / 100.0;
-    }
-
-    private double round4(double value) {
-        return Math.round(value * 10_000.0) / 10_000.0;
-    }
-
-    private LocalDateTime timeAt(String key, int hoursOffset) {
-        int dayOffset = boundedInt(key + ":day", 0, 120);
-        int minuteOffset = boundedInt(key + ":minute", 0, 59);
-        return BASE_TIME.plusDays(dayOffset).plusHours(hoursOffset).plusMinutes(minuteOffset);
-    }
-
-    private LocalDateTime seriesTimestamp(int totalPoints, int index, String range) {
-        return switch (range) {
-            case "1D" ->
-                BASE_TIME.plusDays(96).minusHours(totalPoints - index);
-            case "1W" ->
-                BASE_TIME.plusDays(96).minusDays(totalPoints - index);
-            case "1M" ->
-                BASE_TIME.plusDays(96).minusDays(totalPoints - index);
-            case "YTD" ->
-                BASE_TIME.plusDays(96).minusWeeks(totalPoints - index);
-            case "ALL" ->
-                BASE_TIME.plusDays(96).minusMonths(totalPoints - index);
-            default ->
-                BASE_TIME.plusDays(96).minusDays(totalPoints - index);
-        };
-    }
-
-    private String pairFromSeed(String key) {
-        String[] pairs = {"BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "ADAUSDT"};
-        return pairs[Math.floorMod(Objects.hash(key, "pair"), pairs.length)];
-    }
-
-    private String exchangeFromSeed(String key) {
-        String[] exchanges = {"BINANCE", "BYBIT", "OKX"};
-        return exchanges[Math.floorMod(Objects.hash(key, "exchange"), exchanges.length)];
-    }
-
-    private String marketFromSeed(String key) {
-        String[] markets = {"CRYPTO", "FOREX", "COMMODITIES"};
-        return markets[Math.floorMod(Objects.hash(key, "market"), markets.length)];
-    }
-
-    private record DiscoveryBotSeed(
-            String botId,
-            String botName,
-            String description,
-            String asset,
-            String risk,
-            double annualReturn,
-            double maxDrawdown,
-            int subscribers
-            ) {
-
     }
 }
