@@ -7,11 +7,13 @@ import java.util.Optional;
 
 public interface UserSubscriptionPersistencePort {
 
-    List<UserSubscription> findActiveByUserId(String userId);
+    UserSubscription save(UserSubscription userSubscription);
 
     Optional<UserSubscription> findActiveByUserIdAndBotId(String userId, String botId);
 
-    UserSubscription save(UserSubscription subscription);
+    List<UserSubscription> findActiveByUserId(String userId);
+
+    Optional<String> findAnyActiveWsTokenByUserId(String userId);
 
     void cancelActiveByUserIdAndBotId(String userId, String botId);
 

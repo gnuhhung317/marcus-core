@@ -17,12 +17,14 @@ public class UpdateCurrentUserPreferencesUseCase {
     public TerminalReadPort.UserPreferencesSnapshot execute(UpdateUserPreferencesRequest request) {
         String userId = identityService.getCurrentUserId()
                 .orElseThrow(() -> new UnauthenticatedException("No authenticated user found"));
-        TerminalReadPort.UserPreferencesUpdateSnapshot updateSnapshot
-                = new TerminalReadPort.UserPreferencesUpdateSnapshot(
+
+        return terminalReadPort.updateCurrentUserPreferences(
+                userId,
+                new TerminalReadPort.UserPreferencesUpdateSnapshot(
                         request.timezone(),
                         request.locale(),
                         request.emailNotificationsEnabled()
-                );
-        return terminalReadPort.updateCurrentUserPreferences(userId, updateSnapshot);
+                )
+        );
     }
 }

@@ -7,20 +7,20 @@ import jakarta.persistence.*;
 import java.time.Instant;
 
 /**
- * JPA entity for storing execution events.
- * Immutable once persisted.
- * Payload is stored as JSON text and deserialized on read.
+ * JPA entity for storing execution events. Immutable once persisted. Payload is
+ * stored as JSON text and deserialized on read.
  */
 @Entity
 @Table(
         name = "execution_event",
         indexes = {
-                @Index(name = "idx_signal_id", columnList = "signal_id"),
-                @Index(name = "idx_signal_sequence", columnList = "signal_id,sequence"),
-                @Index(name = "idx_event_id", columnList = "event_id", unique = true)
+            @Index(name = "idx_signal_id", columnList = "signal_id"),
+            @Index(name = "idx_signal_sequence", columnList = "signal_id,sequence"),
+            @Index(name = "idx_event_id", columnList = "event_id", unique = true)
         }
 )
 public class ExecutionEventEntity {
+
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Id
@@ -152,15 +152,15 @@ public class ExecutionEventEntity {
 
     @Override
     public String toString() {
-        return "ExecutionEventEntity{" +
-                "id=" + id +
-                ", eventId='" + eventId + '\'' +
-                ", signalId='" + signalId + '\'' +
-                ", sequence=" + sequence +
-                ", eventType='" + eventType + '\'' +
-                ", sentAt=" + sentAt +
-                ", exchangeTime=" + exchangeTime +
-                ", createdAt=" + createdAt +
-                '}';
+        return "ExecutionEventEntity{"
+                + "id=" + id
+                + ", eventId='" + eventId + '\''
+                + ", signalId='" + signalId + '\''
+                + ", sequence=" + sequence
+                + ", eventType='" + eventType + '\''
+                + ", sentAt=" + sentAt
+                + ", exchangeTime=" + exchangeTime
+                + ", createdAt=" + createdAt
+                + '}';
     }
 }

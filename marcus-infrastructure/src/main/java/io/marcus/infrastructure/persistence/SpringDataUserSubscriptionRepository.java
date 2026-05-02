@@ -17,6 +17,10 @@ public interface SpringDataUserSubscriptionRepository extends JpaRepository<User
             SubscriptionStatus status
     );
 
+    Optional<UserSubscriptionEntity> findByUserIdAndBotIdAndStatus(String userId, String botId, SubscriptionStatus status);
+
+    Optional<UserSubscriptionEntity> findFirstByUserIdAndStatusOrderByCreatedAtAsc(String userId, SubscriptionStatus status);
+
     List<UserSubscriptionEntity> findByBotIdAndStatusOrderByCreatedAtDesc(String botId, SubscriptionStatus status);
 
     Optional<UserSubscriptionEntity> findFirstByUserSubscriptionId(String userSubscriptionId);

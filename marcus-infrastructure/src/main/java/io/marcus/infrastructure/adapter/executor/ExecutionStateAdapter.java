@@ -10,8 +10,8 @@ import java.time.Instant;
 import java.util.Optional;
 
 /**
- * Infrastructure adapter for ExecutionStatePort.
- * Manages execution state per signal using Spring Data JPA.
+ * Infrastructure adapter for ExecutionStatePort. Manages execution state per
+ * signal using Spring Data JPA.
  */
 @Component
 public class ExecutionStateAdapter implements ExecutionStatePort {

@@ -2,6 +2,7 @@ package io.marcus.application.usecase;
 
 import io.marcus.application.dto.BotRegistrationResult;
 import io.marcus.application.dto.RegisterBotRequest;
+import io.marcus.application.exception.ForbiddenOperationException;
 import io.marcus.application.exception.UnauthenticatedException;
 import io.marcus.application.mapper.BotDtoMapper;
 import io.marcus.domain.model.Bot;
@@ -9,7 +10,6 @@ import io.marcus.domain.repository.BotRepository;
 import io.marcus.domain.repository.UserRepository;
 import io.marcus.domain.service.EncryptionService;
 import io.marcus.domain.service.IdentityService;
-import io.marcus.domain.vo.BotStatus;
 import io.marcus.domain.vo.Role;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +21,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class RegisterBotUseCase {
 
+    private static final String API_KEY_PREFIX = "ak";
+    private static final String SECRET_KEY_PREFIX = "sk";
+    private static final String BOT_ID_PREFIX = "bot";
+
     private final BotRepository botRepository;
     private final EncryptionService encryptionService;
     private final IdentityService identityService;
@@ -29,19 +33,21 @@ public class RegisterBotUseCase {
 
     @Transactional
     public BotRegistrationResult execute(RegisterBotRequest botRequest) {
+        validateRequest(botRequest);
+
         String currentUserId = identityService.getCurrentUserId()
                 .orElseThrow(() -> new UnauthenticatedException("No authenticated user found"));
 
         if (!userRepository.existsByIdAndRole(currentUserId, Role.DEVELOPER)) {
-            throw new IllegalArgumentException("Only developer can register bot");
+            throw new ForbiddenOperationException("Only developer can register bot");
         }
 
-        String apiKey = generateSecureKey("ak");
-        String rawSecret = generateSecureKey("sk");
+        String apiKey = generateSecureKey(API_KEY_PREFIX);
+        String rawSecret = generateSecureKey(SECRET_KEY_PREFIX);
         String secret = encryptionService.encrypt(rawSecret);
 
         Bot bot = botDtoMapper.toDomain(botRequest);
-        bot.setBotId(generateSecureKey("bot"));
+        bot.setBotId(generateSecureKey(BOT_ID_PREFIX));
         bot.setApiKey(apiKey);
         bot.setSecretKey(secret);
         bot.setDeveloperId(currentUserId);
@@ -52,5 +58,21 @@ public class RegisterBotUseCase {
 
     private String generateSecureKey(String prefix) {
         return prefix + "_" + UUID.randomUUID().toString().replace("-", "");
+    }
+
+    private void validateRequest(RegisterBotRequest botRequest) {
+        if (botRequest == null) {
+            throw new IllegalArgumentException("Register bot request is required");
+        }
+
+        validateRequiredField("Bot name", botRequest.botName());
+        validateRequiredField("Trading pair", botRequest.tradingPair());
+        validateRequiredField("Exchange id", botRequest.exchangeId());
+    }
+
+    private void validateRequiredField(String fieldName, String value) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(fieldName + " is required");
+        }
     }
 }

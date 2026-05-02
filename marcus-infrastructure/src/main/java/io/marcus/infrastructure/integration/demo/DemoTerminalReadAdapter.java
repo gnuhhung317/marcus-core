@@ -95,12 +95,18 @@ public class DemoTerminalReadAdapter implements TerminalReadPort {
         String normalizedRange = normalize(range, "1M").toUpperCase(Locale.ROOT);
 
         int points = switch (normalizedRange) {
-            case "1D" -> 24;
-            case "1W" -> 7;
-            case "1M" -> 30;
-            case "YTD" -> 24;
-            case "ALL" -> 36;
-            default -> 30;
+            case "1D" ->
+                24;
+            case "1W" ->
+                7;
+            case "1M" ->
+                30;
+            case "YTD" ->
+                24;
+            case "ALL" ->
+                36;
+            default ->
+                30;
         };
 
         double baseValue = scaled(normalizedStrategyId + ":series-base", 90.0, 135.0);
@@ -554,12 +560,18 @@ public class DemoTerminalReadAdapter implements TerminalReadPort {
 
     private LocalDateTime seriesTimestamp(int totalPoints, int index, String range) {
         return switch (range) {
-            case "1D" -> BASE_TIME.plusDays(96).minusHours(totalPoints - index);
-            case "1W" -> BASE_TIME.plusDays(96).minusDays(totalPoints - index);
-            case "1M" -> BASE_TIME.plusDays(96).minusDays(totalPoints - index);
-            case "YTD" -> BASE_TIME.plusDays(96).minusWeeks(totalPoints - index);
-            case "ALL" -> BASE_TIME.plusDays(96).minusMonths(totalPoints - index);
-            default -> BASE_TIME.plusDays(96).minusDays(totalPoints - index);
+            case "1D" ->
+                BASE_TIME.plusDays(96).minusHours(totalPoints - index);
+            case "1W" ->
+                BASE_TIME.plusDays(96).minusDays(totalPoints - index);
+            case "1M" ->
+                BASE_TIME.plusDays(96).minusDays(totalPoints - index);
+            case "YTD" ->
+                BASE_TIME.plusDays(96).minusWeeks(totalPoints - index);
+            case "ALL" ->
+                BASE_TIME.plusDays(96).minusMonths(totalPoints - index);
+            default ->
+                BASE_TIME.plusDays(96).minusDays(totalPoints - index);
         };
     }
 

@@ -13,7 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ExecutorRecoveryRequest {
-    
+
     /**
      * List of signal IDs to recover.
      */

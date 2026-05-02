@@ -4,10 +4,11 @@ import java.time.Instant;
 import java.util.Objects;
 
 /**
- * Output DTO for SyncExecutionEventUseCase.
- * Represents the ACK response sent back to executor client.
+ * Output DTO for SyncExecutionEventUseCase. Represents the ACK response sent
+ * back to executor client.
  */
 public class SyncExecutionEventOutput {
+
     private final String eventId;
     private final String signalId;
     private final String status; // "OK" or "ERROR"

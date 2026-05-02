@@ -3,10 +3,12 @@ package io.marcus.domain.executor;
 import java.time.Instant;
 
 /**
- * Represents the execution state of a signal in the executor-backend sync protocol.
- * Tracks: signal state, order state, position state, and sequence number.
+ * Represents the execution state of a signal in the executor-backend sync
+ * protocol. Tracks: signal state, order state, position state, and sequence
+ * number.
  */
 public class ExecutionState {
+
     private final String signalId;
     private final SignalState signalState;
     private final OrderState orderState;
@@ -93,13 +95,13 @@ public class ExecutionState {
     }
 
     /**
-     * Check if this state allows further events.
-     * Returns false if signal or position is closed (terminal).
+     * Check if this state allows further events. Returns false if signal or
+     * position is closed (terminal).
      */
     public boolean allowsFurtherEvents() {
-        return signalState != SignalState.REJECTED &&
-               signalState != SignalState.CLOSED &&
-               positionState != PositionState.CLOSED;
+        return signalState != SignalState.REJECTED
+                && signalState != SignalState.CLOSED
+                && positionState != PositionState.CLOSED;
     }
 
     /**
@@ -113,9 +115,9 @@ public class ExecutionState {
      * Signal lifecycle states.
      */
     public enum SignalState {
-        ACCEPTED,    // Signal received and validated
-        REJECTED,    // Signal rejected (terminal)
-        OPEN,        // Orders placed or filled
+        ACCEPTED, // Signal received and validated
+        REJECTED, // Signal rejected (terminal)
+        OPEN, // Orders placed or filled
         CLOSED       // Position closed (terminal)
     }
 
@@ -123,10 +125,10 @@ public class ExecutionState {
      * Order lifecycle states.
      */
     public enum OrderState {
-        NONE,        // No order yet
-        PLACED,      // Order submitted to exchange
-        FILLED,      // Order executed (may be partial)
-        FAILED,      // Order rejected (terminal)
+        NONE, // No order yet
+        PLACED, // Order submitted to exchange
+        FILLED, // Order executed (may be partial)
+        FAILED, // Order rejected (terminal)
         CANCELED     // Order canceled (terminal)
     }
 
@@ -134,22 +136,22 @@ public class ExecutionState {
      * Position lifecycle states.
      */
     public enum PositionState {
-        NONE,        // No position yet
-        OPENED,      // Position created from filled order
-        UPDATING,    // Position open, receiving updates
+        NONE, // No position yet
+        OPENED, // Position created from filled order
+        UPDATING, // Position open, receiving updates
         CLOSED       // Position closed (terminal)
     }
 
     @Override
     public String toString() {
-        return "ExecutionState{" +
-                "signalId='" + signalId + '\'' +
-                ", signalState=" + signalState +
-                ", orderState=" + orderState +
-                ", positionState=" + positionState +
-                ", lastSequence=" + lastSequence +
-                ", lastEventTime=" + lastEventTime +
-                ", closedAt=" + closedAt +
-                '}';
+        return "ExecutionState{"
+                + "signalId='" + signalId + '\''
+                + ", signalState=" + signalState
+                + ", orderState=" + orderState
+                + ", positionState=" + positionState
+                + ", lastSequence=" + lastSequence
+                + ", lastEventTime=" + lastEventTime
+                + ", closedAt=" + closedAt
+                + '}';
     }
 }

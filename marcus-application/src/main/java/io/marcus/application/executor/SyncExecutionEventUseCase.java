@@ -5,21 +5,21 @@ import java.time.Instant;
 import java.util.Optional;
 
 /**
- * Application use case for synchronizing execution events from the executor client.
- * 
- * Responsibilities:
- * - Validate incoming events (sequence, state transitions, duplicates)
- * - Enforce late event rejection (no events after position.closed)
- * - Persist events via ExecutionEventPort
- * - Update execution state via ExecutionStatePort
- * - Return ACK response for client
- * 
- * Implements Domain-First Clean Modular Monolith pattern:
- * - Depends on domain ports (ExecutionEventPort, ExecutionStatePort)
- * - Does NOT depend on specific infrastructure implementations
- * - Orchestrates use case flow; domain models do the validation
+ * Application use case for synchronizing execution events from the executor
+ * client.
+ *
+ * Responsibilities: - Validate incoming events (sequence, state transitions,
+ * duplicates) - Enforce late event rejection (no events after position.closed)
+ * - Persist events via ExecutionEventPort - Update execution state via
+ * ExecutionStatePort - Return ACK response for client
+ *
+ * Implements Domain-First Clean Modular Monolith pattern: - Depends on domain
+ * ports (ExecutionEventPort, ExecutionStatePort) - Does NOT depend on specific
+ * infrastructure implementations - Orchestrates use case flow; domain models do
+ * the validation
  */
 public class SyncExecutionEventUseCase {
+
     private final ExecutionEventPort executionEventPort;
     private final ExecutionStatePort executionStatePort;
 
@@ -33,7 +33,7 @@ public class SyncExecutionEventUseCase {
 
     /**
      * Process an incoming execution event from the executor client.
-     * 
+     *
      * @param input the incoming event
      * @return ACK response (OK or ERROR)
      */
@@ -75,8 +75,8 @@ public class SyncExecutionEventUseCase {
                         input.getEventId(),
                         input.getSignalId(),
                         "OUT_OF_ORDER",
-                        "Expected sequence " + expectedSequence + ", received " + input.getSequence() +
-                                " for signalId " + input.getSignalId(),
+                        "Expected sequence " + expectedSequence + ", received " + input.getSequence()
+                        + " for signalId " + input.getSignalId(),
                         Instant.now()
                 );
             }
@@ -160,7 +160,8 @@ public class SyncExecutionEventUseCase {
     }
 
     /**
-     * Validate that the event type is allowed in the current state (state machine rules).
+     * Validate that the event type is allowed in the current state (state
+     * machine rules).
      */
     private void validateStateTransition(ExecutionEventType eventType, Optional<ExecutionState> currentStateOpt) {
         if (!currentStateOpt.isPresent()) {
@@ -229,8 +230,8 @@ public class SyncExecutionEventUseCase {
                 break;
 
             case POSITION_UPDATED:
-                if (currentState.getPositionState() != ExecutionState.PositionState.OPENED &&
-                    currentState.getPositionState() != ExecutionState.PositionState.UPDATING) {
+                if (currentState.getPositionState() != ExecutionState.PositionState.OPENED
+                        && currentState.getPositionState() != ExecutionState.PositionState.UPDATING) {
                     throw new IllegalArgumentException(
                             "position.updated only allowed when position is OPENED or UPDATING"
                     );
@@ -238,8 +239,8 @@ public class SyncExecutionEventUseCase {
                 break;
 
             case POSITION_CLOSED:
-                if (currentState.getPositionState() != ExecutionState.PositionState.OPENED &&
-                    currentState.getPositionState() != ExecutionState.PositionState.UPDATING) {
+                if (currentState.getPositionState() != ExecutionState.PositionState.OPENED
+                        && currentState.getPositionState() != ExecutionState.PositionState.UPDATING) {
                     throw new IllegalArgumentException(
                             "position.closed only allowed when position is OPENED or UPDATING"
                     );

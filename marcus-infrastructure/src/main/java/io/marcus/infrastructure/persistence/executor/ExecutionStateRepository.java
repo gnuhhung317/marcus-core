@@ -6,8 +6,8 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 /**
- * Spring Data repository for ExecutionStateEntity.
- * Provides CRUD operations for execution state management.
+ * Spring Data repository for ExecutionStateEntity. Provides CRUD operations for
+ * execution state management.
  */
 @Repository
 public interface ExecutionStateRepository extends JpaRepository<ExecutionStateEntity, Long> {

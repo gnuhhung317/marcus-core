@@ -20,12 +20,10 @@ public class JpaUserSubscriptionPersistenceAdapter implements UserSubscriptionPe
     private final UserSubscriptionMapper userSubscriptionMapper;
 
     @Override
-    public List<UserSubscription> findActiveByUserId(String userId) {
-        return springDataUserSubscriptionRepository
-                .findByUserIdAndStatusOrderByCreatedAtDesc(userId, SubscriptionStatus.ACTIVE)
-                .stream()
-                .map(userSubscriptionMapper::toDomain)
-                .toList();
+    public UserSubscription save(UserSubscription subscription) {
+        UserSubscriptionEntity entity = userSubscriptionMapper.toEntity(subscription);
+        UserSubscriptionEntity savedEntity = springDataUserSubscriptionRepository.save(entity);
+        return userSubscriptionMapper.toDomain(savedEntity);
     }
 
     @Override
@@ -36,10 +34,20 @@ public class JpaUserSubscriptionPersistenceAdapter implements UserSubscriptionPe
     }
 
     @Override
-    public UserSubscription save(UserSubscription subscription) {
-        UserSubscriptionEntity entity = userSubscriptionMapper.toEntity(subscription);
-        UserSubscriptionEntity savedEntity = springDataUserSubscriptionRepository.save(entity);
-        return userSubscriptionMapper.toDomain(savedEntity);
+    public List<UserSubscription> findActiveByUserId(String userId) {
+        return springDataUserSubscriptionRepository
+                .findByUserIdAndStatusOrderByCreatedAtDesc(userId, SubscriptionStatus.ACTIVE)
+                .stream()
+                .map(userSubscriptionMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public Optional<String> findAnyActiveWsTokenByUserId(String userId) {
+        return springDataUserSubscriptionRepository
+                .findFirstByUserIdAndStatusOrderByCreatedAtAsc(userId, SubscriptionStatus.ACTIVE)
+                .map(UserSubscriptionEntity::getWsToken)
+                .filter(token -> token != null && !token.isBlank());
     }
 
     @Override

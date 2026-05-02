@@ -18,8 +18,9 @@ public class ListLeaderboardStrategiesUseCase {
             int page,
             int size
     ) {
-        int normalizedPage = Math.max(0, page);
-        int normalizedSize = Math.max(1, Math.min(size, 200));
+        int normalizedPage = Math.max(page, 0);
+        int normalizedSize = Math.max(1, Math.min(size, 100));
+
         return terminalReadPort.listLeaderboardStrategies(
                 timeframe,
                 market,

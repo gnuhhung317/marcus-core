@@ -4,10 +4,11 @@ import java.time.Instant;
 import java.util.Objects;
 
 /**
- * Input DTO for SyncExecutionEventUseCase.
- * Represents an incoming execution event from the executor client.
+ * Input DTO for SyncExecutionEventUseCase. Represents an incoming execution
+ * event from the executor client.
  */
 public class SyncExecutionEventInput {
+
     private final String eventId;
     private final String signalId;
     private final int sequence;
