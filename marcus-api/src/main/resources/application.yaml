@@ -32,6 +32,14 @@ spring:
     redis:
       url: ${SPRING_REDIS_URL:redis://redis:6379}
 marcus:
+  messaging:
+    signal-storage-topic: trading-signals
+    signal-storage-group: marcus-signal-storage
+    signal-storage-batch-size: 100
+    signal-routing-topic: trading-signals-routing
+    signal-dispatcher-group: marcus-signal-dispatcher
+    signal-dispatch-broadcast-channel: marcus:signals:dispatch:broadcast
+
   security:
     master-key: coleemchangkhocchutnaocoleemchangquantamanhrasao
     salt: 944440b12311f820b2cf6acd2290b497
@@ -39,3 +47,6 @@ marcus:
       secret: marcus-super-secret-key-change-me-at-least-32-bytes
       access-token-expiration-seconds: 3600
       refresh-token-expiration-seconds: 604800
+
+  server:
+    port: 8080

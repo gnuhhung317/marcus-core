@@ -1,5 +1,6 @@
 package io.marcus.application.mapper;
 
+import io.marcus.application.dto.BotSummaryResult;
 import io.marcus.application.dto.BotRegistrationResult;
 import io.marcus.application.dto.RegisterBotRequest;
 import io.marcus.domain.model.Bot;
@@ -36,6 +37,22 @@ public class BotDtoMapper {
                 .status(bot.getStatus() != null ? bot.getStatus().name() : null)
                 .tradingPair(bot.getTradingPair())
                 .exchange(bot.getExchangeId())
+                .build();
+    }
+
+    public BotSummaryResult toSummaryResult(Bot bot, boolean includeApiKey) {
+        if (bot == null) {
+            return null;
+        }
+
+        return BotSummaryResult.builder()
+                .botId(bot.getBotId())
+                .botName(bot.getName())
+                .description(bot.getDescription())
+                .status(bot.getStatus() != null ? bot.getStatus().name() : null)
+                .tradingPair(bot.getTradingPair())
+                .exchange(bot.getExchangeId())
+                .apiKey(includeApiKey ? bot.getApiKey() : null)
                 .build();
     }
 }

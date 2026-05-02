@@ -5,9 +5,12 @@ import io.marcus.domain.vo.SignalStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Entity
 @Table(name = "signals")
@@ -50,6 +53,7 @@ public class SignalEntity extends BaseEntity {
 
     private LocalDateTime generatedTimestamp;
 
-    @Column(columnDefinition = "TEXT")
-    private String metadata;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private Map<String, Object> metadata;
 }

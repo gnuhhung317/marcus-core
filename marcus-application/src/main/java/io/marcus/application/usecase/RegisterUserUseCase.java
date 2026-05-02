@@ -27,6 +27,7 @@ public class RegisterUserUseCase {
     }
 
     public RegisterUserResponse execute(RegisterUserRequest registerUserRequest) {
+<<<<<<< HEAD
         String normalizedUsername = normalizeUsername(registerUserRequest);
         String normalizedEmail = requireTrimmed(registerUserRequest.email(), "Email is required");
         String rawPassword = requireTrimmed(registerUserRequest.password(), "Password is required");
@@ -37,15 +38,39 @@ public class RegisterUserUseCase {
         }
 
         if (userUniquenessPort.existsByEmail(normalizedEmail)) {
+=======
+        if (registerUserRequest.username() == null || registerUserRequest.username().isBlank()) {
+            throw new IllegalArgumentException("Username is required");
+        }
+        if (registerUserRequest.password() == null || registerUserRequest.password().isBlank()) {
+            throw new IllegalArgumentException("Password is required");
+        }
+        if (registerUserRequest.email() == null || registerUserRequest.email().isBlank()) {
+            throw new IllegalArgumentException("Email is required");
+        }
+
+        if (userUniquenessPort.existsByUsername(registerUserRequest.username())) {
+            throw new IllegalArgumentException("Username already exists");
+        }
+
+        if (userUniquenessPort.existsByEmail(registerUserRequest.email())) {
+>>>>>>> 07cc74d5f615dfb2d511f1f2832e810f702e72e8
             throw new IllegalArgumentException("Email already exists");
         }
 
         User user = User.builder()
                 .userId("usr_" + UUID.randomUUID().toString().replace("-", ""))
+<<<<<<< HEAD
                 .username(normalizedUsername)
                 .passwordHash(passwordHashPort.encode(rawPassword))
                 .email(normalizedEmail)
                 .role(requestedRole)
+=======
+                .username(registerUserRequest.username())
+                .passwordHash(passwordHashPort.encode(registerUserRequest.password()))
+                .email(registerUserRequest.email())
+                .role(Role.USER)
+>>>>>>> 07cc74d5f615dfb2d511f1f2832e810f702e72e8
                 .build();
 
         User savedUser = userRegistrationPort.save(user);
@@ -57,6 +82,7 @@ public class RegisterUserUseCase {
                 savedUser.getRole().name()
         );
     }
+<<<<<<< HEAD
 
     private String normalizeUsername(RegisterUserRequest registerUserRequest) {
         String username = firstNonBlank(registerUserRequest.username(), registerUserRequest.displayName());
@@ -101,4 +127,6 @@ public class RegisterUserUseCase {
 
         return requestedRole;
     }
+=======
+>>>>>>> 07cc74d5f615dfb2d511f1f2832e810f702e72e8
 }

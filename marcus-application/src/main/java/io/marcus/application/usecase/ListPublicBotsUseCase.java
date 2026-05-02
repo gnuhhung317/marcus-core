@@ -1,16 +1,27 @@
 package io.marcus.application.usecase;
 
+<<<<<<< HEAD
 import io.marcus.domain.port.TerminalReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Locale;
 import java.util.Set;
+=======
+import io.marcus.application.dto.BotSummaryResult;
+import io.marcus.application.mapper.BotDtoMapper;
+import io.marcus.domain.repository.BotRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+>>>>>>> 07cc74d5f615dfb2d511f1f2832e810f702e72e8
 
 @Service
 @RequiredArgsConstructor
 public class ListPublicBotsUseCase {
 
+<<<<<<< HEAD
     private static final Set<String> SUPPORTED_RISKS = Set.of("LOW", "MEDIUM", "HIGH", "ALL");
     private static final Set<String> SUPPORTED_SORTS = Set.of(
             "return",
@@ -79,5 +90,15 @@ public class ListPublicBotsUseCase {
             throw new IllegalArgumentException("Unsupported sort: " + sort);
         }
         return normalizedSort;
+=======
+    private final BotRepository botRepository;
+    private final BotDtoMapper botDtoMapper;
+
+    public List<BotSummaryResult> execute() {
+        return botRepository.findAllActive()
+                .stream()
+                .map(bot -> botDtoMapper.toSummaryResult(bot, false))
+                .toList();
+>>>>>>> 07cc74d5f615dfb2d511f1f2832e810f702e72e8
     }
 }

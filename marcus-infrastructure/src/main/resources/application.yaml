@@ -16,3 +16,29 @@ spring:
     redis:
       url: redis://200.200.201.4:6379
 
+  kafka:
+    bootstrap-servers: 200.200.201.4:9092
+    consumer:
+      group-id: marcus-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: io.marcus.domain.model
+        spring.json.value.default.type: io.marcus.domain.model.Signal
+        spring.json.use.type.headers: false
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+
+marcus:
+  messaging:
+    signal-storage-topic: trading-signals
+    signal-storage-group: marcus-signal-storage
+    signal-storage-batch-size: 100
+    signal-routing-topic: trading-signals-routing
+    signal-dispatcher-group: marcus-signal-dispatcher
+    signal-dispatch-broadcast-channel: marcus:signals:dispatch:broadcast
+

@@ -16,8 +16,10 @@ public class ListCurrentUserLoginActivitiesUseCase {
     public TerminalReadPort.LoginActivityPageSnapshot execute(int page, int size) {
         String userId = identityService.getCurrentUserId()
                 .orElseThrow(() -> new UnauthenticatedException("No authenticated user found"));
-        int normalizedPage = Math.max(0, page);
-        int normalizedSize = Math.max(1, Math.min(size, 200));
+
+        int normalizedPage = Math.max(page, 0);
+        int normalizedSize = Math.max(1, Math.min(size, 100));
+
         return terminalReadPort.listCurrentUserLoginActivities(userId, normalizedPage, normalizedSize);
     }
 }
