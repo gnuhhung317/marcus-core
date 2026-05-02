@@ -34,7 +34,16 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        sessionRegistry.unregister(session);
+        String subscriptionId = sessionRegistry.unregister(session);
+        if (subscriptionId != null) {
+            try {
+                userSubscriptionPersistencePort.markExecutorConnected(subscriptionId, false);
+                log.info("[WebSocketHandler] Marked subscription={} as disconnected", subscriptionId);
+            } catch (Exception e) {
+                log.error("[WebSocketHandler] Failed to mark subscription={} as disconnected: {}", 
+                        subscriptionId, e.getMessage());
+            }
+        }
     }
 
     @Override
@@ -96,21 +105,26 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
-        var subscription = userSubscriptionPersistencePort.findActiveByBotIdAndWsToken(botId, wsToken);
-        if (subscription.isEmpty()) {
+        var subscriptionOpt = userSubscriptionPersistencePort.findActiveByBotIdAndWsToken(botId, wsToken);
+        if (subscriptionOpt.isEmpty()) {
             sendFrame(session, buildErrorFrame("unauthorized",
                     "No active subscription matches the websocket token"));
             session.close(CloseStatus.NOT_ACCEPTABLE);
             return;
         }
 
+        var subscription = subscriptionOpt.get();
+        String subscriptionId = subscription.getUserSubscriptionId();
+
         // Bind to session BEFORE registering so re-entrant calls are safe
         session.getAttributes().put(SUBSCRIBED_BOT_ID_ATTRIBUTE, botId);
 
-        sessionRegistry.register(wsToken, botId, session);
-        userSubscriptionPersistencePort.markExecutorConnected(
-                subscription.get().getUserSubscriptionId(), true);
+        sessionRegistry.register(wsToken, botId, subscriptionId, session);
+        userSubscriptionPersistencePort.markExecutorConnected(subscriptionId, true);
+        
         sendFrame(session, buildAckFrame("subscribe", "ok", botId));
+        log.info("[WebSocketHandler] Subscription={} (botId={}) connected via session={}", 
+                subscriptionId, botId, session.getId());
     }
 
     /**

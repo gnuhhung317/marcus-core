@@ -44,8 +44,11 @@ public class ExecutorSessionRegistry {
     /** Secondary index: botId → Set<wsToken> (all subscribers of a bot) */
     private final ConcurrentHashMap<String, Set<String>> wsTokensByBotId = new ConcurrentHashMap<>();
 
-    /** Reverse: sessionId → wsToken  (disconnect cleanup) */
+    /** Reverse lookup: sessionId → wsToken  (disconnect cleanup) */
     private final ConcurrentHashMap<String, String> wsTokenBySessionId = new ConcurrentHashMap<>();
+
+    /** Reverse lookup: wsToken → subscriptionId (DB sync) */
+    private final ConcurrentHashMap<String, String> subscriptionIdByWsToken = new ConcurrentHashMap<>();
 
     /** Reverse: wsToken → botId  (secondary index cleanup) */
     private final ConcurrentHashMap<String, String> botIdByWsToken = new ConcurrentHashMap<>();
@@ -54,29 +57,22 @@ public class ExecutorSessionRegistry {
 
     /**
      * Register an executor client session.
-     *
-     * Fix #2 & #3: all map mutations complete BEFORE session.close() is called.
-     * This ensures that if afterConnectionClosed fires for the displaced session
-     * during close(), unregister() will find wsTokenBySessionId already cleared
-     * and become a safe no-op.
      */
-    public void register(String wsToken, String botId, WebSocketSession session) {
+    public void register(String wsToken, String botId, String subscriptionId, WebSocketSession session) {
         // ── Step 1: claim the slot (mutations only, no I/O) ──────────────────
         WebSocketSession displaced = sessionByWsToken.put(wsToken, session);
 
         if (displaced != null && !displaced.getId().equals(session.getId())) {
-            // Pre-remove displaced session's reverse lookup BEFORE closing it.
-            // When close() triggers afterConnectionClosed → unregister(), the lookup
-            // for displaced.getId() will return null → unregister() becomes a no-op.
             wsTokenBySessionId.remove(displaced.getId());
         }
 
         wsTokenBySessionId.put(session.getId(), wsToken);
         botIdByWsToken.put(wsToken, botId);
+        subscriptionIdByWsToken.put(wsToken, subscriptionId);
         wsTokensByBotId.computeIfAbsent(botId, k -> ConcurrentHashMap.newKeySet()).add(wsToken);
 
-        log.info("[SessionRegistry] Registered session={} wsToken={} botId={}",
-                session.getId(), wsToken, botId);
+        log.info("[SessionRegistry] Registered session={} wsToken={} botId={} subscriptionId={}",
+                session.getId(), wsToken, botId, subscriptionId);
 
         // ── Step 2: I/O side-effect AFTER all mutations ───────────────────────
         if (displaced != null && !displaced.getId().equals(session.getId())) {
@@ -87,30 +83,29 @@ public class ExecutorSessionRegistry {
     }
 
     /**
-     * Unregister a session on WebSocket close (normal or abnormal).
-     *
-     * Fix #1: uses ConcurrentHashMap.remove(key, value) — an atomic compare-and-remove.
-     * If register() has already replaced this session with a newer one, the remove
-     * will not match and wasOwner=false, so secondary indexes are left intact.
-     *
-     * Fix #5: converges to clean state; calling twice is always safe because
-     * wsTokenBySessionId.remove() on the second call returns null → early return.
+     * Unregister a session on WebSocket close.
+     * Returns the subscriptionId if the session was the active owner, null otherwise.
      */
-    public void unregister(WebSocketSession session) {
+    public String unregister(WebSocketSession session) {
         String wsToken = wsTokenBySessionId.remove(session.getId());
         if (wsToken == null) {
-            return; // already cleaned up (displaced by register, or duplicate close)
+            return null;
         }
 
-        // Atomic compare-and-remove: only evict if this session is still the owner.
+        String subscriptionId = subscriptionIdByWsToken.get(wsToken);
         boolean wasOwner = sessionByWsToken.remove(wsToken, session);
 
         if (wasOwner) {
             cleanupSecondaryIndexes(wsToken);
+            subscriptionIdByWsToken.remove(wsToken);
+            log.info("[SessionRegistry] Unregistered session={} wsToken={} wasOwner=true",
+                    session.getId(), wsToken);
+            return subscriptionId;
         }
 
-        log.info("[SessionRegistry] Unregistered session={} wsToken={} wasOwner={}",
-                session.getId(), wsToken, wasOwner);
+        log.info("[SessionRegistry] Unregistered session={} wsToken={} wasOwner=false",
+                session.getId(), wsToken);
+        return null;
     }
 
     /**
@@ -131,14 +126,18 @@ public class ExecutorSessionRegistry {
             WebSocketSession session = sessionByWsToken.get(wsToken);
 
             if (session == null || !session.isOpen()) {
+                log.debug("[SessionRegistry] Cleaning up stale wsToken={} for botId={}", wsToken, botId);
                 cleanupStaleToken(wsToken, session);
                 continue;
             }
 
             try {
+                // Note: This is blocking I/O. For high-scale, consider using a per-session queue.
                 session.sendMessage(message);
-            } catch (IOException e) {
-                log.warn("[SessionRegistry] Failed to send to wsToken={}: {}", wsToken, e.getMessage());
+            } catch (IOException | IllegalStateException e) {
+                log.warn("[SessionRegistry] Failed to send to wsToken={} (session={}): {}", 
+                        wsToken, session.getId(), e.getMessage());
+                // Immediate cleanup on failure to prevent pulling down the loop
                 cleanupStaleToken(wsToken, session);
             }
         }
@@ -166,14 +165,21 @@ public class ExecutorSessionRegistry {
      */
     private void cleanupStaleToken(String wsToken, WebSocketSession staleSession) {
         if (staleSession != null) {
-            // Atomic: only remove primary entry if it still points to the stale session
             if (sessionByWsToken.remove(wsToken, staleSession)) {
                 wsTokenBySessionId.remove(staleSession.getId());
+                subscriptionIdByWsToken.remove(wsToken);
                 cleanupSecondaryIndexes(wsToken);
+            } else {
+                // Convergence fix: primary already points elsewhere or null, 
+                // but we should still ensure secondary indexes are consistent if primary is null
+                if (sessionByWsToken.get(wsToken) == null) {
+                    cleanupSecondaryIndexes(wsToken);
+                    subscriptionIdByWsToken.remove(wsToken);
+                }
             }
         } else {
-            // Primary already null; still clean up secondary indexes (they may lag)
             cleanupSecondaryIndexes(wsToken);
+            subscriptionIdByWsToken.remove(wsToken);
         }
     }
 
