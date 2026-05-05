@@ -78,12 +78,18 @@ class BotControllerTest {
                         .build()
         );
 
-        when(listPublicBotsUseCase.execute()).thenReturn(response);
+        when(listPublicBotsUseCase.execute(null, null, null, "-return", 0, 20)).thenReturn(
+                new TerminalReadPort.BotDiscoveryPageSnapshot(
+                        List.of(),
+                        new TerminalReadPort.OffsetPaginationMetaSnapshot(0, 20, 0, 0, false)
+                )
+        );
 
         mockMvc.perform(get("/api/v1/bots"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].botId").value("bot_001"))
-                .andExpect(jsonPath("$[0].apiKey").doesNotExist());
+                .andExpect(jsonPath("$.meta.page").value(0));
+
+        verify(listPublicBotsUseCase).execute(null, null, null, "-return", 0, 20);
     }
 
     @Test

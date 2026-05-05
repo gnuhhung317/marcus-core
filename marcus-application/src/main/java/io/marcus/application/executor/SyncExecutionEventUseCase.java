@@ -1,6 +1,9 @@
 package io.marcus.application.executor;
 
 import io.marcus.domain.executor.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
 import java.time.Instant;
 import java.util.Optional;
 
@@ -18,18 +21,12 @@ import java.util.Optional;
  * infrastructure implementations - Orchestrates use case flow; domain models do
  * the validation
  */
+@Service
+@RequiredArgsConstructor
 public class SyncExecutionEventUseCase {
 
     private final ExecutionEventPort executionEventPort;
     private final ExecutionStatePort executionStatePort;
-
-    public SyncExecutionEventUseCase(
-            ExecutionEventPort executionEventPort,
-            ExecutionStatePort executionStatePort
-    ) {
-        this.executionEventPort = executionEventPort;
-        this.executionStatePort = executionStatePort;
-    }
 
     /**
      * Process an incoming execution event from the executor client.

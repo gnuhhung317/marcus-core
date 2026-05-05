@@ -19,8 +19,9 @@ public class SignalDispatchKafkaConsumer {
     private final ExecutorSessionRegistry sessionRegistry;
 
     @KafkaListener(topics = "trading-signals", groupId = "marcus-websocket-dispatcher")
-    public void consume(Signal signal) {
+    public void consume(String signalJson) {
         try {
+            Signal signal = objectMapper.readValue(signalJson, Signal.class);
             if (signal.getSymbol() == null || signal.getSymbol().isBlank()) {
                 log.warn("Skipping signal {} because symbol is missing", signal.getSignalId());
                 return;
@@ -28,7 +29,7 @@ public class SignalDispatchKafkaConsumer {
 
             dispatch(signal);
         } catch (Exception exception) {
-            log.warn("Failed to dispatch signal {}: {}", signal.getSignalId(), exception.getMessage());
+            log.warn("Failed to dispatch kafka signal payload: {}", exception.getMessage());
         }
     }
 

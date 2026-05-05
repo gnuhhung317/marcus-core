@@ -89,7 +89,7 @@ class ExecutorWebSocketConnectionTest {
                 }
                 """));
 
-        verify(sessionRegistry).register("bot-1", session);
+        verify(sessionRegistry).register("ws-token-123", "bot-1", "subscription-1", session);
         verify(userSubscriptionPersistencePort).markExecutorConnected("subscription-1", true);
         org.mockito.ArgumentCaptor<TextMessage> messageCaptor = org.mockito.ArgumentCaptor.forClass(TextMessage.class);
         verify(session).sendMessage(messageCaptor.capture());

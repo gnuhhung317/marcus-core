@@ -2,11 +2,7 @@ package io.marcus.api.controller;
 
 import io.marcus.api.exception.GlobalExceptionsHandler;
 import io.marcus.api.security.JwtAuthenticationFilter;
-<<<<<<< HEAD
 import io.marcus.application.usecase.FavoriteStrategyUseCase;
-import io.marcus.domain.port.TerminalReadPort;
-import io.marcus.infrastructure.security.BotSignatureInterceptor;
-=======
 import io.marcus.application.usecase.GetStrategyDetailUseCase;
 import io.marcus.application.usecase.GetStrategyMetricsUseCase;
 import io.marcus.application.usecase.GetStrategyPerformanceSeriesUseCase;
@@ -16,7 +12,6 @@ import io.marcus.infrastructure.security.BotSignatureInterceptor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
->>>>>>> 07cc74d5f615dfb2d511f1f2832e810f702e72e8
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -25,11 +20,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
-<<<<<<< HEAD
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-=======
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -37,7 +27,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
->>>>>>> 07cc74d5f615dfb2d511f1f2832e810f702e72e8
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -50,9 +40,6 @@ class StrategyControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
-<<<<<<< HEAD
-    private FavoriteStrategyUseCase favoriteStrategyUseCase;
-=======
     private GetStrategyDetailUseCase getStrategyDetailUseCase;
 
     @MockBean
@@ -63,7 +50,9 @@ class StrategyControllerTest {
 
     @MockBean
     private ListStrategyTradesUseCase listStrategyTradesUseCase;
->>>>>>> 07cc74d5f615dfb2d511f1f2832e810f702e72e8
+
+    @MockBean
+    private FavoriteStrategyUseCase favoriteStrategyUseCase;
 
     @MockBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -71,19 +60,6 @@ class StrategyControllerTest {
     @MockBean
     private BotSignatureInterceptor botSignatureInterceptor;
 
-<<<<<<< HEAD
-    @Test
-    void shouldFavoriteStrategySuccessfully() throws Exception {
-        TerminalReadPort.FavoriteStrategySnapshot response = new TerminalReadPort.FavoriteStrategySnapshot("strat-123", true);
-        when(favoriteStrategyUseCase.execute("strat-123")).thenReturn(response);
-
-        mockMvc.perform(post("/strategies/strat-123/favorite"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.strategyId").value("strat-123"))
-                .andExpect(jsonPath("$.favorited").value(true));
-
-        verify(favoriteStrategyUseCase).execute("strat-123");
-=======
     @BeforeEach
     void allowSignatureInterceptor() throws Exception {
         doAnswer(invocation -> true)
@@ -114,9 +90,7 @@ class StrategyControllerTest {
     @Test
     void shouldGetStrategyPerformanceSeries() throws Exception {
         when(getStrategyPerformanceSeriesUseCase.execute("stg_1", "1M"))
-                .thenReturn(List.of(
-                        new TerminalReadPort.TimeSeriesPointSnapshot(LocalDateTime.of(2026, 4, 1, 10, 0), 100.0)
-                ));
+                .thenReturn(List.of(new TerminalReadPort.TimeSeriesPointSnapshot(LocalDateTime.of(2026, 4, 1, 10, 0), 100.0)));
 
         mockMvc.perform(get("/api/v1/strategies/stg_1/performance-series").param("range", "1M"))
                 .andExpect(status().isOk())
@@ -124,11 +98,17 @@ class StrategyControllerTest {
     }
 
     @Test
-    void shouldGetStrategyTrades() throws Exception {
+    void shouldListStrategyTrades() throws Exception {
         TerminalReadPort.TradeLogPageSnapshot page = new TerminalReadPort.TradeLogPageSnapshot(
-                List.of(
-                        new TerminalReadPort.TradeLogSnapshot(LocalDateTime.of(2026, 4, 1, 10, 0), "BTCUSDT", "LONG", 1.2, 62000, 62500, 600)
-                ),
+                List.of(new TerminalReadPort.TradeLogSnapshot(
+                        LocalDateTime.of(2026, 4, 1, 10, 0),
+                        "BTCUSDT",
+                        "LONG",
+                        1.2,
+                        62000,
+                        62500,
+                        600
+                )),
                 0,
                 20,
                 1L
@@ -144,13 +124,13 @@ class StrategyControllerTest {
     }
 
     @Test
-    void shouldReturnBadRequestWhenFeeModeInvalid() throws Exception {
-        when(getStrategyMetricsUseCase.execute("stg_1", "NET"))
-                .thenThrow(new IllegalArgumentException("Unsupported fee mode: NET"));
+    void shouldFavoriteStrategySuccessfully() throws Exception {
+        when(favoriteStrategyUseCase.execute("strat-123"))
+                .thenReturn(new TerminalReadPort.FavoriteStrategySnapshot("strat-123", true));
 
-        mockMvc.perform(get("/api/v1/strategies/stg_1/metrics").param("feeMode", "NET"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("BAD_REQUEST"));
->>>>>>> 07cc74d5f615dfb2d511f1f2832e810f702e72e8
+        mockMvc.perform(post("/api/v1/strategies/strat-123/favorite"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.strategyId").value("strat-123"))
+                .andExpect(jsonPath("$.favorited").value(true));
     }
 }

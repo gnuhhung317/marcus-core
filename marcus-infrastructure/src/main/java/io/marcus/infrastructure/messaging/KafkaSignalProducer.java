@@ -2,7 +2,7 @@ package io.marcus.infrastructure.messaging;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.marcus.domain.model.Signal;
-import io.marcus.domain.repository.SignalRepository;
+import io.marcus.domain.port.SignalPublisherPort;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
-public class KafkaSignalProducer implements SignalRepository {
+public class KafkaSignalProducer implements SignalPublisherPort {
 
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;

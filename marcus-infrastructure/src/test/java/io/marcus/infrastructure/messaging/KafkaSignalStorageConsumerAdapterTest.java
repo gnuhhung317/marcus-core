@@ -1,5 +1,6 @@
 package io.marcus.infrastructure.messaging;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.marcus.domain.model.Signal;
 import io.marcus.infrastructure.persistence.SpringDataSignalRepository;
 import io.marcus.infrastructure.persistence.entity.SignalEntity;
@@ -23,6 +24,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class KafkaSignalStorageConsumerAdapterTest {
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     @Mock
     private SpringDataSignalRepository springDataSignalRepository;
 
@@ -33,24 +36,25 @@ class KafkaSignalStorageConsumerAdapterTest {
 
     @BeforeEach
     void setUp() {
-        adapter = new KafkaSignalStorageConsumerAdapter(springDataSignalRepository, signalMapper, 2);
+        adapter = new KafkaSignalStorageConsumerAdapter(objectMapper, springDataSignalRepository, signalMapper, 2);
     }
 
     @Test
     void shouldPersistBatchWhenBatchSizeReached() {
-        Signal firstSignal = Signal.builder().signalId("signal-1").botId("bot-1").build();
-        Signal secondSignal = Signal.builder().signalId("signal-2").botId("bot-1").build();
-        SignalEntity firstEntity = SignalEntity.builder().signalId("signal-1").botId("bot-1").build();
-        SignalEntity secondEntity = SignalEntity.builder().signalId("signal-2").botId("bot-1").build();
+        Signal firstSignal = signal("signal-1", "bot-1");
+        Signal secondSignal = signal("signal-2", "bot-1");
+
+        SignalEntity firstEntity = signalEntity("signal-1", "bot-1");
+        SignalEntity secondEntity = signalEntity("signal-2", "bot-1");
 
         when(signalMapper.toEntity(firstSignal)).thenReturn(firstEntity);
         when(signalMapper.toEntity(secondSignal)).thenReturn(secondEntity);
 
-        adapter.consume(firstSignal);
+        adapter.consume("{\"signalId\":\"signal-1\",\"botId\":\"bot-1\"}");
 
         verify(springDataSignalRepository, never()).saveAll(anyList());
 
-        adapter.consume(secondSignal);
+        adapter.consume("{\"signalId\":\"signal-2\",\"botId\":\"bot-1\"}");
 
         ArgumentCaptor<List<SignalEntity>> captor = ArgumentCaptor.forClass(List.class);
         verify(springDataSignalRepository).saveAll(captor.capture());
@@ -59,18 +63,19 @@ class KafkaSignalStorageConsumerAdapterTest {
 
     @Test
     void shouldPersistPendingSignalsWhenFlushed() {
-        adapter = new KafkaSignalStorageConsumerAdapter(springDataSignalRepository, signalMapper, 3);
+        adapter = new KafkaSignalStorageConsumerAdapter(objectMapper, springDataSignalRepository, signalMapper, 3);
 
-        Signal firstSignal = Signal.builder().signalId("signal-1").botId("bot-1").build();
-        Signal secondSignal = Signal.builder().signalId("signal-2").botId("bot-1").build();
-        SignalEntity firstEntity = SignalEntity.builder().signalId("signal-1").botId("bot-1").build();
-        SignalEntity secondEntity = SignalEntity.builder().signalId("signal-2").botId("bot-1").build();
+        Signal firstSignal = signal("signal-1", "bot-1");
+        Signal secondSignal = signal("signal-2", "bot-1");
+
+        SignalEntity firstEntity = signalEntity("signal-1", "bot-1");
+        SignalEntity secondEntity = signalEntity("signal-2", "bot-1");
 
         when(signalMapper.toEntity(firstSignal)).thenReturn(firstEntity);
         when(signalMapper.toEntity(secondSignal)).thenReturn(secondEntity);
 
-        adapter.consume(firstSignal);
-        adapter.consume(secondSignal);
+        adapter.consume("{\"signalId\":\"signal-1\",\"botId\":\"bot-1\"}");
+        adapter.consume("{\"signalId\":\"signal-2\",\"botId\":\"bot-1\"}");
 
         verify(springDataSignalRepository, never()).saveAll(anyList());
 
@@ -83,13 +88,27 @@ class KafkaSignalStorageConsumerAdapterTest {
 
     @Test
     void shouldSkipNullSignalAndUnmappableSignal() {
-        Signal signal = Signal.builder().signalId("signal-1").botId("bot-1").build();
+        Signal signal = signal("signal-1", "bot-1");
         when(signalMapper.toEntity(signal)).thenReturn(null);
 
         adapter.consume(null);
-        adapter.consume(signal);
+        adapter.consume("{\"signalId\":\"signal-1\",\"botId\":\"bot-1\"}");
         adapter.flushPending();
 
         verifyNoInteractions(springDataSignalRepository);
+    }
+
+    private static Signal signal(String signalId, String botId) {
+        Signal signal = new Signal();
+        signal.setSignalId(signalId);
+        signal.setBotId(botId);
+        return signal;
+    }
+
+    private static SignalEntity signalEntity(String signalId, String botId) {
+        SignalEntity signalEntity = new SignalEntity();
+        signalEntity.setSignalId(signalId);
+        signalEntity.setBotId(botId);
+        return signalEntity;
     }
 }

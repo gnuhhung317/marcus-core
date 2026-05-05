@@ -2,13 +2,13 @@ package io.marcus.api.websocket.executor;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.marcus.api.websocket.ExecutorWebSocketHandler;
 import io.marcus.application.executor.SyncExecutionEventInput;
 import io.marcus.application.executor.SyncExecutionEventOutput;
 import io.marcus.application.executor.SyncExecutionEventUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
@@ -17,8 +17,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Handler for execution_event frames from executor.
- * Processes events through SyncExecutionEventUseCase and sends back ACK.
+ * Handler for execution_event frames from executor. Processes events through
+ * SyncExecutionEventUseCase and sends back ACK.
  */
 @Component
 @Slf4j
@@ -27,11 +27,10 @@ public class ExecutorEventEventHandler {
 
     private final SyncExecutionEventUseCase syncExecutionEventUseCase;
     private final ObjectMapper objectMapper;
-    private final ExecutorWebSocketHandler webSocketHandler;
 
     /**
-     * Handle execution_event frame.
-     * Frame format: {type: "execution_event", payload: {...event data...}}
+     * Handle execution_event frame. Frame format: {type: "execution_event",
+     * payload: {...event data...}}
      */
     public void handleExecutionEvent(WebSocketSession session, JsonNode frameRoot) throws IOException {
         try {
@@ -87,7 +86,7 @@ public class ExecutorEventEventHandler {
                 log.info("Execution event accepted: eventId={}, signalId={}, sequence={}", eventId, signalId, sequence);
                 sendAck(session, eventId, "OK", null, null);
             } else {
-                log.warn("Execution event rejected: eventId={}, errorCode={}, message={}", 
+                log.warn("Execution event rejected: eventId={}, errorCode={}, message={}",
                         eventId, output.getErrorCode(), output.getErrorMessage());
                 sendAck(session, eventId, "ERROR", output.getErrorCode(), output.getErrorMessage());
             }
@@ -119,6 +118,6 @@ public class ExecutorEventEventHandler {
         ackFrame.put("type", "execution_ack");
         ackFrame.put("payload", ackPayload);
 
-        webSocketHandler.sendFrame(session, ackFrame);
+        session.sendMessage(new TextMessage(objectMapper.writeValueAsString(ackFrame)));
     }
 }

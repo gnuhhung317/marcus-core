@@ -1,0 +1,773 @@
+{
+  "nodes": [
+    {
+      "id": "file:marcus-api/src/test/java/io/marcus/api/controller/AuthControllerTest.java",
+      "type": "file",
+      "name": "AuthControllerTest.java",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/controller/AuthControllerTest.java",
+      "summary": "JUnit test for AuthController, verifying user registration and login endpoints using MockMvc.",
+      "tags": ["java", "test", "junit", "spring-boot", "controller-test"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:marcus-api/src/test/java/io/marcus/api/controller/AuthControllerTest.java:AuthControllerTest",
+      "type": "class",
+      "name": "AuthControllerTest",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/controller/AuthControllerTest.java",
+      "summary": "Test class for AuthController focusing on authentication and registration flows.",
+      "tags": ["java", "test", "class"]
+    },
+    {
+      "id": "file:marcus-api/src/test/java/io/marcus/api/controller/BotControllerTest.java",
+      "type": "file",
+      "name": "BotControllerTest.java",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/controller/BotControllerTest.java",
+      "summary": "JUnit test for BotController, testing bot registration, listing public bots, and developer bot management.",
+      "tags": ["java", "test", "junit", "spring-boot", "controller-test"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:marcus-api/src/test/java/io/marcus/api/controller/BotControllerTest.java:BotControllerTest",
+      "type": "class",
+      "name": "BotControllerTest",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/controller/BotControllerTest.java",
+      "summary": "Test class for BotController verifying bot-related API endpoints.",
+      "tags": ["java", "test", "class"]
+    },
+    {
+      "id": "file:marcus-api/src/test/java/io/marcus/api/controller/DashboardControllerTest.java",
+      "type": "file",
+      "name": "DashboardControllerTest.java",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/controller/DashboardControllerTest.java",
+      "summary": "JUnit test for DashboardController, verifying dashboard overview, equity series, and allocation metrics.",
+      "tags": ["java", "test", "junit", "spring-boot", "controller-test"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:marcus-api/src/test/java/io/marcus/api/controller/DashboardControllerTest.java:DashboardControllerTest",
+      "type": "class",
+      "name": "DashboardControllerTest",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/controller/DashboardControllerTest.java",
+      "summary": "Test class for DashboardController focusing on user dashboard data endpoints.",
+      "tags": ["java", "test", "class"]
+    },
+    {
+      "id": "file:marcus-api/src/test/java/io/marcus/api/controller/executor/EventHistoryControllerTest.java",
+      "type": "file",
+      "name": "EventHistoryControllerTest.java",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/controller/executor/EventHistoryControllerTest.java",
+      "summary": "JUnit test for EventHistoryController, testing execution event querying and pagination.",
+      "tags": ["java", "test", "junit", "executor", "event-history"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:marcus-api/src/test/java/io/marcus/api/controller/executor/EventHistoryControllerTest.java:EventHistoryControllerTest",
+      "type": "class",
+      "name": "EventHistoryControllerTest",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/controller/executor/EventHistoryControllerTest.java",
+      "summary": "Test class for EventHistoryController verifying signal execution history retrieval.",
+      "tags": ["java", "test", "class"]
+    },
+    {
+      "id": "file:marcus-api/src/test/java/io/marcus/api/controller/executor/ExecutorRecoveryControllerTest.java",
+      "type": "file",
+      "name": "ExecutorRecoveryControllerTest.java",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/controller/executor/ExecutorRecoveryControllerTest.java",
+      "summary": "JUnit test for ExecutorRecoveryController, verifying signal state recovery for executors.",
+      "tags": ["java", "test", "junit", "executor", "recovery"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:marcus-api/src/test/java/io/marcus/api/controller/executor/ExecutorRecoveryControllerTest.java:ExecutorRecoveryControllerTest",
+      "type": "class",
+      "name": "ExecutorRecoveryControllerTest",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/controller/executor/ExecutorRecoveryControllerTest.java",
+      "summary": "Test class for ExecutorRecoveryController focusing on executor state synchronization.",
+      "tags": ["java", "test", "class"]
+    },
+    {
+      "id": "file:marcus-api/src/test/java/io/marcus/api/controller/LeaderboardControllerTest.java",
+      "type": "file",
+      "name": "LeaderboardControllerTest.java",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/controller/LeaderboardControllerTest.java",
+      "summary": "JUnit test for LeaderboardController, verifying strategy rankings and spotlights.",
+      "tags": ["java", "test", "junit", "spring-boot", "leaderboard"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:marcus-api/src/test/java/io/marcus/api/controller/LeaderboardControllerTest.java:LeaderboardControllerTest",
+      "type": "class",
+      "name": "LeaderboardControllerTest",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/controller/LeaderboardControllerTest.java",
+      "summary": "Test class for LeaderboardController verifying strategy ranking endpoints.",
+      "tags": ["java", "test", "class"]
+    },
+    {
+      "id": "file:marcus-api/src/test/java/io/marcus/api/controller/PaperControllerTest.java",
+      "type": "file",
+      "name": "PaperControllerTest.java",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/controller/PaperControllerTest.java",
+      "summary": "JUnit test for PaperController, verifying paper trading sessions and manual order placement.",
+      "tags": ["java", "test", "junit", "spring-boot", "paper-trading"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:marcus-api/src/test/java/io/marcus/api/controller/PaperControllerTest.java:PaperControllerTest",
+      "type": "class",
+      "name": "PaperControllerTest",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/controller/PaperControllerTest.java",
+      "summary": "Test class for PaperController focusing on paper trading session management.",
+      "tags": ["java", "test", "class"]
+    },
+    {
+      "id": "file:marcus-api/src/test/java/io/marcus/api/controller/RoutingControllerTest.java",
+      "type": "file",
+      "name": "RoutingControllerTest.java",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/controller/RoutingControllerTest.java",
+      "summary": "JUnit test for RoutingController, testing session and subscriber routing updates.",
+      "tags": ["java", "test", "junit", "spring-boot", "routing"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:marcus-api/src/test/java/io/marcus/api/controller/RoutingControllerTest.java:RoutingControllerTest",
+      "type": "class",
+      "name": "RoutingControllerTest",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/controller/RoutingControllerTest.java",
+      "summary": "Test class for RoutingController verifying internal routing management endpoints.",
+      "tags": ["java", "test", "class"]
+    },
+    {
+      "id": "file:marcus-api/src/test/java/io/marcus/api/controller/StrategyControllerTest.java",
+      "type": "file",
+      "name": "StrategyControllerTest.java",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/controller/StrategyControllerTest.java",
+      "summary": "JUnit test for StrategyController, verifying strategy details, metrics, and performance history.",
+      "tags": ["java", "test", "junit", "spring-boot", "strategy"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:marcus-api/src/test/java/io/marcus/api/controller/StrategyControllerTest.java:StrategyControllerTest",
+      "type": "class",
+      "name": "StrategyControllerTest",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/controller/StrategyControllerTest.java",
+      "summary": "Test class for StrategyController focusing on strategy performance and metadata.",
+      "tags": ["java", "test", "class"]
+    },
+    {
+      "id": "file:marcus-api/src/test/java/io/marcus/api/controller/SubscriptionControllerTest.java",
+      "type": "file",
+      "name": "SubscriptionControllerTest.java",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/controller/SubscriptionControllerTest.java",
+      "summary": "JUnit test for SubscriptionController, testing bot subscription and listing user subscriptions.",
+      "tags": ["java", "test", "junit", "spring-boot", "subscription"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:marcus-api/src/test/java/io/marcus/api/controller/SubscriptionControllerTest.java:SubscriptionControllerTest",
+      "type": "class",
+      "name": "SubscriptionControllerTest",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/controller/SubscriptionControllerTest.java",
+      "summary": "Test class for SubscriptionController verifying user-to-bot subscription flows.",
+      "tags": ["java", "test", "class"]
+    },
+    {
+      "id": "file:marcus-api/src/test/java/io/marcus/api/controller/UserProfileControllerTest.java",
+      "type": "file",
+      "name": "UserProfileControllerTest.java",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/controller/UserProfileControllerTest.java",
+      "summary": "JUnit test for UserProfileController, testing profile retrieval, preferences update, and API key management.",
+      "tags": ["java", "test", "junit", "spring-boot", "user-profile"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:marcus-api/src/test/java/io/marcus/api/controller/UserProfileControllerTest.java:UserProfileControllerTest",
+      "type": "class",
+      "name": "UserProfileControllerTest",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/controller/UserProfileControllerTest.java",
+      "summary": "Test class for UserProfileController focusing on user settings and credentials.",
+      "tags": ["java", "test", "class"]
+    },
+    {
+      "id": "file:marcus-api/src/test/java/io/marcus/api/exception/GlobalExceptionsHandlerTest.java",
+      "type": "file",
+      "name": "GlobalExceptionsHandlerTest.java",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/exception/GlobalExceptionsHandlerTest.java",
+      "summary": "JUnit test for GlobalExceptionsHandler, verifying canonical error response payloads for various exceptions.",
+      "tags": ["java", "test", "junit", "spring-boot", "exception-handling"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:marcus-api/src/test/java/io/marcus/api/exception/GlobalExceptionsHandlerTest.java:GlobalExceptionsHandlerTest",
+      "type": "class",
+      "name": "GlobalExceptionsHandlerTest",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/exception/GlobalExceptionsHandlerTest.java",
+      "summary": "Test class for GlobalExceptionsHandler verifying error mapping logic.",
+      "tags": ["java", "test", "class"]
+    },
+    {
+      "id": "file:marcus-api/src/test/java/io/marcus/api/websocket/BotSignalDispatchFlowIntegrationTest.java",
+      "type": "file",
+      "name": "BotSignalDispatchFlowIntegrationTest.java",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/websocket/BotSignalDispatchFlowIntegrationTest.java",
+      "summary": "End-to-end integration test for bot signal dispatch flow, from signal capture to WebSocket delivery.",
+      "tags": ["java", "test", "integration", "websocket", "signal-dispatch"],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:marcus-api/src/test/java/io/marcus/api/websocket/BotSignalDispatchFlowIntegrationTest.java:BotSignalDispatchFlowIntegrationTest",
+      "type": "class",
+      "name": "BotSignalDispatchFlowIntegrationTest",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/websocket/BotSignalDispatchFlowIntegrationTest.java",
+      "summary": "Integration test class for the full signal routing and delivery pipeline.",
+      "tags": ["java", "test", "class"]
+    },
+    {
+      "id": "file:marcus-api/src/test/java/io/marcus/api/websocket/executor/ExecutorEventEventHandlerTest.java",
+      "type": "file",
+      "name": "ExecutorEventEventHandlerTest.java",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/websocket/executor/ExecutorEventEventHandlerTest.java",
+      "summary": "JUnit test for ExecutorEventEventHandler, testing processing of execution events via WebSocket.",
+      "tags": ["java", "test", "junit", "websocket", "executor"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:marcus-api/src/test/java/io/marcus/api/websocket/executor/ExecutorEventEventHandlerTest.java:ExecutorEventEventHandlerTest",
+      "type": "class",
+      "name": "ExecutorEventEventHandlerTest",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/websocket/executor/ExecutorEventEventHandlerTest.java",
+      "summary": "Test class for ExecutorEventEventHandler verifying WebSocket event handling.",
+      "tags": ["java", "test", "class"]
+    },
+    {
+      "id": "file:marcus-api/src/test/java/io/marcus/api/websocket/ExecutorSessionRegistryTest.java",
+      "type": "file",
+      "name": "ExecutorSessionRegistryTest.java",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/websocket/ExecutorSessionRegistryTest.java",
+      "summary": "JUnit test for ExecutorSessionRegistry, verifying message broadcasting to bot sessions.",
+      "tags": ["java", "test", "junit", "websocket", "session-registry"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:marcus-api/src/test/java/io/marcus/api/websocket/ExecutorSessionRegistryTest.java:ExecutorSessionRegistryTest",
+      "type": "class",
+      "name": "ExecutorSessionRegistryTest",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/websocket/ExecutorSessionRegistryTest.java",
+      "summary": "Test class for ExecutorSessionRegistry.",
+      "tags": ["java", "test", "class"]
+    },
+    {
+      "id": "file:marcus-api/src/test/java/io/marcus/api/websocket/ExecutorWebSocketConnectionTest.java",
+      "type": "file",
+      "name": "ExecutorWebSocketConnectionTest.java",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/websocket/ExecutorWebSocketConnectionTest.java",
+      "summary": "JUnit test for WebSocket connection and authentication flow for executors.",
+      "tags": ["java", "test", "junit", "websocket", "executor"],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:marcus-api/src/test/java/io/marcus/api/websocket/ExecutorWebSocketConnectionTest.java:ExecutorWebSocketConnectionTest",
+      "type": "class",
+      "name": "ExecutorWebSocketConnectionTest",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/websocket/ExecutorWebSocketConnectionTest.java",
+      "summary": "Test class for ExecutorWebSocketHandler and Interceptor.",
+      "tags": ["java", "test", "class"]
+    },
+    {
+      "id": "file:marcus-api/src/test/java/io/marcus/api/websocket/SignalDispatchKafkaConsumerTest.java",
+      "type": "file",
+      "name": "SignalDispatchKafkaConsumerTest.java",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/websocket/SignalDispatchKafkaConsumerTest.java",
+      "summary": "JUnit test for Kafka consumer converting signals into WebSocket frames.",
+      "tags": ["java", "test", "junit", "kafka", "websocket"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:marcus-api/src/test/java/io/marcus/api/websocket/SignalDispatchKafkaConsumerTest.java:SignalDispatchKafkaConsumerTest",
+      "type": "class",
+      "name": "SignalDispatchKafkaConsumerTest",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/websocket/SignalDispatchKafkaConsumerTest.java",
+      "summary": "Test class for SignalDispatchKafkaConsumer.",
+      "tags": ["java", "test", "class"]
+    },
+    {
+      "id": "file:marcus-api/src/test/java/io/marcus/api/websocket/WebSocketDispatcherConfigTest.java",
+      "type": "file",
+      "name": "WebSocketDispatcherConfigTest.java",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/websocket/WebSocketDispatcherConfigTest.java",
+      "summary": "JUnit test for WebSocket configuration and handler registration.",
+      "tags": ["java", "test", "junit", "spring-boot", "websocket"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:marcus-api/src/test/java/io/marcus/api/websocket/WebSocketDispatcherConfigTest.java:WebSocketDispatcherConfigTest",
+      "type": "class",
+      "name": "WebSocketDispatcherConfigTest",
+      "filePath": "marcus-api/src/test/java/io/marcus/api/websocket/WebSocketDispatcherConfigTest.java",
+      "summary": "Test class for WebSocketDispatcherConfig.",
+      "tags": ["java", "test", "class"]
+    },
+    {
+      "id": "file:marcus-api/src/test/java/io/marcus/marcus_parent/MarcusParentApplicationTests.java",
+      "type": "file",
+      "name": "MarcusParentApplicationTests.java",
+      "filePath": "marcus-api/src/test/java/io/marcus/marcus_parent/MarcusParentApplicationTests.java",
+      "summary": "Basic context loading test for the Spring Boot application.",
+      "tags": ["java", "test", "junit", "spring-boot"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:marcus-api/src/test/java/io/marcus/marcus_parent/MarcusParentApplicationTests.java:MarcusParentApplicationTests",
+      "type": "class",
+      "name": "MarcusParentApplicationTests",
+      "filePath": "marcus-api/src/test/java/io/marcus/marcus_parent/MarcusParentApplicationTests.java",
+      "summary": "Spring Boot application context test class.",
+      "tags": ["java", "test", "class"]
+    },
+    {
+      "id": "config:marcus-application/pom.xml",
+      "type": "config",
+      "name": "pom.xml",
+      "filePath": "marcus-application/pom.xml",
+      "summary": "Maven POM for the application layer, defining dependencies for use cases and DTOs.",
+      "tags": ["maven", "config", "xml", "application-layer"],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:marcus-application/src/main/java/io/marcus/application/dto/BotRegistrationResult.java",
+      "type": "file",
+      "name": "BotRegistrationResult.java",
+      "filePath": "marcus-application/src/main/java/io/marcus/application/dto/BotRegistrationResult.java",
+      "summary": "DTO for bot registration result, containing bot credentials and metadata.",
+      "tags": ["java", "dto", "record", "bot"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:marcus-application/src/main/java/io/marcus/application/dto/BotRegistrationResult.java:BotRegistrationResult",
+      "type": "class",
+      "name": "BotRegistrationResult",
+      "filePath": "marcus-application/src/main/java/io/marcus/application/dto/BotRegistrationResult.java",
+      "summary": "Record for BotRegistrationResult.",
+      "tags": ["java", "record"]
+    },
+    {
+      "id": "file:marcus-application/src/main/java/io/marcus/application/dto/BotSubscriptionResult.java",
+      "type": "file",
+      "name": "BotSubscriptionResult.java",
+      "filePath": "marcus-application/src/main/java/io/marcus/application/dto/BotSubscriptionResult.java",
+      "summary": "DTO for bot subscription status and WebSocket token.",
+      "tags": ["java", "dto", "record", "subscription"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:marcus-application/src/main/java/io/marcus/application/dto/BotSubscriptionResult.java:BotSubscriptionResult",
+      "type": "class",
+      "name": "BotSubscriptionResult",
+      "filePath": "marcus-application/src/main/java/io/marcus/application/dto/BotSubscriptionResult.java",
+      "summary": "Record for BotSubscriptionResult.",
+      "tags": ["java", "record"]
+    },
+    {
+      "id": "file:marcus-application/src/main/java/io/marcus/application/dto/BotSummaryResult.java",
+      "type": "file",
+      "name": "BotSummaryResult.java",
+      "filePath": "marcus-application/src/main/java/io/marcus/application/dto/BotSummaryResult.java",
+      "summary": "DTO providing a summary of bot metadata for listings.",
+      "tags": ["java", "dto", "record", "bot"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:marcus-application/src/main/java/io/marcus/application/dto/BotSummaryResult.java:BotSummaryResult",
+      "type": "class",
+      "name": "BotSummaryResult",
+      "filePath": "marcus-application/src/main/java/io/marcus/application/dto/BotSummaryResult.java",
+      "summary": "Record for BotSummaryResult.",
+      "tags": ["java", "record"]
+    },
+    {
+      "id": "file:marcus-application/src/main/java/io/marcus/application/dto/CreateApiKeyRequest.java",
+      "type": "file",
+      "name": "CreateApiKeyRequest.java",
+      "filePath": "marcus-application/src/main/java/io/marcus/application/dto/CreateApiKeyRequest.java",
+      "summary": "Request DTO for creating a new user API key.",
+      "tags": ["java", "dto", "record", "api-key"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:marcus-application/src/main/java/io/marcus/application/dto/CreateApiKeyRequest.java:CreateApiKeyRequest",
+      "type": "class",
+      "name": "CreateApiKeyRequest",
+      "filePath": "marcus-application/src/main/java/io/marcus/application/dto/CreateApiKeyRequest.java",
+      "summary": "Record for CreateApiKeyRequest.",
+      "tags": ["java", "record"]
+    },
+    {
+      "id": "file:marcus-application/src/main/java/io/marcus/application/dto/LoginRequest.java",
+      "type": "file",
+      "name": "LoginRequest.java",
+      "filePath": "marcus-application/src/main/java/io/marcus/application/dto/LoginRequest.java",
+      "summary": "Request DTO for user login with credentials.",
+      "tags": ["java", "dto", "record", "auth"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:marcus-application/src/main/java/io/marcus/application/dto/LoginRequest.java:LoginRequest",
+      "type": "class",
+      "name": "LoginRequest",
+      "filePath": "marcus-application/src/main/java/io/marcus/application/dto/LoginRequest.java",
+      "summary": "Record for LoginRequest.",
+      "tags": ["java", "record"]
+    },
+    {
+      "id": "file:marcus-application/src/main/java/io/marcus/application/dto/LoginResponse.java",
+      "type": "file",
+      "name": "LoginResponse.java",
+      "filePath": "marcus-application/src/main/java/io/marcus/application/dto/LoginResponse.java",
+      "summary": "Response DTO for login success, containing JWT tokens and user info.",
+      "tags": ["java", "dto", "record", "auth"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:marcus-application/src/main/java/io/marcus/application/dto/LoginResponse.java:LoginResponse",
+      "type": "class",
+      "name": "LoginResponse",
+      "filePath": "marcus-application/src/main/java/io/marcus/application/dto/LoginResponse.java",
+      "summary": "Record for LoginResponse.",
+      "tags": ["java", "record"]
+    },
+    {
+      "id": "file:marcus-application/src/main/java/io/marcus/application/dto/MySubscriptionsResult.java",
+      "type": "file",
+      "name": "MySubscriptionsResult.java",
+      "filePath": "marcus-application/src/main/java/io/marcus/application/dto/MySubscriptionsResult.java",
+      "summary": "DTO for user subscription overview, including WebSocket token for executors.",
+      "tags": ["java", "dto", "record", "subscription"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:marcus-application/src/main/java/io/marcus/application/dto/MySubscriptionsResult.java:MySubscriptionsResult",
+      "type": "class",
+      "name": "MySubscriptionsResult",
+      "filePath": "marcus-application/src/main/java/io/marcus/application/dto/MySubscriptionsResult.java",
+      "summary": "Record for MySubscriptionsResult.",
+      "tags": ["java", "record"]
+    },
+    {
+      "id": "file:marcus-application/src/main/java/io/marcus/application/dto/RefreshTokenRequest.java",
+      "type": "file",
+      "name": "RefreshTokenRequest.java",
+      "filePath": "marcus-application/src/main/java/io/marcus/application/dto/RefreshTokenRequest.java",
+      "summary": "Request DTO for refreshing an expired access token.",
+      "tags": ["java", "dto", "record", "auth"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:marcus-application/src/main/java/io/marcus/application/dto/RefreshTokenRequest.java:RefreshTokenRequest",
+      "type": "class",
+      "name": "RefreshTokenRequest",
+      "filePath": "marcus-application/src/main/java/io/marcus/application/dto/RefreshTokenRequest.java",
+      "summary": "Record for RefreshTokenRequest.",
+      "tags": ["java", "record"]
+    },
+    {
+      "id": "file:marcus-application/src/main/java/io/marcus/application/dto/RegisterBotRequest.java",
+      "type": "file",
+      "name": "RegisterBotRequest.java",
+      "filePath": "marcus-application/src/main/java/io/marcus/application/dto/RegisterBotRequest.java",
+      "summary": "Request DTO for registering a new trading bot.",
+      "tags": ["java", "dto", "record", "bot"],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:marcus-application/src/main/java/io/marcus/application/dto/RegisterBotRequest.java:RegisterBotRequest",
+      "type": "class",
+      "name": "RegisterBotRequest",
+      "filePath": "marcus-application/src/main/java/io/marcus/application/dto/RegisterBotRequest.java",
+      "summary": "Record for RegisterBotRequest.",
+      "tags": ["java", "record"]
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/controller/AuthControllerTest.java",
+      "target": "class:marcus-api/src/test/java/io/marcus/api/controller/AuthControllerTest.java:AuthControllerTest",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/controller/BotControllerTest.java",
+      "target": "class:marcus-api/src/test/java/io/marcus/api/controller/BotControllerTest.java:BotControllerTest",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/controller/DashboardControllerTest.java",
+      "target": "class:marcus-api/src/test/java/io/marcus/api/controller/DashboardControllerTest.java:DashboardControllerTest",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/controller/executor/EventHistoryControllerTest.java",
+      "target": "class:marcus-api/src/test/java/io/marcus/api/controller/executor/EventHistoryControllerTest.java:EventHistoryControllerTest",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/controller/executor/ExecutorRecoveryControllerTest.java",
+      "target": "class:marcus-api/src/test/java/io/marcus/api/controller/executor/ExecutorRecoveryControllerTest.java:ExecutorRecoveryControllerTest",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/controller/LeaderboardControllerTest.java",
+      "target": "class:marcus-api/src/test/java/io/marcus/api/controller/LeaderboardControllerTest.java:LeaderboardControllerTest",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/controller/PaperControllerTest.java",
+      "target": "class:marcus-api/src/test/java/io/marcus/api/controller/PaperControllerTest.java:PaperControllerTest",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/controller/RoutingControllerTest.java",
+      "target": "class:marcus-api/src/test/java/io/marcus/api/controller/RoutingControllerTest.java:RoutingControllerTest",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/controller/StrategyControllerTest.java",
+      "target": "class:marcus-api/src/test/java/io/marcus/api/controller/StrategyControllerTest.java:StrategyControllerTest",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/controller/SubscriptionControllerTest.java",
+      "target": "class:marcus-api/src/test/java/io/marcus/api/controller/SubscriptionControllerTest.java:SubscriptionControllerTest",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/controller/UserProfileControllerTest.java",
+      "target": "class:marcus-api/src/test/java/io/marcus/api/controller/UserProfileControllerTest.java:UserProfileControllerTest",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/exception/GlobalExceptionsHandlerTest.java",
+      "target": "class:marcus-api/src/test/java/io/marcus/api/exception/GlobalExceptionsHandlerTest.java:GlobalExceptionsHandlerTest",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/websocket/BotSignalDispatchFlowIntegrationTest.java",
+      "target": "class:marcus-api/src/test/java/io/marcus/api/websocket/BotSignalDispatchFlowIntegrationTest.java:BotSignalDispatchFlowIntegrationTest",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/websocket/executor/ExecutorEventEventHandlerTest.java",
+      "target": "class:marcus-api/src/test/java/io/marcus/api/websocket/executor/ExecutorEventEventHandlerTest.java:ExecutorEventEventHandlerTest",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/websocket/ExecutorSessionRegistryTest.java",
+      "target": "class:marcus-api/src/test/java/io/marcus/api/websocket/ExecutorSessionRegistryTest.java:ExecutorSessionRegistryTest",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/websocket/ExecutorWebSocketConnectionTest.java",
+      "target": "class:marcus-api/src/test/java/io/marcus/api/websocket/ExecutorWebSocketConnectionTest.java:ExecutorWebSocketConnectionTest",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/websocket/SignalDispatchKafkaConsumerTest.java",
+      "target": "class:marcus-api/src/test/java/io/marcus/api/websocket/SignalDispatchKafkaConsumerTest.java:SignalDispatchKafkaConsumerTest",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/websocket/WebSocketDispatcherConfigTest.java",
+      "target": "class:marcus-api/src/test/java/io/marcus/api/websocket/WebSocketDispatcherConfigTest.java:WebSocketDispatcherConfigTest",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/marcus_parent/MarcusParentApplicationTests.java",
+      "target": "class:marcus-api/src/test/java/io/marcus/marcus_parent/MarcusParentApplicationTests.java:MarcusParentApplicationTests",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-application/src/main/java/io/marcus/application/dto/BotRegistrationResult.java",
+      "target": "class:marcus-application/src/main/java/io/marcus/application/dto/BotRegistrationResult.java:BotRegistrationResult",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-application/src/main/java/io/marcus/application/dto/BotSubscriptionResult.java",
+      "target": "class:marcus-application/src/main/java/io/marcus/application/dto/BotSubscriptionResult.java:BotSubscriptionResult",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-application/src/main/java/io/marcus/application/dto/BotSummaryResult.java",
+      "target": "class:marcus-application/src/main/java/io/marcus/application/dto/BotSummaryResult.java:BotSummaryResult",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-application/src/main/java/io/marcus/application/dto/CreateApiKeyRequest.java",
+      "target": "class:marcus-application/src/main/java/io/marcus/application/dto/CreateApiKeyRequest.java:CreateApiKeyRequest",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-application/src/main/java/io/marcus/application/dto/LoginRequest.java",
+      "target": "class:marcus-application/src/main/java/io/marcus/application/dto/LoginRequest.java:LoginRequest",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-application/src/main/java/io/marcus/application/dto/LoginResponse.java",
+      "target": "class:marcus-application/src/main/java/io/marcus/application/dto/LoginResponse.java:LoginResponse",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-application/src/main/java/io/marcus/application/dto/MySubscriptionsResult.java",
+      "target": "class:marcus-application/src/main/java/io/marcus/application/dto/MySubscriptionsResult.java:MySubscriptionsResult",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-application/src/main/java/io/marcus/application/dto/RefreshTokenRequest.java",
+      "target": "class:marcus-application/src/main/java/io/marcus/application/dto/RefreshTokenRequest.java:RefreshTokenRequest",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "file:marcus-application/src/main/java/io/marcus/application/dto/RegisterBotRequest.java",
+      "target": "class:marcus-application/src/main/java/io/marcus/application/dto/RegisterBotRequest.java:RegisterBotRequest",
+      "type": "contains",
+      "weight": 1.0
+    },
+    {
+      "source": "config:marcus-application/pom.xml",
+      "target": "config:pom.xml",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "config:marcus-application/pom.xml",
+      "target": "file:marcus-domain/pom.xml",
+      "type": "depends_on",
+      "weight": 0.6
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/controller/AuthControllerTest.java",
+      "target": "file:marcus-api/src/main/java/io/marcus/api/controller/AuthController.java",
+      "type": "tested_by",
+      "weight": 0.5
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/controller/BotControllerTest.java",
+      "target": "file:marcus-api/src/main/java/io/marcus/api/controller/BotController.java",
+      "type": "tested_by",
+      "weight": 0.5
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/controller/DashboardControllerTest.java",
+      "target": "file:marcus-api/src/main/java/io/marcus/api/controller/DashboardController.java",
+      "type": "tested_by",
+      "weight": 0.5
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/controller/executor/EventHistoryControllerTest.java",
+      "target": "file:marcus-api/src/main/java/io/marcus/api/controller/executor/EventHistoryController.java",
+      "type": "tested_by",
+      "weight": 0.5
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/controller/executor/ExecutorRecoveryControllerTest.java",
+      "target": "file:marcus-api/src/main/java/io/marcus/api/controller/executor/ExecutorRecoveryController.java",
+      "type": "tested_by",
+      "weight": 0.5
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/controller/LeaderboardControllerTest.java",
+      "target": "file:marcus-api/src/main/java/io/marcus/api/controller/LeaderboardController.java",
+      "type": "tested_by",
+      "weight": 0.5
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/controller/PaperControllerTest.java",
+      "target": "file:marcus-api/src/main/java/io/marcus/api/controller/PaperController.java",
+      "type": "tested_by",
+      "weight": 0.5
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/controller/RoutingControllerTest.java",
+      "target": "file:marcus-api/src/main/java/io/marcus/api/controller/RoutingController.java",
+      "type": "tested_by",
+      "weight": 0.5
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/controller/StrategyControllerTest.java",
+      "target": "file:marcus-api/src/main/java/io/marcus/api/controller/StrategyController.java",
+      "type": "tested_by",
+      "weight": 0.5
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/controller/SubscriptionControllerTest.java",
+      "target": "file:marcus-api/src/main/java/io/marcus/api/controller/SubscriptionController.java",
+      "type": "tested_by",
+      "weight": 0.5
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/controller/UserProfileControllerTest.java",
+      "target": "file:marcus-api/src/main/java/io/marcus/api/controller/UserProfileController.java",
+      "type": "tested_by",
+      "weight": 0.5
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/exception/GlobalExceptionsHandlerTest.java",
+      "target": "file:marcus-api/src/main/java/io/marcus/api/exception/GlobalExceptionsHandler.java",
+      "type": "tested_by",
+      "weight": 0.5
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/websocket/executor/ExecutorEventEventHandlerTest.java",
+      "target": "file:marcus-api/src/main/java/io/marcus/api/websocket/executor/ExecutorEventEventHandler.java",
+      "type": "tested_by",
+      "weight": 0.5
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/websocket/ExecutorSessionRegistryTest.java",
+      "target": "file:marcus-api/src/main/java/io/marcus/api/websocket/ExecutorSessionRegistry.java",
+      "type": "tested_by",
+      "weight": 0.5
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/websocket/ExecutorWebSocketConnectionTest.java",
+      "target": "file:marcus-api/src/main/java/io/marcus/api/websocket/ExecutorWebSocketHandler.java",
+      "type": "tested_by",
+      "weight": 0.5
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/websocket/SignalDispatchKafkaConsumerTest.java",
+      "target": "file:marcus-api/src/main/java/io/marcus/api/websocket/SignalDispatchKafkaConsumer.java",
+      "type": "tested_by",
+      "weight": 0.5
+    },
+    {
+      "source": "file:marcus-api/src/test/java/io/marcus/api/websocket/WebSocketDispatcherConfigTest.java",
+      "target": "file:marcus-api/src/main/java/io/marcus/api/websocket/WebSocketDispatcherConfig.java",
+      "type": "tested_by",
+      "weight": 0.5
+    }
+  ]
+}

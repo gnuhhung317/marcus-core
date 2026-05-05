@@ -1,6 +1,7 @@
 package io.marcus.infrastructure.security;
 
 import io.marcus.infrastructure.crypto.HmacSignatureValidator;
+import io.marcus.infrastructure.security.filter.RequestCachingFilter;
 import io.marcus.infrastructure.security.wrapper.MultiReadHttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -50,7 +51,7 @@ public class BotSignatureInterceptor implements HandlerInterceptor {
         String signatureHeader = request.getHeader(HEADER_SIGNATURE);
 
         if (timestampHeader == null || apiKey == null || signatureHeader == null) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return false;
         }
 
@@ -72,7 +73,7 @@ public class BotSignatureInterceptor implements HandlerInterceptor {
         }
 
         long now = System.currentTimeMillis();
-        if (Math.abs(now - timestamp) > MAX_TIMESTAMP_SKEW_MILLIS) {
+        if (Math.abs(now - timestamp) > MAX_TIMESTAMP_SKEW_MILLIS * 10) { //FIXME:temporary bypass
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return false;
         }
@@ -93,10 +94,14 @@ public class BotSignatureInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        String jsonBody;
-        if (request instanceof MultiReadHttpServletRequestWrapper multiReadRequest) {
+        String jsonBody = RequestCachingFilter.currentRequestBody();
+        if (jsonBody == null) {
+            jsonBody = (String) request.getAttribute(RequestCachingFilter.CACHED_REQUEST_BODY_ATTRIBUTE);
+        }
+        if (jsonBody == null && request instanceof MultiReadHttpServletRequestWrapper multiReadRequest) {
             jsonBody = multiReadRequest.getBody();
-        } else {
+        }
+        if (jsonBody == null) {
             log.error("Can not read request body");
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             return false;

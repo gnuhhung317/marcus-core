@@ -1,5 +1,6 @@
 package io.marcus.infrastructure.messaging;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.marcus.domain.model.Signal;
 import io.marcus.infrastructure.persistence.SpringDataSignalRepository;
 import io.marcus.infrastructure.persistence.entity.SignalEntity;
@@ -17,6 +18,7 @@ import java.util.List;
 @Slf4j
 public class KafkaSignalStorageConsumerAdapter {
 
+    private final ObjectMapper objectMapper;
     private final SpringDataSignalRepository springDataSignalRepository;
     private final SignalMapper signalMapper;
     private final int batchSize;
@@ -25,10 +27,12 @@ public class KafkaSignalStorageConsumerAdapter {
     private final Object monitor = new Object();
 
     public KafkaSignalStorageConsumerAdapter(
+            ObjectMapper objectMapper,
             SpringDataSignalRepository springDataSignalRepository,
             SignalMapper signalMapper,
             @Value("${marcus.messaging.signal-storage-batch-size:100}") int batchSize
     ) {
+        this.objectMapper = objectMapper;
         this.springDataSignalRepository = springDataSignalRepository;
         this.signalMapper = signalMapper;
         this.batchSize = Math.max(batchSize, 1);
@@ -38,9 +42,17 @@ public class KafkaSignalStorageConsumerAdapter {
             topics = "${marcus.messaging.signal-storage-topic:trading-signals}",
             groupId = "${marcus.messaging.signal-storage-group:marcus-signal-storage}"
     )
-    public void consume(Signal signal) {
-        if (signal == null) {
-            log.warn("Skipping null signal payload from storage topic");
+    public void consume(String signalJson) {
+        if (signalJson == null || signalJson.isBlank()) {
+            log.warn("Skipping blank signal payload from storage topic");
+            return;
+        }
+
+        Signal signal;
+        try {
+            signal = objectMapper.readValue(signalJson, Signal.class);
+        } catch (Exception exception) {
+            log.warn("Skipping signal payload from storage topic because it could not be parsed: {}", exception.getMessage());
             return;
         }
 

@@ -1,0 +1,53 @@
+[
+  {
+    "order": 1,
+    "title": "Signal API Entry Point",
+    "description": "The journey begins at the SignalController, which receives signals from external bots. It uses custom annotations like @RequireBotSignature for security.",
+    "nodeIds": [
+      "file:marcus-api/src/main/java/io/marcus/api/controller/SignalController.java",
+      "class:io.marcus.api.controller.SignalController"
+    ],
+    "languageLesson": "Spring REST Controllers use annotations to map HTTP requests to methods. Custom annotations can be used with AOP for cross-cutting concerns like security."
+  },
+  {
+    "order": 2,
+    "title": "Orchestrating the Use Case",
+    "description": "CaptureSignalUseCase handles the coordination. It follows the Single Responsibility Principle, focusing only on the flow: validate, save, and publish.",
+    "nodeIds": [
+      "file:marcus-application/src/main/java/io/marcus/application/usecase/CaptureSignalUseCase.java",
+      "class:io.marcus.application.usecase.CaptureSignalUseCase"
+    ],
+    "languageLesson": "The Application layer in Clean Architecture contains Use Cases that orchestrate Domain entities and call Ports. They should not contain direct infrastructure logic."
+  },
+  {
+    "order": 3,
+    "title": "Core Domain Model and Ports",
+    "description": "The Signal entity represents the core business object. Ports like SignalPublisherPort define contracts that the infrastructure must implement.",
+    "nodeIds": [
+      "file:marcus-domain/src/main/java/io/marcus/domain/model/Signal.java",
+      "class:io.marcus.domain.model.Signal",
+      "file:marcus-domain/src/main/java/io/marcus/domain/port/SignalPublisherPort.java"
+    ],
+    "languageLesson": "Dependency Inversion Principle: High-level modules (Domain) should not depend on low-level modules (Infrastructure). Both should depend on abstractions (Ports)."
+  },
+  {
+    "order": 4,
+    "title": "Infrastructure Adapters",
+    "description": "JpaSignalRepositoryImpl and KafkaSignalProducer implement the domain ports, connecting the system to PostgreSQL and Kafka.",
+    "nodeIds": [
+      "file:marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/JpaSignalRepositoryImpl.java",
+      "file:marcus-infrastructure/src/main/java/io/marcus/infrastructure/messaging/KafkaSignalProducer.java"
+    ],
+    "languageLesson": "Adapters translate between domain calls and external system protocols. This keeps the domain logic independent of specific database or messaging technologies."
+  },
+  {
+    "order": 5,
+    "title": "Real-time WebSocket Dispatch",
+    "description": "Finally, SignalDispatchKafkaConsumer receives the signal from Kafka and uses ExecutorWebSocketHandler to broadcast it to connected bot executors.",
+    "nodeIds": [
+      "file:marcus-api/src/main/java/io/marcus/api/websocket/SignalDispatchKafkaConsumer.java",
+      "file:marcus-api/src/main/java/io/marcus/api/websocket/ExecutorWebSocketHandler.java"
+    ],
+    "languageLesson": "Spring WebSocket provides support for full-duplex communication. Combined with Kafka, it enables real-time distribution of events across a distributed system."
+  }
+]

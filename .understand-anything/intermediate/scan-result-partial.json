@@ -1,0 +1,1551 @@
+{
+  "projectName": "Marcus",
+  "projectDescription": "Clean Modular Monolith for Trading Signals",
+  "languages": [
+    "Java",
+    "SQL",
+    "YAML",
+    "XML",
+    "Markdown"
+  ],
+  "frameworks": [
+    "Spring Boot",
+    "Spring Data JPA",
+    "Spring Security",
+    "Kafka",
+    "Redis"
+  ],
+  "fileList": [
+    {
+      "path": ".gitignore",
+      "sizeLines": 6,
+      "fileCategory": "other"
+    },
+    {
+      "path": "build.log",
+      "sizeLines": 492,
+      "fileCategory": "other"
+    },
+    {
+      "path": "docker-compose.yml",
+      "sizeLines": 105,
+      "fileCategory": "config"
+    },
+    {
+      "path": "Dockerfile",
+      "sizeLines": 30,
+      "fileCategory": "other"
+    },
+    {
+      "path": "docs/design/Signal Pipeline.md",
+      "sizeLines": 31,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/knowledge/best_practices.md",
+      "sizeLines": 32,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/knowledge/caching_and_performance.md",
+      "sizeLines": 46,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/knowledge/ddd_clean_architecture.md",
+      "sizeLines": 22,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/knowledge/repo_structure.md",
+      "sizeLines": 10,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/LEARNING_JOURNAL.md",
+      "sizeLines": 35,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/manual-e2e-bot-run.md",
+      "sizeLines": 175,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "docs/openapi/marcus-trading-delta.yaml",
+      "sizeLines": 2582,
+      "fileCategory": "config"
+    },
+    {
+      "path": "docs/postman/marcus-trading.postman_collection.json",
+      "sizeLines": 444,
+      "fileCategory": "other"
+    },
+    {
+      "path": "docs/postman/marcus-trading.postman_environment.json",
+      "sizeLines": 51,
+      "fileCategory": "other"
+    },
+    {
+      "path": "GUIDE.MD",
+      "sizeLines": 46,
+      "fileCategory": "other"
+    },
+    {
+      "path": "marcus-api/pom.xml",
+      "sizeLines": 111,
+      "fileCategory": "config"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/config/OpenApiConfig.java",
+      "sizeLines": 21,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/config/SecurityConfig.java",
+      "sizeLines": 81,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/controller/AcademyController.java",
+      "sizeLines": 32,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/controller/ApiExceptionHandler.java",
+      "sizeLines": 93,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/controller/AuthController.java",
+      "sizeLines": 47,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/controller/BotController.java",
+      "sizeLines": 64,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/controller/ContentController.java",
+      "sizeLines": 50,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/controller/DashboardController.java",
+      "sizeLines": 42,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/controller/executor/EventHistoryController.java",
+      "sizeLines": 129,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/controller/executor/EventHistoryResponse.java",
+      "sizeLines": 105,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/controller/executor/ExecutorRecoveryController.java",
+      "sizeLines": 97,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/controller/executor/ExecutorRecoveryRequest.java",
+      "sizeLines": 22,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/controller/executor/ExecutorRecoveryResponse.java",
+      "sizeLines": 75,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/controller/LeaderboardController.java",
+      "sizeLines": 47,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/controller/MarketController.java",
+      "sizeLines": 22,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/controller/PaperController.java",
+      "sizeLines": 102,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/controller/RoutingController.java",
+      "sizeLines": 70,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/controller/SignalController.java",
+      "sizeLines": 44,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/controller/StrategyController.java",
+      "sizeLines": 71,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/controller/SubscriptionController.java",
+      "sizeLines": 68,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/controller/SystemController.java",
+      "sizeLines": 34,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/controller/UserProfileController.java",
+      "sizeLines": 78,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/exception/ApiErrorResponse.java",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/exception/ApiFieldError.java",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/exception/ApiValidationErrorResponse.java",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/exception/ErrorResponse.java",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/exception/FieldValidationError.java",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/exception/GlobalExceptionsHandler.java",
+      "sizeLines": 250,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/exception/ValidationErrorResponse.java",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/security/ApiKeyAuthFilter.java",
+      "sizeLines": 22,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/security/JwtAuthenticationFilter.java",
+      "sizeLines": 55,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/websocket/executor/ExecutorEventEventHandler.java",
+      "sizeLines": 124,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/websocket/ExecutorHandshakeInterceptor.java",
+      "sizeLines": 54,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/websocket/ExecutorSessionRegistry.java",
+      "sizeLines": 196,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/websocket/ExecutorWebSocketHandler.java",
+      "sizeLines": 126,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/websocket/SignalDispatchKafkaConsumer.java",
+      "sizeLines": 64,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/api/websocket/WebSocketDispatcherConfig.java",
+      "sizeLines": 26,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/java/io/marcus/MarcusParentApplication.java",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/main/resources/application-local.yaml",
+      "sizeLines": 10,
+      "fileCategory": "config"
+    },
+    {
+      "path": "marcus-api/src/main/resources/application-test.yaml",
+      "sizeLines": 42,
+      "fileCategory": "config"
+    },
+    {
+      "path": "marcus-api/src/main/resources/application.yaml",
+      "sizeLines": 64,
+      "fileCategory": "config"
+    },
+    {
+      "path": "marcus-api/src/test/java/io/marcus/api/controller/AuthControllerTest.java",
+      "sizeLines": 79,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/test/java/io/marcus/api/controller/BotControllerTest.java",
+      "sizeLines": 207,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/test/java/io/marcus/api/controller/DashboardControllerTest.java",
+      "sizeLines": 116,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/test/java/io/marcus/api/controller/executor/EventHistoryControllerTest.java",
+      "sizeLines": 156,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/test/java/io/marcus/api/controller/executor/ExecutorRecoveryControllerTest.java",
+      "sizeLines": 142,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/test/java/io/marcus/api/controller/LeaderboardControllerTest.java",
+      "sizeLines": 120,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/test/java/io/marcus/api/controller/PaperControllerTest.java",
+      "sizeLines": 170,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/test/java/io/marcus/api/controller/RoutingControllerTest.java",
+      "sizeLines": 171,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/test/java/io/marcus/api/controller/StrategyControllerTest.java",
+      "sizeLines": 137,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/test/java/io/marcus/api/controller/SubscriptionControllerTest.java",
+      "sizeLines": 145,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/test/java/io/marcus/api/controller/UserProfileControllerTest.java",
+      "sizeLines": 167,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/test/java/io/marcus/api/exception/GlobalExceptionsHandlerTest.java",
+      "sizeLines": 175,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/test/java/io/marcus/api/websocket/BotSignalDispatchFlowIntegrationTest.java",
+      "sizeLines": 428,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/test/java/io/marcus/api/websocket/executor/ExecutorEventEventHandlerTest.java",
+      "sizeLines": 166,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/test/java/io/marcus/api/websocket/ExecutorSessionRegistryTest.java",
+      "sizeLines": 28,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/test/java/io/marcus/api/websocket/ExecutorWebSocketConnectionTest.java",
+      "sizeLines": 130,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/test/java/io/marcus/api/websocket/SignalDispatchKafkaConsumerTest.java",
+      "sizeLines": 32,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/test/java/io/marcus/api/websocket/WebSocketDispatcherConfigTest.java",
+      "sizeLines": 46,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-api/src/test/java/io/marcus/marcus_parent/MarcusParentApplicationTests.java",
+      "sizeLines": 16,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/pom.xml",
+      "sizeLines": 39,
+      "fileCategory": "config"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/dto/BotRegistrationResult.java",
+      "sizeLines": 19,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/dto/BotSubscriptionResult.java",
+      "sizeLines": 10,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/dto/BotSummaryResult.java",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/dto/CreateApiKeyRequest.java",
+      "sizeLines": 5,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/dto/LoginRequest.java",
+      "sizeLines": 6,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/dto/LoginResponse.java",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/dto/MySubscriptionsResult.java",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/dto/RefreshTokenRequest.java",
+      "sizeLines": 6,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/dto/RegisterBotRequest.java",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/dto/RegisterUserRequest.java",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/dto/RegisterUserResponse.java",
+      "sizeLines": 11,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/dto/RemoveBotSubscriberRequest.java",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/dto/RemoveUserSessionRequest.java",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/dto/ResolveBotRoutingTargetsRequest.java",
+      "sizeLines": 6,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/dto/ResolveSessionTargetsRequest.java",
+      "sizeLines": 9,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/dto/SubscribeBotResult.java",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/dto/SubscriptionSummaryResult.java",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/dto/UpdateUserPreferencesRequest.java",
+      "sizeLines": 9,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/dto/UpsertBotSubscriberRequest.java",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/dto/UpsertUserSessionRequest.java",
+      "sizeLines": 9,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/exception/ForbiddenOperationException.java",
+      "sizeLines": 8,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/exception/ResourceConflictException.java",
+      "sizeLines": 8,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/exception/UnauthenticatedException.java",
+      "sizeLines": 8,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/executor/SyncExecutionEventInput.java",
+      "sizeLines": 66,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/executor/SyncExecutionEventOutput.java",
+      "sizeLines": 83,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/executor/SyncExecutionEventUseCase.java",
+      "sizeLines": 303,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/mapper/BotDtoMapper.java",
+      "sizeLines": 59,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/AuthenticateBotUseCase.java",
+      "sizeLines": 11,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/AuthenticateUserUseCase.java",
+      "sizeLines": 109,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/CaptureSignalUseCase.java",
+      "sizeLines": 61,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/ConnectExecutorToSubscriptionUseCase.java",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/CreateCurrentUserApiKeyUseCase.java",
+      "sizeLines": 33,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/CreatePaperOrderUseCase.java",
+      "sizeLines": 66,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/DeleteCurrentUserApiKeyUseCase.java",
+      "sizeLines": 27,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/FavoriteStrategyUseCase.java",
+      "sizeLines": 35,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/GetAcademyMetricsUseCase.java",
+      "sizeLines": 16,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/GetBotDetailUseCase.java",
+      "sizeLines": 20,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/GetCurrentUserProfileUseCase.java",
+      "sizeLines": 22,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/GetDashboardEquitySeriesUseCase.java",
+      "sizeLines": 24,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/GetDashboardExchangeAllocationUseCase.java",
+      "sizeLines": 24,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/GetDashboardOverviewUseCase.java",
+      "sizeLines": 21,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/GetMarketOverviewUseCase.java",
+      "sizeLines": 16,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/GetPaperSessionSummaryUseCase.java",
+      "sizeLines": 22,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/GetStrategyDetailUseCase.java",
+      "sizeLines": 20,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/GetStrategyMetricsUseCase.java",
+      "sizeLines": 32,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/GetStrategyPerformanceSeriesUseCase.java",
+      "sizeLines": 35,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/GetSystemConnectivityHealthUseCase.java",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/ListAcademyCoursesUseCase.java",
+      "sizeLines": 20,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/ListActiveSubscriptionsForBotUseCase.java",
+      "sizeLines": 24,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/ListBlogPostsUseCase.java",
+      "sizeLines": 40,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/ListCurrentUserApiKeysUseCase.java",
+      "sizeLines": 24,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/ListCurrentUserLoginActivitiesUseCase.java",
+      "sizeLines": 26,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/ListDeveloperBotsUseCase.java",
+      "sizeLines": 39,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/ListLeaderboardFeaturedUseCase.java",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/ListLeaderboardSpotlightsUseCase.java",
+      "sizeLines": 19,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/ListLeaderboardStrategiesUseCase.java",
+      "sizeLines": 34,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/ListMySubscriptionsUseCase.java",
+      "sizeLines": 69,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/ListPaperExecutionLogsUseCase.java",
+      "sizeLines": 26,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/ListPaperSignalsUseCase.java",
+      "sizeLines": 36,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/ListPublicBotsUseCase.java",
+      "sizeLines": 84,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/ListResearchLibraryFilesUseCase.java",
+      "sizeLines": 22,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/ListResearchReportsUseCase.java",
+      "sizeLines": 33,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/ListSignalsUseCase.java",
+      "sizeLines": 21,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/ListStrategyTradesUseCase.java",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/ListSystemExecutionLogsUseCase.java",
+      "sizeLines": 18,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/PausePaperSessionUseCase.java",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/RefreshAccessTokenUseCase.java",
+      "sizeLines": 52,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/RegisterBotUseCase.java",
+      "sizeLines": 79,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/RegisterUserUseCase.java",
+      "sizeLines": 105,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/RemoveBotSubscriberUseCase.java",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/RemoveUserSessionUseCase.java",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/ResolveBotRoutingTargetsUseCase.java",
+      "sizeLines": 49,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/ResolveSessionTargetsUseCase.java",
+      "sizeLines": 40,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/ResumePaperSessionUseCase.java",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/SubscribeBotUseCase.java",
+      "sizeLines": 88,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/SubscribeToBotUseCase.java",
+      "sizeLines": 68,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/UnsubscribeFromBotUseCase.java",
+      "sizeLines": 44,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/UpdateCurrentUserPreferencesUseCase.java",
+      "sizeLines": 31,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/UpsertBotSubscriberUseCase.java",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/main/java/io/marcus/application/usecase/UpsertUserSessionUseCase.java",
+      "sizeLines": 36,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/executor/SyncExecutionEventUseCaseTest.java",
+      "sizeLines": 159,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/BotSignalE2eFlowIntegrationTest.java",
+      "sizeLines": 350,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/CaptureSignalRoutingFlowIntegrationTest.java",
+      "sizeLines": 241,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/CaptureSignalUseCaseTest.java",
+      "sizeLines": 227,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/CreateCurrentUserApiKeyUseCaseTest.java",
+      "sizeLines": 75,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/CreatePaperOrderUseCaseTest.java",
+      "sizeLines": 73,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/FavoriteStrategyUseCaseTest.java",
+      "sizeLines": 70,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/GetDashboardEquitySeriesUseCaseTest.java",
+      "sizeLines": 59,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/GetStrategyMetricsUseCaseTest.java",
+      "sizeLines": 46,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/GetStrategyPerformanceSeriesUseCaseTest.java",
+      "sizeLines": 49,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/ListCurrentUserLoginActivitiesUseCaseTest.java",
+      "sizeLines": 59,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/ListDeveloperBotsUseCaseTest.java",
+      "sizeLines": 89,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/ListLeaderboardSpotlightsUseCaseTest.java",
+      "sizeLines": 40,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/ListMySubscriptionsUseCaseTest.java",
+      "sizeLines": 121,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/ListPaperExecutionLogsUseCaseTest.java",
+      "sizeLines": 59,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/ListPaperSignalsUseCaseTest.java",
+      "sizeLines": 67,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/ListPublicBotsUseCaseTest.java",
+      "sizeLines": 70,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/ListStrategyTradesUseCaseTest.java",
+      "sizeLines": 43,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/PausePaperSessionUseCaseTest.java",
+      "sizeLines": 58,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/RegisterBotUseCaseTest.java",
+      "sizeLines": 204,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/RegisterUserUseCaseTest.java",
+      "sizeLines": 98,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/RemoveBotSubscriberUseCaseTest.java",
+      "sizeLines": 67,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/RemoveUserSessionUseCaseTest.java",
+      "sizeLines": 67,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/ResolveBotRoutingTargetsUseCaseTest.java",
+      "sizeLines": 83,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/ResolveSessionTargetsUseCaseTest.java",
+      "sizeLines": 67,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/ResumePaperSessionUseCaseTest.java",
+      "sizeLines": 58,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/SubscribeBotUseCaseTest.java",
+      "sizeLines": 156,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/UpdateCurrentUserPreferencesUseCaseTest.java",
+      "sizeLines": 60,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/UpsertBotSubscriberUseCaseTest.java",
+      "sizeLines": 67,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-application/src/test/java/io/marcus/application/usecase/UpsertUserSessionUseCaseTest.java",
+      "sizeLines": 79,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/pom.xml",
+      "sizeLines": 22,
+      "fileCategory": "config"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/exception/BotNotFoundException.java",
+      "sizeLines": 8,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/executor/ExecutionEvent.java",
+      "sizeLines": 133,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/executor/ExecutionEventPort.java",
+      "sizeLines": 55,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/executor/ExecutionEventType.java",
+      "sizeLines": 43,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/executor/ExecutionState.java",
+      "sizeLines": 158,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/executor/ExecutionStatePort.java",
+      "sizeLines": 126,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/model/BaseModel.java",
+      "sizeLines": 18,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/model/BaseModel.java~",
+      "sizeLines": 5,
+      "fileCategory": "other"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/model/Bot.java",
+      "sizeLines": 26,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/model/Exchange.java",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/model/ExecutionLog.java",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/model/ExecutorToken.java",
+      "sizeLines": 22,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/model/Signal.java",
+      "sizeLines": 33,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/model/SubscriptionPackage.java",
+      "sizeLines": 19,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/model/User.java",
+      "sizeLines": 20,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/model/UserSubscription.java",
+      "sizeLines": 27,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/port/AccessTokenPort.java",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/port/BotSubscriberRoutingPort.java",
+      "sizeLines": 12,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/port/MarketingContentReadPort.java",
+      "sizeLines": 80,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/port/PasswordHashPort.java",
+      "sizeLines": 9,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/port/RefreshTokenPort.java",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/port/SignalPublisherPort.java",
+      "sizeLines": 9,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/port/SignalServerDispatchPort.java",
+      "sizeLines": 10,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/port/TerminalReadPort.java",
+      "sizeLines": 388,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/port/UserCredentialQueryPort.java",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/port/UserRegistrationPort.java",
+      "sizeLines": 9,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/port/UserSessionRoutingPort.java",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/port/UserSubscriptionPersistencePort.java",
+      "sizeLines": 26,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/port/UserUniquenessPort.java",
+      "sizeLines": 9,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/repository/BotRepository.java",
+      "sizeLines": 22,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/repository/SignalRepository.java",
+      "sizeLines": 17,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/repository/UserRepository.java",
+      "sizeLines": 10,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/service/EncryptionService.java",
+      "sizeLines": 7,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/service/IdentityService.java",
+      "sizeLines": 9,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/vo/AuthenticatedUser.java",
+      "sizeLines": 6,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/vo/BotStatus.java",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/vo/Exchange.java~",
+      "sizeLines": 8,
+      "fileCategory": "other"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/vo/ExecutionStatus.java",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/vo/ExecutorTokenStatus.java",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/vo/Role.java",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/vo/Role.java~",
+      "sizeLines": 15,
+      "fileCategory": "other"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/vo/SignalAction.java",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/vo/SignalAction.java~",
+      "sizeLines": 5,
+      "fileCategory": "other"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/vo/SignalStatus.java",
+      "sizeLines": 9,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/vo/SignalStatus.java~",
+      "sizeLines": 9,
+      "fileCategory": "other"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/vo/SubscriptionStatus.java",
+      "sizeLines": 14,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-domain/src/main/java/io/marcus/domain/vo/SubscriptionStatus.java~",
+      "sizeLines": 14,
+      "fileCategory": "other"
+    },
+    {
+      "path": "marcus-domain/src/test/java/io/marcus/domain/executor/ExecutionEventTest.java",
+      "sizeLines": 170,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/pom.xml",
+      "sizeLines": 92,
+      "fileCategory": "config"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/adapter/executor/ExecutionEventAdapter.java",
+      "sizeLines": 95,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/adapter/executor/ExecutionStateAdapter.java",
+      "sizeLines": 200,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/crypto/HmacSignatureValidator.java",
+      "sizeLines": 49,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/integration/demo/DemoTerminalReadAdapter.java",
+      "sizeLines": 593,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/integration/StaticMarketingContentReadAdapter.java",
+      "sizeLines": 363,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/integration/StaticTerminalReadAdapter.java",
+      "sizeLines": 536,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/messaging/KafkaSignalProducer.java",
+      "sizeLines": 39,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/messaging/KafkaSignalRoutingDispatcherAdapter.java",
+      "sizeLines": 39,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/messaging/KafkaSignalServerDispatchAdapter.java",
+      "sizeLines": 45,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/messaging/KafkaSignalStorageConsumerAdapter.java",
+      "sizeLines": 109,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/messaging/RedisSignalDispatchPublisherAdapter.java",
+      "sizeLines": 47,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/messaging/RoutingDispatchMessage.java",
+      "sizeLines": 9,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/entity/BaseEntity.java",
+      "sizeLines": 32,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/entity/BotEntity.java",
+      "sizeLines": 50,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/entity/ExchangeEntity.java",
+      "sizeLines": 31,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/entity/SignalEntity.java",
+      "sizeLines": 60,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/entity/UserEntity.java",
+      "sizeLines": 37,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/entity/UserSubscriptionEntity.java",
+      "sizeLines": 68,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/executor/ExecutionEventEntity.java",
+      "sizeLines": 167,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/executor/ExecutionEventRepository.java",
+      "sizeLines": 54,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/executor/ExecutionStateEntity.java",
+      "sizeLines": 180,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/executor/ExecutionStateRepository.java",
+      "sizeLines": 25,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/JpaBotRepositoryImpl.java",
+      "sizeLines": 66,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/JpaSignalRepositoryImpl.java",
+      "sizeLines": 30,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/JpaUserCredentialQueryAdapter.java",
+      "sizeLines": 38,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/JpaUserRegistrationAdapter.java",
+      "sizeLines": 21,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/JpaUserRepository.java",
+      "sizeLines": 24,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/JpaUserSubscriptionPersistenceAdapter.java",
+      "sizeLines": 94,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/JpaUserUniquenessAdapter.java",
+      "sizeLines": 25,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/mapper/BotMapper.java",
+      "sizeLines": 47,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/mapper/SignalMapper.java",
+      "sizeLines": 52,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/mapper/UserMapper.java",
+      "sizeLines": 44,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/mapper/UserSubscriptionMapper.java",
+      "sizeLines": 52,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/SpringDataBotRepository.java",
+      "sizeLines": 28,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/SpringDataExchangeRepository.java",
+      "sizeLines": 10,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/SpringDataSignalRepository.java",
+      "sizeLines": 10,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/SpringDataUserRepository.java",
+      "sizeLines": 27,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/persistence/SpringDataUserSubscriptionRepository.java",
+      "sizeLines": 28,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/AesEncryptionService.java",
+      "sizeLines": 44,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/BcryptPasswordHashAdapter.java",
+      "sizeLines": 22,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/BotSecretProvider.java",
+      "sizeLines": 48,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/BotSignatureInterceptor.java",
+      "sizeLines": 130,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/config/BotSignatureWebMvcConfigurer.java",
+      "sizeLines": 23,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/filter/RequestCachingFilter.java",
+      "sizeLines": 46,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/JwtAccessTokenAdapter.java",
+      "sizeLines": 203,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/RedisBotSubscriberRoutingAdapter.java",
+      "sizeLines": 52,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/RedisUserSessionRoutingAdapter.java",
+      "sizeLines": 136,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/RequireBotSignature.java",
+      "sizeLines": 13,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/SpringSecurityIdentityService.java",
+      "sizeLines": 28,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/wrapper/CachedServletInputStream.java",
+      "sizeLines": 36,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/java/io/marcus/infrastructure/security/wrapper/MultiReadHttpServletRequestWrapper.java",
+      "sizeLines": 35,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/resources/application.yaml",
+      "sizeLines": 45,
+      "fileCategory": "config"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/resources/db/migration/V1__initial_schema.sql",
+      "sizeLines": 60,
+      "fileCategory": "config"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/resources/db/migration/V2__signals_metadata_jsonb.sql",
+      "sizeLines": 24,
+      "fileCategory": "config"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/resources/db/migration/V2__subscription_schema.sql",
+      "sizeLines": 20,
+      "fileCategory": "config"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/resources/db/migration/V3__execution_event_schema.sql",
+      "sizeLines": 39,
+      "fileCategory": "config"
+    },
+    {
+      "path": "marcus-infrastructure/src/main/resources/db/migration/V4__seed_exchanges.sql",
+      "sizeLines": 12,
+      "fileCategory": "config"
+    },
+    {
+      "path": "marcus-infrastructure/src/test/java/io/marcus/infrastructure/crypto/HmacSignatureValidatorTest.java",
+      "sizeLines": 78,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/test/java/io/marcus/infrastructure/messaging/KafkaSignalRoutingDispatcherAdapterTest.java",
+      "sizeLines": 50,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/test/java/io/marcus/infrastructure/messaging/KafkaSignalServerDispatchAdapterTest.java",
+      "sizeLines": 58,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/test/java/io/marcus/infrastructure/messaging/KafkaSignalStorageConsumerAdapterTest.java",
+      "sizeLines": 115,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/test/java/io/marcus/infrastructure/messaging/RedisSignalDispatchPublisherAdapterTest.java",
+      "sizeLines": 75,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/test/java/io/marcus/infrastructure/persistence/JpaBotRepositoryImplTest.java",
+      "sizeLines": 143,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/test/java/io/marcus/infrastructure/persistence/JpaUserSubscriptionPersistenceAdapterTest.java",
+      "sizeLines": 93,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/test/java/io/marcus/infrastructure/persistence/mapper/SignalMapperTest.java",
+      "sizeLines": 53,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/test/java/io/marcus/infrastructure/security/BotSignatureInterceptorTest.java",
+      "sizeLines": 133,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/test/java/io/marcus/infrastructure/security/RedisBotSubscriberRoutingAdapterTest.java",
+      "sizeLines": 68,
+      "fileCategory": "code"
+    },
+    {
+      "path": "marcus-infrastructure/src/test/java/io/marcus/infrastructure/security/RedisUserSessionRoutingAdapterTest.java",
+      "sizeLines": 166,
+      "fileCategory": "code"
+    },
+    {
+      "path": "pom.xml",
+      "sizeLines": 50,
+      "fileCategory": "config"
+    }
+  ],
+  "importMap": {}
+}

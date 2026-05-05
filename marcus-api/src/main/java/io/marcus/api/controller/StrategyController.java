@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-
 @RestController
 @RequestMapping({"/strategies", "/api/strategies", "/api/v1/strategies"})
 @RequiredArgsConstructor

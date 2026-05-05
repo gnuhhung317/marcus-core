@@ -30,7 +30,7 @@ public class SubscriptionController {
     // User-focused use cases
     private final SubscribeBotUseCase subscribeBotUseCase;
     private final ListMySubscriptionsUseCase listMySubscriptionsUseCase;
-    
+
     // Bot/Admin-focused use cases
     private final SubscribeToBotUseCase subscribeToBotUseCase;
     private final UnsubscribeFromBotUseCase unsubscribeFromBotUseCase;
@@ -50,6 +50,7 @@ public class SubscriptionController {
 
     // Bot/Admin endpoints (alternative naming)
     public static record ConnectRequest(String wsToken) {
+
     }
 
     @PostMapping("/{botId}/connect")

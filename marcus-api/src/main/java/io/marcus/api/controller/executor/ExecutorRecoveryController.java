@@ -27,8 +27,8 @@ public class ExecutorRecoveryController {
     private final ExecutionStatePort executionStatePort;
 
     /**
-     * Handle executor recovery request.
-     * Returns the last known state for each signal ID.
+     * Handle executor recovery request. Returns the last known state for each
+     * signal ID.
      */
     @PostMapping("/recovery")
     public ResponseEntity<ExecutorRecoveryResponse> recovery(
@@ -46,7 +46,7 @@ public class ExecutorRecoveryController {
                 .stream()
                 .map(signalId -> {
                     Optional<?> stateOpt = executionStatePort.getState(signalId);
-                    
+
                     if (stateOpt.isEmpty()) {
                         log.debug("No state found for signal: {}", signalId);
                         // Return a default recovery info for unknown signals
@@ -94,4 +94,3 @@ public class ExecutorRecoveryController {
         return ResponseEntity.ok(response);
     }
 }
-

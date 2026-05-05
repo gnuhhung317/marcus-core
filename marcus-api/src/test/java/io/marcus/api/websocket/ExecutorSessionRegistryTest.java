@@ -18,7 +18,7 @@ class ExecutorSessionRegistryTest {
         when(session.isOpen()).thenReturn(true);
 
         ExecutorSessionRegistry registry = new ExecutorSessionRegistry();
-        registry.register("bot-1", session);
+        registry.register("ws-token-1", "bot-1", "subscription-1", session);
 
         registry.broadcastToBot("bot-1", "{\"type\":\"signal\"}");
 

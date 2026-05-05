@@ -1,0 +1,9 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/signal_db
+    username: user
+    password: password
+  redis:
+    url: redis://localhost:6379
+  kafka:
+    bootstrap-servers: localhost:9092

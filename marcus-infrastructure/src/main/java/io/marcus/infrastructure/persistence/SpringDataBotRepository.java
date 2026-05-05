@@ -16,6 +16,7 @@ public interface SpringDataBotRepository extends JpaRepository<BotEntity, String
 
     @Query("select b from BotEntity b left join fetch b.exchange where b.botId = :botId")
     Optional<BotEntity> findByBotIdWithExchange(@Param("botId") String botId);
+
     Optional<BotEntity> findByBotId(String botId);
 
     Optional<BotEntity> findByApiKey(String apiKey);

@@ -14,11 +14,9 @@ import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
 /**
@@ -39,17 +37,14 @@ class ExecutorEventEventHandlerTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         objectMapper = new ObjectMapper();
-        
-        // Create a mock for WebSocketHandler that can capture the frame
-        MockWebSocketHandler mockWebSocketHandler = new MockWebSocketHandler();
-        
-        handler = new ExecutorEventEventHandler(syncExecutionEventUseCase, objectMapper, mockWebSocketHandler);
+
+                handler = new ExecutorEventEventHandler(syncExecutionEventUseCase, objectMapper);
     }
 
     @Test
     void testHandleExecutionEventSuccessful() throws IOException {
         Instant now = Instant.now();
-        
+
         // Create frame
         Map<String, Object> payload = Map.of(
                 "eventId", "evt-001",
@@ -59,29 +54,30 @@ class ExecutorEventEventHandlerTest {
                 "sentAt", now.toString(),
                 "payload", Map.of("riskLevel", "medium")
         );
-        
+
         Map<String, Object> frame = Map.of(
                 "type", "execution_event",
                 "payload", payload
         );
-        
+
         JsonNode frameNode = objectMapper.convertValue(frame, JsonNode.class);
-        
+
         // Mock use case response
         when(syncExecutionEventUseCase.execute(any(SyncExecutionEventInput.class)))
-                .thenReturn(SyncExecutionEventOutput.ok("evt-001"));
-        
+                .thenReturn(SyncExecutionEventOutput.ok("evt-001", "sig-001", now));
+
         // Handle event
         handler.handleExecutionEvent(session, frameNode);
-        
+
         // Verify use case was called
         verify(syncExecutionEventUseCase, times(1)).execute(any(SyncExecutionEventInput.class));
+        verify(session).sendMessage(any(TextMessage.class));
     }
 
     @Test
     void testHandleExecutionEventOutOfOrder() throws IOException {
         Instant now = Instant.now();
-        
+
         // Create frame with out-of-order sequence
         Map<String, Object> payload = Map.of(
                 "eventId", "evt-002",
@@ -91,23 +87,30 @@ class ExecutorEventEventHandlerTest {
                 "sentAt", now.toString(),
                 "payload", Map.of()
         );
-        
+
         Map<String, Object> frame = Map.of(
                 "type", "execution_event",
                 "payload", payload
         );
-        
+
         JsonNode frameNode = objectMapper.convertValue(frame, JsonNode.class);
-        
+
         // Mock use case response with error
         when(syncExecutionEventUseCase.execute(any(SyncExecutionEventInput.class)))
-                .thenReturn(SyncExecutionEventOutput.error("evt-002", "OUT_OF_ORDER", "Expected sequence 1, received 5"));
-        
+                .thenReturn(SyncExecutionEventOutput.error(
+                        "evt-002",
+                        "sig-001",
+                        "OUT_OF_ORDER",
+                        "Expected sequence 1, received 5",
+                        now
+                ));
+
         // Handle event
         handler.handleExecutionEvent(session, frameNode);
-        
+
         // Verify use case was called
         verify(syncExecutionEventUseCase, times(1)).execute(any(SyncExecutionEventInput.class));
+        verify(session).sendMessage(any(TextMessage.class));
     }
 
     @Test
@@ -119,17 +122,17 @@ class ExecutorEventEventHandlerTest {
                 "eventType", "signal.accepted",
                 "sentAt", Instant.now().toString()
         );
-        
+
         Map<String, Object> frame = Map.of(
                 "type", "execution_event",
                 "payload", payload
         );
-        
+
         JsonNode frameNode = objectMapper.convertValue(frame, JsonNode.class);
-        
+
         // Handle event
         handler.handleExecutionEvent(session, frameNode);
-        
+
         // Verify use case was NOT called (validation failed)
         verify(syncExecutionEventUseCase, never()).execute(any(SyncExecutionEventInput.class));
     }
@@ -144,29 +147,19 @@ class ExecutorEventEventHandlerTest {
                 "eventType", "signal.accepted",
                 "sentAt", "not-a-timestamp"
         );
-        
+
         Map<String, Object> frame = Map.of(
                 "type", "execution_event",
                 "payload", payload
         );
-        
+
         JsonNode frameNode = objectMapper.convertValue(frame, JsonNode.class);
-        
+
         // Handle event
         handler.handleExecutionEvent(session, frameNode);
-        
+
         // Verify use case was NOT called (validation failed)
         verify(syncExecutionEventUseCase, never()).execute(any(SyncExecutionEventInput.class));
     }
 
-    /**
-     * Mock WebSocketHandler that captures frames instead of sending.
-     */
-    private static class MockWebSocketHandler {
-        private TextMessage lastFrame;
-        
-        public void sendFrame(WebSocketSession session, Map<String, Object> frame) throws IOException {
-            // Mock implementation - just capture the frame
-        }
-    }
 }

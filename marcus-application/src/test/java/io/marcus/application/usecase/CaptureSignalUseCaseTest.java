@@ -1,8 +1,11 @@
 package io.marcus.application.usecase;
 
 import io.marcus.application.dto.ResolveBotRoutingTargetsRequest;
+import io.marcus.domain.model.Bot;
 import io.marcus.domain.model.Signal;
+import io.marcus.domain.port.SignalPublisherPort;
 import io.marcus.domain.port.SignalServerDispatchPort;
+import io.marcus.domain.repository.BotRepository;
 import io.marcus.domain.repository.SignalRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -12,6 +15,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,7 +32,13 @@ class CaptureSignalUseCaseTest {
     private SignalRepository signalRepository;
 
     @Mock
+    private BotRepository botRepository;
+
+    @Mock
     private ResolveBotRoutingTargetsUseCase resolveBotRoutingTargetsUseCase;
+
+    @Mock
+    private SignalPublisherPort signalPublisherPort;
 
     @Mock
     private SignalServerDispatchPort signalServerDispatchPort;
@@ -39,7 +49,9 @@ class CaptureSignalUseCaseTest {
     void setUp() {
         useCase = new CaptureSignalUseCase(
                 signalRepository,
+                botRepository,
                 resolveBotRoutingTargetsUseCase,
+                signalPublisherPort,
                 signalServerDispatchPort
         );
     }
@@ -52,12 +64,17 @@ class CaptureSignalUseCaseTest {
                 .botId("bot-1")
                 .build();
 
+        when(botRepository.findByBotId("bot-1"))
+                .thenReturn(Optional.of(new Bot())); // Bot exists
+        when(signalRepository.existsBySignalId("signal-1"))
+                .thenReturn(false); // Signal does not exist yet
         when(resolveBotRoutingTargetsUseCase.execute(new ResolveBotRoutingTargetsRequest("bot-1")))
                 .thenReturn(Set.of("ws-1", "ws-2"));
 
         useCase.execute(signal);
 
-        verify(signalRepository).publish(signal);
+        verify(signalRepository).save(signal);
+        verify(signalPublisherPort).publish(signal);
         verify(signalServerDispatchPort).dispatchToServers(signal, Set.of("ws-1", "ws-2"));
     }
 
@@ -69,12 +86,17 @@ class CaptureSignalUseCaseTest {
                 .botId("bot-1")
                 .build();
 
+        when(botRepository.findByBotId("bot-1"))
+                .thenReturn(Optional.of(new Bot())); // Bot exists
+        when(signalRepository.existsBySignalId("signal-1"))
+                .thenReturn(false); // Signal does not exist yet
         when(resolveBotRoutingTargetsUseCase.execute(new ResolveBotRoutingTargetsRequest("bot-1")))
                 .thenReturn(Set.of());
 
         useCase.execute(signal);
 
-        verify(signalRepository).publish(signal);
+        verify(signalRepository).save(signal);
+        verify(signalPublisherPort).publish(signal);
         verify(signalServerDispatchPort, never()).dispatchToServers(signal, Set.of());
     }
 
@@ -108,6 +130,10 @@ class CaptureSignalUseCaseTest {
                 .signalId("signal-1")
                 .botId("bot-9")
                 .build();
+        when(botRepository.findByBotId("bot-9"))
+                .thenReturn(Optional.of(new Bot())); // Bot exists
+        when(signalRepository.existsBySignalId("signal-1"))
+                .thenReturn(false); // Signal does not exist yet
         when(resolveBotRoutingTargetsUseCase.execute(new ResolveBotRoutingTargetsRequest("bot-9")))
                 .thenReturn(Set.of());
 
@@ -117,5 +143,94 @@ class CaptureSignalUseCaseTest {
                 ArgumentCaptor.forClass(ResolveBotRoutingTargetsRequest.class);
         verify(resolveBotRoutingTargetsUseCase).execute(requestCaptor.capture());
         assertEquals("bot-9", requestCaptor.getValue().botId());
+    }
+
+    @Test
+    @DisplayName("Should throw when signal id is null")
+    void shouldThrowWhenSignalIdIsNull() {
+        Signal signal = Signal.builder()
+                .signalId(null)
+                .botId("bot-1")
+                .build();
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> useCase.execute(signal));
+
+        assertEquals("Signal id is required", exception.getMessage());
+        verifyNoInteractions(signalRepository, botRepository, resolveBotRoutingTargetsUseCase, signalServerDispatchPort);
+    }
+
+    @Test
+    @DisplayName("Should throw when signal id is blank")
+    void shouldThrowWhenSignalIdIsBlank() {
+        Signal signal = Signal.builder()
+                .signalId("   ")
+                .botId("bot-1")
+                .build();
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> useCase.execute(signal));
+
+        assertEquals("Signal id is required", exception.getMessage());
+        verifyNoInteractions(signalRepository, botRepository, resolveBotRoutingTargetsUseCase, signalServerDispatchPort);
+    }
+
+    @Test
+    @DisplayName("Should throw when bot id does not exist in database")
+    void shouldThrowWhenBotIdDoesNotExist() {
+        Signal signal = Signal.builder()
+                .signalId("signal-1")
+                .botId("demo-bot-id")
+                .build();
+        
+        when(botRepository.findByBotId("demo-bot-id"))
+                .thenReturn(Optional.empty()); // Bot does not exist
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> useCase.execute(signal));
+
+        assertEquals("Bot not found: demo-bot-id", exception.getMessage());
+        verify(botRepository).findByBotId("demo-bot-id");
+        verifyNoInteractions(signalRepository, resolveBotRoutingTargetsUseCase, signalServerDispatchPort);
+    }
+
+    @Test
+    @DisplayName("Should publish and dispatch signal when all validations pass")
+    void shouldPublishAndDispatchSignalWhenAllValidationsPass() {
+        Signal signal = Signal.builder()
+                .signalId("signal-1")
+                .botId("bot-1")
+                .build();
+
+        when(botRepository.findByBotId("bot-1"))
+                .thenReturn(Optional.of(new Bot())); // Bot exists
+        when(resolveBotRoutingTargetsUseCase.execute(new ResolveBotRoutingTargetsRequest("bot-1")))
+                .thenReturn(Set.of("ws-1", "ws-2"));
+
+        useCase.execute(signal);
+
+        verify(botRepository).findByBotId("bot-1");
+        verify(signalRepository).save(signal);
+        verify(signalPublisherPort).publish(signal);
+        verify(signalServerDispatchPort).dispatchToServers(signal, Set.of("ws-1", "ws-2"));
+    }
+
+    @Test
+    @DisplayName("Should throw when signal id already exists (duplicate)")
+    void shouldThrowWhenSignalIdAlreadyExists() {
+        Signal signal = Signal.builder()
+                .signalId("signal-1")
+                .botId("bot-1")
+                .build();
+
+        when(botRepository.findByBotId("bot-1"))
+                .thenReturn(Optional.of(new Bot())); // Bot exists
+        when(signalRepository.existsBySignalId("signal-1"))
+                .thenReturn(true); // Signal already exists
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> useCase.execute(signal));
+
+        assertEquals("Signal already exists: signal-1", exception.getMessage());
+        verify(signalRepository).existsBySignalId("signal-1");
+        verify(signalRepository, never()).save(signal);
+        verify(signalPublisherPort, never()).publish(signal);
+        verifyNoInteractions(resolveBotRoutingTargetsUseCase, signalServerDispatchPort);
     }
 }

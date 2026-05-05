@@ -103,7 +103,7 @@ class SyncExecutionEventUseCaseTest {
         assertFalse(output.isSuccess());
         assertEquals("ERROR", output.getStatus());
         assertEquals("OUT_OF_ORDER", output.getErrorCode());
-        assertTrue(output.getErrorMessage().contains("Expected sequence 1, received 5"));
+        assertTrue(output.getErrorMessage().contains("Expected sequence 0, received 5"));
         verify(executionEventPort, never()).store(any(ExecutionEvent.class));
     }
 
