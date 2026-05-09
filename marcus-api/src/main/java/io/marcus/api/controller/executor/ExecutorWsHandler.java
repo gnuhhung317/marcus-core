@@ -24,8 +24,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * WebSocket handler for authenticated executor connections.
- * Validates HMAC signatures, persists raw events, and routes to use cases.
+ * WebSocket handler for authenticated executor connections. Validates HMAC
+ * signatures, persists raw events, and routes to use cases.
  */
 @Component
 @Slf4j
@@ -107,7 +107,7 @@ public class ExecutorWsHandler extends TextWebSocketHandler {
         }
 
         String payloadBase64 = Base64.getEncoder().encodeToString(
-            objectMapper.writeValueAsString(payload).getBytes(StandardCharsets.UTF_8)
+                objectMapper.writeValueAsString(payload).getBytes(StandardCharsets.UTF_8)
         );
         String signatureInput = botId + "|" + timestamp + "|" + payloadBase64;
         String computedSignature = computeHmacSha256(signatureInput, botSecret);
@@ -126,10 +126,10 @@ public class ExecutorWsHandler extends TextWebSocketHandler {
 
         // Send handshake-ack
         sendFrame(session, "handshake-ack", Map.of(
-            "connId", connId,
-            "botId", botId,
-            "timestamp", Instant.now().toString(),
-            "status", "OK"
+                "connId", connId,
+                "botId", botId,
+                "timestamp", Instant.now().toString(),
+                "status", "OK"
         ));
     }
 
@@ -152,25 +152,25 @@ public class ExecutorWsHandler extends TextWebSocketHandler {
 
         // Persist raw event
         RawEvent rawEvent = RawEvent.builder()
-            .eventId(eventId)
-            .botId(botId)
-            .idempotencyKey(idempotencyKey)
-            .correlationId(correlationId)
-            .type(messageType)
-            .payload(objectMapper.convertValue(payload, Map.class))
-            .receivedAt(Instant.now())
-            .sourceConnId(connId)
-            .processed(false)
-            .build();
+                .eventId(eventId)
+                .botId(botId)
+                .idempotencyKey(idempotencyKey)
+                .correlationId(correlationId)
+                .type(messageType)
+                .payload(objectMapper.convertValue(payload, Map.class))
+                .receivedAt(Instant.now())
+                .sourceConnId(connId)
+                .processed(false)
+                .build();
 
         RawEvent persisted = rawEventPersistencePort.save(rawEvent);
 
         // Send ack immediately
         sendFrame(session, "ack", Map.of(
-            "eventId", eventId,
-            "idempotencyKey", idempotencyKey,
-            "status", "PERSISTED",
-            "sequenceNo", persisted.getSequenceNo()
+                "eventId", eventId,
+                "idempotencyKey", idempotencyKey,
+                "status", "PERSISTED",
+                "sequenceNo", persisted.getSequenceNo()
         ));
 
         // Route to use case based on message type
@@ -207,8 +207,8 @@ public class ExecutorWsHandler extends TextWebSocketHandler {
 
     private void sendError(WebSocketSession session, String errorCode, String message) throws IOException {
         sendFrame(session, "error", Map.of(
-            "code", errorCode,
-            "message", message
+                "code", errorCode,
+                "message", message
         ));
     }
 
@@ -216,10 +216,10 @@ public class ExecutorWsHandler extends TextWebSocketHandler {
         try {
             Mac mac = Mac.getInstance(HMAC_ALGORITHM);
             SecretKeySpec secretKey = new SecretKeySpec(
-                secret.getBytes(StandardCharsets.UTF_8),
-                0,
-                secret.getBytes(StandardCharsets.UTF_8).length,
-                HMAC_ALGORITHM
+                    secret.getBytes(StandardCharsets.UTF_8),
+                    0,
+                    secret.getBytes(StandardCharsets.UTF_8).length,
+                    HMAC_ALGORITHM
             );
             mac.init(secretKey);
             byte[] rawHmac = mac.doFinal(input.getBytes(StandardCharsets.UTF_8));
@@ -239,6 +239,7 @@ public class ExecutorWsHandler extends TextWebSocketHandler {
      * Per-connection state holder.
      */
     private static class ExecutorConnection {
+
         private final String connId;
         private String botId;
         private boolean authenticated;
@@ -249,10 +250,24 @@ public class ExecutorWsHandler extends TextWebSocketHandler {
             this.authenticated = authenticated;
         }
 
-        String getConnId() { return connId; }
-        String getBotId() { return botId; }
-        void setBotId(String botId) { this.botId = botId; }
-        boolean isAuthenticated() { return authenticated; }
-        void setAuthenticated(boolean authenticated) { this.authenticated = authenticated; }
+        String getConnId() {
+            return connId;
+        }
+
+        String getBotId() {
+            return botId;
+        }
+
+        void setBotId(String botId) {
+            this.botId = botId;
+        }
+
+        boolean isAuthenticated() {
+            return authenticated;
+        }
+
+        void setAuthenticated(boolean authenticated) {
+            this.authenticated = authenticated;
+        }
     }
 }

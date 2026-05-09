@@ -105,7 +105,7 @@ class JpaRawEventPersistenceAdapterTest {
 
         assertThat(actual).isEqualTo(expected);
         verify(repository).save(attemptedEntity);
-                verify(repository, atLeast(2)).findByBotIdAndIdempotencyKey("bot_1", "idem_1");
+        verify(repository, atLeast(2)).findByBotIdAndIdempotencyKey("bot_1", "idem_1");
     }
 
     @Test

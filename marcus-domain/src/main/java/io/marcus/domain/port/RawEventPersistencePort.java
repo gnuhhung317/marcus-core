@@ -7,18 +7,19 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Port for persisting and querying raw executor events.
- * Defines the contract for append-only raw event log storage.
+ * Port for persisting and querying raw executor events. Defines the contract
+ * for append-only raw event log storage.
  */
 public interface RawEventPersistencePort {
 
     /**
-     * Persist a raw event from the executor.
-     * If an event with the same botId and idempotencyKey already exists,
-     * returns the existing entity instead of creating a duplicate.
+     * Persist a raw event from the executor. If an event with the same botId
+     * and idempotencyKey already exists, returns the existing entity instead of
+     * creating a duplicate.
      *
      * @param rawEvent the raw event to persist
-     * @return the persisted (or existing) raw event with assigned ID and sequence
+     * @return the persisted (or existing) raw event with assigned ID and
+     * sequence
      */
     RawEvent save(RawEvent rawEvent);
 
@@ -31,8 +32,8 @@ public interface RawEventPersistencePort {
     Optional<RawEvent> findByEventId(String eventId);
 
     /**
-     * Check for duplicate: find by botId and idempotencyKey.
-     * Used to detect retries and enforce idempotency.
+     * Check for duplicate: find by botId and idempotencyKey. Used to detect
+     * retries and enforce idempotency.
      *
      * @param botId bot identifier
      * @param idempotencyKey idempotency key from the message envelope
@@ -77,8 +78,8 @@ public interface RawEventPersistencePort {
     List<RawEvent> findByTimeRange(String botId, Instant from, Instant to);
 
     /**
-     * Fetch raw events by correlationId (for debugging and audit).
-     * Returns paginated results.
+     * Fetch raw events by correlationId (for debugging and audit). Returns
+     * paginated results.
      *
      * @param correlationId correlation identifier
      * @param limit max results
@@ -88,8 +89,8 @@ public interface RawEventPersistencePort {
     List<RawEvent> findByCorrelationId(String correlationId, int limit, int offset);
 
     /**
-     * Get the next sequence number for a bot.
-     * Increments atomically to avoid gaps.
+     * Get the next sequence number for a bot. Increments atomically to avoid
+     * gaps.
      *
      * @param botId bot identifier
      * @return next sequence number to assign

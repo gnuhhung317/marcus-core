@@ -10,20 +10,20 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * Append-only raw event log for executor ingest.
- * Persists every incoming message from the external executor for audit and replay.
+ * Append-only raw event log for executor ingest. Persists every incoming
+ * message from the external executor for audit and replay.
  */
 @Entity
 @Table(
-    name = "raw_events",
-    indexes = {
-        @Index(name = "idx_raw_events_bot_id", columnList = "bot_id"),
-        @Index(name = "idx_raw_events_bot_idempotency", columnList = "bot_id,idempotency_key", unique = true),
-        @Index(name = "idx_raw_events_correlation_id", columnList = "correlation_id"),
-        @Index(name = "idx_raw_events_sequence", columnList = "bot_id,sequence_no"),
-        @Index(name = "idx_raw_events_received_at", columnList = "received_at"),
-        @Index(name = "idx_raw_events_source_conn_id", columnList = "source_conn_id")
-    }
+        name = "raw_events",
+        indexes = {
+            @Index(name = "idx_raw_events_bot_id", columnList = "bot_id"),
+            @Index(name = "idx_raw_events_bot_idempotency", columnList = "bot_id,idempotency_key", unique = true),
+            @Index(name = "idx_raw_events_correlation_id", columnList = "correlation_id"),
+            @Index(name = "idx_raw_events_sequence", columnList = "bot_id,sequence_no"),
+            @Index(name = "idx_raw_events_received_at", columnList = "received_at"),
+            @Index(name = "idx_raw_events_source_conn_id", columnList = "source_conn_id")
+        }
 )
 @Getter
 @Setter
@@ -49,21 +49,22 @@ public class RawEventEntity extends BaseEntity {
     private String botId;
 
     /**
-     * Idempotency key from the executor message envelope.
-     * Unique constraint with botId prevents duplicate processing.
+     * Idempotency key from the executor message envelope. Unique constraint
+     * with botId prevents duplicate processing.
      */
     @Column(nullable = false)
     private String idempotencyKey;
 
     /**
-     * Correlation ID for tracing cross-system requests.
-     * Mandatory for decision-impact messages.
+     * Correlation ID for tracing cross-system requests. Mandatory for
+     * decision-impact messages.
      */
     @Column(nullable = false)
     private String correlationId;
 
     /**
-     * Message type: ingest, ack, heartbeat, replay-request, replay-response, control, audit-push.
+     * Message type: ingest, ack, heartbeat, replay-request, replay-response,
+     * control, audit-push.
      */
     @Column(nullable = false)
     private String type;
@@ -83,15 +84,15 @@ public class RawEventEntity extends BaseEntity {
 
     /**
      * Connection identifier (e.g., WebSocket session ID) that sent this event.
-     * Used to route replay-response and audit-push messages back to the correct executor.
+     * Used to route replay-response and audit-push messages back to the correct
+     * executor.
      */
     @Column(nullable = false)
     private String sourceConnId;
 
     /**
-     * Monotonic sequence number per bot.
-     * Used for ordering events when out-of-order delivery occurs.
-     * Assigned by the server on persist.
+     * Monotonic sequence number per bot. Used for ordering events when
+     * out-of-order delivery occurs. Assigned by the server on persist.
      */
     @Column(nullable = false)
     private Long sequenceNo;
@@ -103,7 +104,8 @@ public class RawEventEntity extends BaseEntity {
     private Boolean processed;
 
     /**
-     * Timestamp when projection processing completed (null if not yet processed).
+     * Timestamp when projection processing completed (null if not yet
+     * processed).
      */
     private Instant processedAt;
 }

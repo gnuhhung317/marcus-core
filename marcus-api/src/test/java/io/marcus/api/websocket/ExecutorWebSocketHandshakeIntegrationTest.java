@@ -35,14 +35,11 @@ import static org.mockito.Mockito.clearInvocations;
 
 /**
  * Integration tests for the Executor WebSocket signed handshake protocol.
- * 
- * Covers:
- * - Signed handshake acceptance with valid HMAC
- * - Signature rejection on invalid HMAC
- * - Timestamp validation (expired/future)
- * - Session registration and ack response
- * - Idempotency (duplicate handshakes with same botId + wsToken)
- * - Executor connection marking in persistence
+ *
+ * Covers: - Signed handshake acceptance with valid HMAC - Signature rejection
+ * on invalid HMAC - Timestamp validation (expired/future) - Session
+ * registration and ack response - Idempotency (duplicate handshakes with same
+ * botId + wsToken) - Executor connection marking in persistence
  */
 @ExtendWith(MockitoExtension.class)
 class ExecutorWebSocketHandshakeIntegrationTest {
@@ -89,11 +86,11 @@ class ExecutorWebSocketHandshakeIntegrationTest {
         // Assert
         verify(sessionRegistry).register(eq(wsToken), eq(botId), eq("sub-1"), eq(session));
         verify(userSubscriptionPersistencePort).markExecutorConnected(eq("sub-1"), eq(true));
-        
+
         // Verify handshake-ack was sent
         ArgumentCaptor<TextMessage> messageCaptor = ArgumentCaptor.forClass(TextMessage.class);
         verify(session).sendMessage(messageCaptor.capture());
-        
+
         String responsePayload = messageCaptor.getValue().getPayload();
         JsonNode response = objectMapper.readTree(responsePayload);
         assertEquals("ack", response.get("type").asText());
@@ -120,13 +117,13 @@ class ExecutorWebSocketHandshakeIntegrationTest {
         Map<String, Object> payload = new HashMap<>();
         payload.put("nonce", nonce);
         payload.put("version", version);
-        
+
         String handshakeMessage = objectMapper.writeValueAsString(Map.of(
                 "type", "handshake",
                 "botId", botId,
                 "timestamp", timestamp,
                 "payload", payload,
-                "signature", "invalid_signature_12345"  // Invalid!
+                "signature", "invalid_signature_12345" // Invalid!
         ));
 
         // Act
@@ -144,7 +141,7 @@ class ExecutorWebSocketHandshakeIntegrationTest {
         String wsToken = "ws_abc123def456";
         String nonce = UUID.randomUUID().toString();
         String version = "1.0";
-        
+
         // Timestamp 10 minutes in the past (handshake max age is 5 minutes)
         Instant tenMinutesAgo = Instant.now().minusSeconds(600);
         String timestamp = tenMinutesAgo.toString();
@@ -234,7 +231,7 @@ class ExecutorWebSocketHandshakeIntegrationTest {
 
         String handshakeMessage = buildSignedHandshake(botId, timestamp, nonce, version, wsToken);
         handler.handleTextMessage(session, new TextMessage(handshakeMessage));
-        
+
         // Clear previous invocations
         clearInvocations(session);
 
@@ -248,7 +245,7 @@ class ExecutorWebSocketHandshakeIntegrationTest {
         // Assert: heartbeat ack received
         ArgumentCaptor<TextMessage> messageCaptor = ArgumentCaptor.forClass(TextMessage.class);
         verify(session).sendMessage(messageCaptor.capture());
-        
+
         String responsePayload = messageCaptor.getValue().getPayload();
         JsonNode response = objectMapper.readTree(responsePayload);
         assertEquals("ack", response.get("type").asText());
@@ -271,7 +268,7 @@ class ExecutorWebSocketHandshakeIntegrationTest {
         ArgumentCaptor<TextMessage> messageCaptor = ArgumentCaptor.forClass(TextMessage.class);
         verify(session).sendMessage(messageCaptor.capture());
         verify(session).close(eq(CloseStatus.PROTOCOL_ERROR));
-        
+
         String responsePayload = messageCaptor.getValue().getPayload();
         JsonNode response = objectMapper.readTree(responsePayload);
         assertEquals("system", response.get("type").asText());
@@ -279,7 +276,6 @@ class ExecutorWebSocketHandshakeIntegrationTest {
     }
 
     // Helper methods
-    
     private String buildSignedHandshake(String botId, String timestamp, String nonce, String version, String wsToken) throws Exception {
         Map<String, Object> payload = new HashMap<>();
         payload.put("nonce", nonce);

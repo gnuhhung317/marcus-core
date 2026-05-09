@@ -9,8 +9,8 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * Append-only raw event from the external executor.
- * Represents a single message in the ingest stream.
+ * Append-only raw event from the external executor. Represents a single message
+ * in the ingest stream.
  */
 @Data
 @SuperBuilder

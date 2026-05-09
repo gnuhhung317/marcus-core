@@ -8,8 +8,8 @@ import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 
 /**
- * Spring WebSocket configuration for executor ingest channel.
- * Registers the ExecutorWsHandler on the /ws/executor endpoint.
+ * Spring WebSocket configuration for executor ingest channel. Registers the
+ * ExecutorWsHandler on the /ws/executor endpoint.
  */
 @Configuration
 @EnableWebSocket
@@ -21,7 +21,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(executorWsHandler, "/ws/executor")
-                .setAllowedOrigins("*")  // TODO: Configure CORS for production
+                .setAllowedOrigins("*") // TODO: Configure CORS for production
                 .withSockJS();  // Enable SockJS fallback for browsers
     }
 }

@@ -21,7 +21,9 @@ public class ProcessRawEventUseCase {
     private final ObjectMapper objectMapper;
 
     public void execute(RawEvent rawEvent) {
-        if (rawEvent == null) return;
+        if (rawEvent == null) {
+            return;
+        }
 
         String type = rawEvent.getType();
         if ("ingest".equalsIgnoreCase(type)) {

@@ -15,8 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 
 /**
- * JPA-based implementation of RawEventPersistencePort.
- * Handles idempotency, sequence generation, and query operations for raw events.
+ * JPA-based implementation of RawEventPersistencePort. Handles idempotency,
+ * sequence generation, and query operations for raw events.
  */
 @Repository
 @RequiredArgsConstructor
@@ -30,10 +30,10 @@ public class JpaRawEventPersistenceAdapter implements RawEventPersistencePort {
     public RawEvent save(RawEvent rawEvent) {
         // Check for duplicate by botId and idempotencyKey
         Optional<RawEventEntity> existing = repository.findByBotIdAndIdempotencyKey(
-            rawEvent.getBotId(),
-            rawEvent.getIdempotencyKey()
+                rawEvent.getBotId(),
+                rawEvent.getIdempotencyKey()
         );
-        
+
         if (existing.isPresent()) {
             // Idempotent: return the existing event without creating a duplicate
             return mapper.entityToDomain(existing.get());
@@ -59,10 +59,10 @@ public class JpaRawEventPersistenceAdapter implements RawEventPersistencePort {
         } catch (DataIntegrityViolationException dive) {
             // Likely a concurrent insert caused unique constraint violation.
             log.warn("Unique constraint violation while saving RawEvent (bot={}, idempotency={}), attempting lookup: {}",
-                rawEvent.getBotId(), rawEvent.getIdempotencyKey(), dive.getMessage());
+                    rawEvent.getBotId(), rawEvent.getIdempotencyKey(), dive.getMessage());
 
             Optional<RawEventEntity> existingAfterConflict = repository.findByBotIdAndIdempotencyKey(
-                rawEvent.getBotId(), rawEvent.getIdempotencyKey());
+                    rawEvent.getBotId(), rawEvent.getIdempotencyKey());
 
             if (existingAfterConflict.isPresent()) {
                 return mapper.entityToDomain(existingAfterConflict.get());
@@ -76,21 +76,21 @@ public class JpaRawEventPersistenceAdapter implements RawEventPersistencePort {
     @Override
     public Optional<RawEvent> findByEventId(String eventId) {
         return repository.findByEventId(eventId)
-            .map(mapper::entityToDomain);
+                .map(mapper::entityToDomain);
     }
 
     @Override
     public Optional<RawEvent> findExistingByIdempotencyKey(String botId, String idempotencyKey) {
         return repository.findByBotIdAndIdempotencyKey(botId, idempotencyKey)
-            .map(mapper::entityToDomain);
+                .map(mapper::entityToDomain);
     }
 
     @Override
     public List<RawEvent> findUnprocessedForBot(String botId) {
         return repository.findByBotIdAndProcessedFalseOrderBySequenceNoAsc(botId)
-            .stream()
-            .map(mapper::entityToDomain)
-            .toList();
+                .stream()
+                .map(mapper::entityToDomain)
+                .toList();
     }
 
     @Override
@@ -105,17 +105,17 @@ public class JpaRawEventPersistenceAdapter implements RawEventPersistencePort {
     @Override
     public List<RawEvent> findBySequenceRange(String botId, Long fromSeq, Long toSeq) {
         return repository.findByBotIdAndSequenceRange(botId, fromSeq, toSeq)
-            .stream()
-            .map(mapper::entityToDomain)
-            .toList();
+                .stream()
+                .map(mapper::entityToDomain)
+                .toList();
     }
 
     @Override
     public List<RawEvent> findByTimeRange(String botId, Instant from, Instant to) {
         return repository.findByBotIdAndTimeRange(botId, from, to)
-            .stream()
-            .map(mapper::entityToDomain)
-            .toList();
+                .stream()
+                .map(mapper::entityToDomain)
+                .toList();
     }
 
     @Override
@@ -123,11 +123,11 @@ public class JpaRawEventPersistenceAdapter implements RawEventPersistencePort {
         return repository.findByCorrelationId(
                 correlationId,
                 PageRequest.of(offset / limit, limit)
-            )
-            .getContent()
-            .stream()
-            .map(mapper::entityToDomain)
-            .toList();
+        )
+                .getContent()
+                .stream()
+                .map(mapper::entityToDomain)
+                .toList();
     }
 
     @Override
