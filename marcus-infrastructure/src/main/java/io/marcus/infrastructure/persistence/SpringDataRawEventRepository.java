@@ -1,8 +1,6 @@
 package io.marcus.infrastructure.persistence;
 
 import io.marcus.infrastructure.persistence.entity.RawEventEntity;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -66,9 +64,17 @@ public interface SpringDataRawEventRepository extends JpaRepository<RawEventEnti
 
     /**
      * Find raw events by correlationId (for debugging and audit trail).
-     * Paginated to handle large result sets.
+     * Results are offset-paginated and ordered deterministically by sequence.
      */
-    Page<RawEventEntity> findByCorrelationId(String correlationId, Pageable pageable);
+    @Query(value = "SELECT * FROM raw_events " +
+            "WHERE correlation_id = :correlationId " +
+            "ORDER BY sequence_no ASC " +
+            "OFFSET :offset LIMIT :limit", nativeQuery = true)
+    List<RawEventEntity> findByCorrelationId(
+            @Param("correlationId") String correlationId,
+            @Param("limit") int limit,
+            @Param("offset") int offset
+    );
 
     /**
      * Get the maximum sequence number for a botId. Used to assign the next

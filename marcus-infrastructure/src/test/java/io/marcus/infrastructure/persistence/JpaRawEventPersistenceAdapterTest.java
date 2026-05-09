@@ -11,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -174,4 +175,21 @@ class JpaRawEventPersistenceAdapterTest {
         assertThat(actual).isEqualTo(expected);
         verify(repository).save(mappedEntity);
     }
+
+        @Test
+        void shouldQueryCorrelationIdWithOffsetAndLimit() {
+                when(repository.findByCorrelationId("corr_2", 25, 15)).thenReturn(List.of());
+
+                var result = adapter.findByCorrelationId("corr_2", 25, 15);
+
+                assertThat(result).isEmpty();
+                verify(repository).findByCorrelationId("corr_2", 25, 15);
+        }
+
+        @Test
+        void shouldRejectNonPositiveLimitForCorrelationQuery() {
+                assertThatThrownBy(() -> adapter.findByCorrelationId("corr_2", 0, 15))
+                                .isInstanceOf(IllegalArgumentException.class)
+                                .hasMessageContaining("limit must be greater than 0");
+        }
 }

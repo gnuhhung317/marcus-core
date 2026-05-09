@@ -5,7 +5,6 @@ import io.marcus.domain.port.RawEventPersistencePort;
 import io.marcus.infrastructure.persistence.entity.RawEventEntity;
 import io.marcus.infrastructure.persistence.mapper.RawEventMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
@@ -120,11 +119,14 @@ public class JpaRawEventPersistenceAdapter implements RawEventPersistencePort {
 
     @Override
     public List<RawEvent> findByCorrelationId(String correlationId, int limit, int offset) {
-        return repository.findByCorrelationId(
-                correlationId,
-                PageRequest.of(offset / limit, limit)
-        )
-                .getContent()
+        if (limit <= 0) {
+            throw new IllegalArgumentException("limit must be greater than 0");
+        }
+        if (offset < 0) {
+            throw new IllegalArgumentException("offset must be non-negative");
+        }
+
+        return repository.findByCorrelationId(correlationId, limit, offset)
                 .stream()
                 .map(mapper::entityToDomain)
                 .toList();
