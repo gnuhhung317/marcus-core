@@ -139,8 +139,8 @@ class CaptureSignalUseCaseTest {
 
         useCase.execute(signal);
 
-        ArgumentCaptor<ResolveBotRoutingTargetsRequest> requestCaptor =
-                ArgumentCaptor.forClass(ResolveBotRoutingTargetsRequest.class);
+        ArgumentCaptor<ResolveBotRoutingTargetsRequest> requestCaptor
+                = ArgumentCaptor.forClass(ResolveBotRoutingTargetsRequest.class);
         verify(resolveBotRoutingTargetsUseCase).execute(requestCaptor.capture());
         assertEquals("bot-9", requestCaptor.getValue().botId());
     }
@@ -180,7 +180,7 @@ class CaptureSignalUseCaseTest {
                 .signalId("signal-1")
                 .botId("demo-bot-id")
                 .build();
-        
+
         when(botRepository.findByBotId("demo-bot-id"))
                 .thenReturn(Optional.empty()); // Bot does not exist
 

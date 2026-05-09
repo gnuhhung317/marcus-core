@@ -496,6 +496,23 @@ public class DemoTerminalReadAdapter implements TerminalReadPort {
         return new ExecutionLogPageSnapshot("cursor-" + maskedBlock(normalizedCursor, 8), items);
     }
 
+    // Pha 1: Decision Dashboard - Portfolio-level queries
+
+    @Override
+    public PortfolioOverviewSnapshot getPortfolioOverview(String userId) {
+        throw new UnsupportedOperationException("Demo adapter does not support portfolio overview");
+    }
+
+    @Override
+    public List<SubscriptionDecisionSnapshot> getSubscriptionDecisions(String userId, String statusFilter) {
+        throw new UnsupportedOperationException("Demo adapter does not support subscription decisions");
+    }
+
+    @Override
+    public SubscriptionDecisionSnapshot getSubscriptionDecision(String subscriptionId) {
+        throw new UnsupportedOperationException("Demo adapter does not support subscription decision");
+    }
+
     private String normalize(String value, String fallback) {
         if (value == null) {
             return fallback;

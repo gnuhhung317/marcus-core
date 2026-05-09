@@ -53,8 +53,8 @@ class CaptureSignalRoutingFlowIntegrationTest {
         upsertUserSessionUseCase = new UpsertUserSessionUseCase(userSessionRoutingPort);
         removeUserSessionUseCase = new RemoveUserSessionUseCase(userSessionRoutingPort);
 
-        ResolveBotRoutingTargetsUseCase resolveBotRoutingTargetsUseCase =
-                new ResolveBotRoutingTargetsUseCase(botSubscriberRoutingPort, userSessionRoutingPort);
+        ResolveBotRoutingTargetsUseCase resolveBotRoutingTargetsUseCase
+                = new ResolveBotRoutingTargetsUseCase(botSubscriberRoutingPort, userSessionRoutingPort);
         captureSignalUseCase = new CaptureSignalUseCase(
                 inMemorySignalRepository,
                 inMemoryBotRepository,
@@ -68,7 +68,7 @@ class CaptureSignalRoutingFlowIntegrationTest {
     void shouldDispatchToResolvedTargetsWhenSubscriberSessionChainExists() {
         // Register bot as existing
         inMemoryBotRepository.registerBot("bot-1");
-        
+
         upsertBotSubscriberUseCase.execute(new UpsertBotSubscriberRequest("bot-1", "user-1"));
         upsertBotSubscriberUseCase.execute(new UpsertBotSubscriberRequest("bot-1", "user-2"));
 
@@ -95,7 +95,7 @@ class CaptureSignalRoutingFlowIntegrationTest {
     void shouldStopDispatchingWhenSubscriberAndSessionAreRemoved() {
         // Register bot
         inMemoryBotRepository.registerBot("bot-1");
-        
+
         upsertBotSubscriberUseCase.execute(new UpsertBotSubscriberRequest("bot-1", "user-1"));
         upsertBotSubscriberUseCase.execute(new UpsertBotSubscriberRequest("bot-1", "user-2"));
 
@@ -121,6 +121,7 @@ class CaptureSignalRoutingFlowIntegrationTest {
     }
 
     private static final class InMemoryBotRepository implements BotRepository {
+
         private final Set<String> botIds = new HashSet<>();
 
         public void registerBot(String botId) {
@@ -156,9 +157,15 @@ class CaptureSignalRoutingFlowIntegrationTest {
         public Optional<String> findSecretByApiKey(String apiKey) {
             return Optional.empty();
         }
+
+        @Override
+        public long countActive() {
+            return 0;
+        }
     }
 
     private static final class InMemoryBotSubscriberRoutingAdapter implements BotSubscriberRoutingPort {
+
         private final Map<String, Set<String>> subscribersByBot = new HashMap<>();
 
         @Override
@@ -182,6 +189,7 @@ class CaptureSignalRoutingFlowIntegrationTest {
     }
 
     private static final class InMemoryUserSessionRoutingAdapter implements UserSessionRoutingPort {
+
         private final Map<String, Set<String>> sessionsByUser = new HashMap<>();
         private final Map<String, String> serverBySession = new HashMap<>();
 
@@ -217,6 +225,7 @@ class CaptureSignalRoutingFlowIntegrationTest {
     }
 
     private static final class InMemorySignalRepository implements SignalRepository {
+
         private final List<Signal> savedSignals = new ArrayList<>();
 
         @Override
@@ -232,6 +241,7 @@ class CaptureSignalRoutingFlowIntegrationTest {
     }
 
     private static final class InMemorySignalPublisherPort implements SignalPublisherPort {
+
         private final List<Signal> publishedSignals = new ArrayList<>();
 
         @Override
@@ -241,6 +251,7 @@ class CaptureSignalRoutingFlowIntegrationTest {
     }
 
     private static final class InMemorySignalServerDispatchPort implements SignalServerDispatchPort {
+
         private final List<DispatchRecord> dispatches = new ArrayList<>();
 
         @Override
@@ -250,5 +261,6 @@ class CaptureSignalRoutingFlowIntegrationTest {
     }
 
     private record DispatchRecord(String signalId, Set<String> serverIds) {
+
     }
 }

@@ -13,6 +13,8 @@ public interface BotRepository {
 
     List<Bot> findAllActive();
 
+    long countActive();
+
     List<Bot> findAllByDeveloperId(String developerId);
 
     Optional<String> findSecretByBotId(String botId);

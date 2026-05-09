@@ -6,4 +6,5 @@ public interface UserRepository {
 
     boolean existsById(String id);
     boolean existsByIdAndRole(String id, Role role);
+    long count();
 }
