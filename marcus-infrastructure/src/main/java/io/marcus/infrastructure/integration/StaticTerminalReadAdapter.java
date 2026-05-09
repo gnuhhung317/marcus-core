@@ -534,7 +534,6 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
     }
 
     // Pha 1: Decision Dashboard - Portfolio-level queries
-
     @Override
     @Transactional(readOnly = true)
     public PortfolioOverviewSnapshot getPortfolioOverview(String userId) {
@@ -553,8 +552,8 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
         long successfulSignals = allSignals24h.stream()
                 .filter(signal -> deriveSignalReturn(signal) > 0)
                 .count();
-        double aggregateWinRate24h = allSignals24h.isEmpty() ? 0.0 :
-                round4((double) successfulSignals / allSignals24h.size());
+        double aggregateWinRate24h = allSignals24h.isEmpty() ? 0.0
+                : round4((double) successfulSignals / allSignals24h.size());
 
         // Count at-risk subscriptions (drawdown < -10%)
         int atRiskCount = (int) activeSubscriptions.stream()
@@ -586,10 +585,10 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
 
         return subscriptions.stream()
                 .map(this::enrichSubscriptionWithDecisionReason)
-            .sorted(
-                Comparator.comparingInt((SubscriptionDecisionSnapshot snap) -> reasonPriority(snap.reason()))
-                    .thenComparing(SubscriptionDecisionSnapshot::riskScore, Comparator.reverseOrder())
-            )
+                .sorted(
+                        Comparator.comparingInt((SubscriptionDecisionSnapshot snap) -> reasonPriority(snap.reason()))
+                                .thenComparing(SubscriptionDecisionSnapshot::riskScore, Comparator.reverseOrder())
+                )
                 .collect(Collectors.toList());
     }
 
@@ -629,10 +628,10 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
                 subscription.getId(),
                 subscription.getBotId(),
                 bot.getName(),
-                "/api/icons/bot/" + subscription.getBotId() + ".png",  // Default icon URL
+                "/api/icons/bot/" + subscription.getBotId() + ".png", // Default icon URL
                 subscription.getStatus().name(),
                 currentPnL,
-                currentPnL / 10_000.0,  // as % of 10k capital
+                currentPnL / 10_000.0, // as % of 10k capital
                 drawdown,
                 winRate,
                 signals24h.size(),
@@ -675,10 +674,14 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
     // Helper: Generate human-readable reason explanation
     private String generateReasonExplanation(TerminalReadPort.DecisionReason reason, double winRate, double drawdown) {
         return switch (reason) {
-            case SOLID_PERFORMER -> String.format("↑%.1f%% win rate", winRate * 100);
-            case NEEDS_REVIEW -> String.format("%.0f%% drawdown in 7 days", drawdown * 100);
-            case HIGH_RISK -> String.format("%.0f%% critical drawdown", drawdown * 100);
-            case SLIPPING -> "No recent signals";
+            case SOLID_PERFORMER ->
+                String.format("↑%.1f%% win rate", winRate * 100);
+            case NEEDS_REVIEW ->
+                String.format("%.0f%% drawdown in 7 days", drawdown * 100);
+            case HIGH_RISK ->
+                String.format("%.0f%% critical drawdown", drawdown * 100);
+            case SLIPPING ->
+                "No recent signals";
         };
     }
 
@@ -753,10 +756,14 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
 
     private int reasonPriority(TerminalReadPort.DecisionReason reason) {
         return switch (reason) {
-            case HIGH_RISK -> 0;
-            case NEEDS_REVIEW -> 1;
-            case SLIPPING -> 2;
-            case SOLID_PERFORMER -> 3;
+            case HIGH_RISK ->
+                0;
+            case NEEDS_REVIEW ->
+                1;
+            case SLIPPING ->
+                2;
+            case SOLID_PERFORMER ->
+                3;
         };
     }
 }

@@ -497,7 +497,6 @@ public class DemoTerminalReadAdapter implements TerminalReadPort {
     }
 
     // Pha 1: Decision Dashboard - Portfolio-level queries
-
     @Override
     public PortfolioOverviewSnapshot getPortfolioOverview(String userId) {
         throw new UnsupportedOperationException("Demo adapter does not support portfolio overview");

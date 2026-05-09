@@ -14,13 +14,23 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 @Component
 @Slf4j
 @RequiredArgsConstructor
 public class ExecutorWebSocketHandler extends TextWebSocketHandler {
+
+    private static final long HANDSHAKE_MAX_AGE_SECONDS = 300L;
+    private static final String HMAC_ALGORITHM = "HmacSHA256";
 
     private final ObjectMapper objectMapper;
     private final ExecutorSessionRegistry sessionRegistry;
@@ -39,8 +49,8 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
             JsonNode root = objectMapper.readTree(message.getPayload());
             String frameType = root.path("type").asText("").trim().toLowerCase();
 
-            if ("subscribe".equals(frameType)) {
-                handleSubscribe(session, root);
+            if ("handshake".equals(frameType)) {
+                handleHandshake(session, root);
                 return;
             }
 
@@ -66,14 +76,32 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    private void handleSubscribe(WebSocketSession session, JsonNode root) throws IOException {
+    private void handleHandshake(WebSocketSession session, JsonNode root) throws IOException {
         JsonNode payload = root.path("payload");
-        String botId = payload.path("bot_id").asText(payload.path("botId").asText(""));
+        String botId = root.path("botId").asText(root.path("bot_id").asText(""));
+        String timestamp = root.path("timestamp").asText("");
+        String signature = root.path("signature").asText("");
         String wsToken = (String) session.getAttributes().get(ExecutorHandshakeInterceptor.WS_TOKEN_ATTRIBUTE);
 
-        if (botId.isBlank() || wsToken == null || wsToken.isBlank()) {
-            sendFrame(session, buildErrorFrame("invalid_subscribe", "bot_id and ws_token are required"));
+        if (botId.isBlank() || timestamp.isBlank() || signature.isBlank() || wsToken == null || wsToken.isBlank()) {
+            sendFrame(session, buildErrorFrame("invalid_handshake", "botId, timestamp, signature and ws_token are required"));
             session.close(CloseStatus.BAD_DATA);
+            return;
+        }
+
+        if (!isHandshakeTimestampFresh(timestamp)) {
+            sendFrame(session, buildErrorFrame("expired_handshake", "Handshake timestamp is too old"));
+            session.close(CloseStatus.POLICY_VIOLATION);
+            return;
+        }
+
+        String expectedSignature = signHandshake(botId, timestamp, payload, wsToken);
+        if (!MessageDigest.isEqual(
+                expectedSignature.getBytes(StandardCharsets.UTF_8),
+                signature.getBytes(StandardCharsets.UTF_8)
+        )) {
+            sendFrame(session, buildErrorFrame("invalid_signature", "Handshake signature validation failed"));
+            session.close(CloseStatus.POLICY_VIOLATION);
             return;
         }
 
@@ -91,7 +119,7 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
                 session
         );
         userSubscriptionPersistencePort.markExecutorConnected(subscription.get().getUserSubscriptionId(), true);
-        sendFrame(session, buildAckFrame("subscribe", "ok", botId));
+        sendFrame(session, buildAckFrame("handshake", "ok", botId));
     }
 
     private Map<String, Object> buildAckFrame(String ackType, String status, String botId) {
@@ -121,5 +149,30 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
 
     public void sendFrame(WebSocketSession session, Map<String, Object> frame) throws IOException {
         session.sendMessage(new TextMessage(objectMapper.writeValueAsString(frame)));
+    }
+
+    private boolean isHandshakeTimestampFresh(String timestamp) {
+        try {
+            Instant sentAt = Instant.parse(timestamp);
+            long ageSeconds = Math.abs(Instant.now().getEpochSecond() - sentAt.getEpochSecond());
+            return ageSeconds <= HANDSHAKE_MAX_AGE_SECONDS;
+        } catch (DateTimeParseException ex) {
+            return false;
+        }
+    }
+
+    private String signHandshake(String botId, String timestamp, JsonNode payload, String wsToken) throws IOException {
+        String payloadJson = objectMapper.writeValueAsString(payload);
+        String payloadBase64 = Base64.getEncoder().encodeToString(payloadJson.getBytes(StandardCharsets.UTF_8));
+        String message = botId + "|" + timestamp + "|" + payloadBase64;
+
+        try {
+            Mac mac = Mac.getInstance(HMAC_ALGORITHM);
+            mac.init(new SecretKeySpec(wsToken.getBytes(StandardCharsets.UTF_8), HMAC_ALGORITHM));
+            byte[] rawHmac = mac.doFinal(message.getBytes(StandardCharsets.UTF_8));
+            return Base64.getEncoder().encodeToString(rawHmac);
+        } catch (Exception ex) {
+            throw new IOException("Failed to sign handshake", ex);
+        }
     }
 }

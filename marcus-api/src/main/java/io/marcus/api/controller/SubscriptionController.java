@@ -3,7 +3,6 @@ package io.marcus.api.controller;
 import io.marcus.application.dto.BotSubscriptionResult;
 import io.marcus.application.dto.MySubscriptionsResult;
 import io.marcus.application.dto.SubscribeBotResult;
-import io.marcus.application.usecase.SubscribeToBotUseCase;
 import io.marcus.application.usecase.UnsubscribeFromBotUseCase;
 import io.marcus.application.usecase.SubscribeBotUseCase;
 import io.marcus.application.usecase.ListMySubscriptionsUseCase;
@@ -32,7 +31,6 @@ public class SubscriptionController {
     private final ListMySubscriptionsUseCase listMySubscriptionsUseCase;
 
     // Bot/Admin-focused use cases
-    private final SubscribeToBotUseCase subscribeToBotUseCase;
     private final UnsubscribeFromBotUseCase unsubscribeFromBotUseCase;
     private final ConnectExecutorToSubscriptionUseCase connectExecutorToSubscriptionUseCase;
     private final ListActiveSubscriptionsForBotUseCase listActiveSubscriptionsForBotUseCase;

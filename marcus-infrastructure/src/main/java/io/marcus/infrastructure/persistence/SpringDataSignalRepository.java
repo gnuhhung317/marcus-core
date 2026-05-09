@@ -7,13 +7,14 @@ import java.util.List;
 import java.util.Optional;
 
 public interface SpringDataSignalRepository extends JpaRepository<SignalEntity, String> {
+
     Optional<SignalEntity> findBySignalId(String signalId);
 
     // Pha 1: Decision Dashboard queries
-
     /**
-     * Find signals for given bot created after specified timestamp.
-     * Used to calculate win rate and success rate for decision scoring.
+     * Find signals for given bot created after specified timestamp. Used to
+     * calculate win rate and success rate for decision scoring.
+     *
      * @param botId bot identifier
      * @param from start timestamp (e.g., 24 hours ago)
      * @return list of signals sorted by creation date descending

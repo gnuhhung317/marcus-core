@@ -28,10 +28,10 @@ public interface SpringDataUserSubscriptionRepository extends JpaRepository<User
     Optional<UserSubscriptionEntity> findFirstByUserSubscriptionId(String userSubscriptionId);
 
     // Pha 1: Decision Dashboard queries
-
     /**
      * Find all subscriptions for given user with optional status filter.
      * Returns subscriptions sorted by creation date descending.
+     *
      * @param userId user identifier
      * @param status filter by status, or null for all subscriptions
      * @return list of user subscriptions
@@ -47,8 +47,9 @@ public interface SpringDataUserSubscriptionRepository extends JpaRepository<User
     );
 
     /**
-     * Count active (non-paused) subscriptions for user.
-     * Used in portfolio overview.
+     * Count active (non-paused) subscriptions for user. Used in portfolio
+     * overview.
+     *
      * @param userId user identifier
      * @param status filter by status
      * @return count of subscriptions with given status

@@ -236,11 +236,13 @@ Handshake
   "botId": "<bot-id>",
   "timestamp": "2026-05-09T...Z",
   "payload": { "nonce": "uuid", "version": "1.0" },
-  "signature": "HMAC-SHA256(base64(payload), botSecret)"
+  "signature": "HMAC-SHA256(botId|timestamp|base64(payload), botSecret)"
 }
 ```
 
-- Server validates signature by looking up the `botId` secret. On success, server replies with `handshake-ack` including `connId` and server metadata. On failure, server rejects the connection.
+- Server validates signature by looking up the `botId` secret and verifying the HMAC covers **all three fields**: botId, timestamp, and payload. This prevents metadata tampering even if an attacker obtains a valid payload signature.
+- Timestamp validation: server rejects if `timestamp` is older than 5 minutes (configurable) to prevent replay attacks.
+- On success, server replies with `handshake-ack` including `connId` and server metadata. On failure, server rejects the connection with 401 code and logs the failure.
 
 Envelope (every message)
 - All frames are JSON with this minimal envelope:
@@ -278,9 +280,10 @@ Persistence model (summary)
 
 Operational notes
 - Require `correlationId` and `idempotencyKey` for mutating messages.
-- HMAC handshake must be used (bot secret). Plan for key rotation later.
+- **HMAC handshake security:** Signature MUST cover botId, timestamp, and payload (not just payload). Timestamp must be within 5 minutes of server time to prevent replay attacks.
 - Implement heartbeat + server-side disconnect on missed heartbeats.
 - Backend should publish `ack` immediately after persisting `raw_event` (sync ack) or after enqueue (async), but must include `status` to indicate persistence.
+- Log all handshake failures (invalid signature, expired timestamp, missing botId) for security monitoring.
 
 Next implementation steps (short)
 - Add `ExecutorWsHandler` in `marcus-api` to accept authenticated WS connections and route frames to `CaptureSignalUseCase`.

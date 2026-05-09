@@ -71,16 +71,19 @@ public interface TerminalReadPort {
     // Pha 1: Decision Dashboard - Portfolio-level queries
     /**
      * Portfolio overview snapshot for Decision Dashboard header stats.
-     * Aggregates all active subscriptions for current user into consolidated metrics.
+     * Aggregates all active subscriptions for current user into consolidated
+     * metrics.
+     *
      * @param userId current trader
      * @return aggregated portfolio metrics (not formula-based)
      */
     PortfolioOverviewSnapshot getPortfolioOverview(String userId);
 
     /**
-     * Subscription list enriched with decision reason tags.
-     * Each subscription includes decision context (win rate, drawdown, reason tag, explanation).
+     * Subscription list enriched with decision reason tags. Each subscription
+     * includes decision context (win rate, drawdown, reason tag, explanation).
      * Results are sorted by reason priority (HIGH_RISK first).
+     *
      * @param userId current trader
      * @param statusFilter filter: null=ALL, "ACTIVE", "AT_RISK"
      * @return sorted list of decision-enriched subscriptions
@@ -89,6 +92,7 @@ public interface TerminalReadPort {
 
     /**
      * Single subscription enrichment for drill-down/detail context.
+     *
      * @param subscriptionId subscription to fetch
      * @return decision-enriched subscription snapshot
      */
@@ -412,10 +416,9 @@ public interface TerminalReadPort {
     }
 
     // Pha 1: Decision Dashboard - Portfolio snapshot records
-
     /**
-     * Portfolio overview for Decision Dashboard header.
-     * Aggregated metrics across all user subscriptions.
+     * Portfolio overview for Decision Dashboard header. Aggregated metrics
+     * across all user subscriptions.
      */
     record PortfolioOverviewSnapshot(
             int activeBotsCount,
@@ -425,24 +428,24 @@ public interface TerminalReadPort {
             double totalEquity,
             double aggregateOpenPnL,
             LocalDateTime lastUpdated
-    ) {
+            ) {
 
     }
 
     /**
-     * Decision reason tag for bot subscription (strategy).
-     * Determines visual prominence and action priority on Decision Dashboard.
+     * Decision reason tag for bot subscription (strategy). Determines visual
+     * prominence and action priority on Decision Dashboard.
      */
     enum DecisionReason {
-        SOLID_PERFORMER,    // Win rate > 60% AND drawdown > -5%
-        NEEDS_REVIEW,       // Recent failure rate > 20% OR drawdown -5% to -10%
-        HIGH_RISK,          // Drawdown < -10%
+        SOLID_PERFORMER, // Win rate > 60% AND drawdown > -5%
+        NEEDS_REVIEW, // Recent failure rate > 20% OR drawdown -5% to -10%
+        HIGH_RISK, // Drawdown < -10%
         SLIPPING            // No recent signals (> 4h silence)
     }
 
     /**
-     * Subscription decision snapshot for Decision Dashboard card.
-     * Includes performance metrics, risk indicators, and decision reason tag.
+     * Subscription decision snapshot for Decision Dashboard card. Includes
+     * performance metrics, risk indicators, and decision reason tag.
      */
     record SubscriptionDecisionSnapshot(
             String subscriptionId,
@@ -458,12 +461,12 @@ public interface TerminalReadPort {
             int successfulSignals24h,
             DecisionReason reason,
             String reasonExplanation,
-            double riskScore,               // 0.0 (safe) to 1.0 (high risk)
+            double riskScore, // 0.0 (safe) to 1.0 (high risk)
             int subscribedSinceDay,
-            int daysAtRisk,                 // consecutive days with drawdown
+            int daysAtRisk, // consecutive days with drawdown
             LocalDateTime lastSignal,
             String exchange
-    ) {
+            ) {
 
     }
 }

@@ -44,11 +44,11 @@ public class DashboardController {
     }
 
     // Pha 1: Decision Dashboard endpoints
-
     /**
-     * GET /api/portfolio/overview
-     * Fetch aggregated portfolio metrics for Decision Dashboard header.
-     * Used by: Decision Dashboard page header component (PortfolioOverview.tsx)
+     * GET /api/portfolio/overview Fetch aggregated portfolio metrics for
+     * Decision Dashboard header. Used by: Decision Dashboard page header
+     * component (PortfolioOverview.tsx)
+     *
      * @return portfolio overview snapshot with aggregated metrics
      */
     @GetMapping("/portfolio/overview")
@@ -57,9 +57,10 @@ public class DashboardController {
     }
 
     /**
-     * GET /api/portfolio/decisions?status=ALL
-     * Fetch subscription list enriched with decision reason tags.
-     * Used by: Decision Dashboard cards component (SubscriptionDecisionCards.tsx)
+     * GET /api/portfolio/decisions?status=ALL Fetch subscription list enriched
+     * with decision reason tags. Used by: Decision Dashboard cards component
+     * (SubscriptionDecisionCards.tsx)
+     *
      * @param status filter by status (optional: ALL, ACTIVE, AT_RISK)
      * @return list of decision-enriched subscriptions sorted by reason priority
      */
@@ -83,19 +84,21 @@ public class DashboardController {
     }
 
     /**
-     * Response DTO for portfolio decisions endpoint.
-     * Wraps list of decisions with aggregation summary.
+     * Response DTO for portfolio decisions endpoint. Wraps list of decisions
+     * with aggregation summary.
      */
     record PortfolioDecisionsResponse(
             List<TerminalReadPort.SubscriptionDecisionSnapshot> decisions,
             Summary summary
-    ) {
+            ) {
+
         record Summary(
                 int totalCount,
                 int activeCount,
                 int reviewNeededCount,
                 int highRiskCount
-        ) {
+                ) {
+
         }
     }
 }
