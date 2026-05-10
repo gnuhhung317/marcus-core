@@ -532,4 +532,238 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
         String trimmed = value.trim();
         return trimmed.isEmpty() ? fallback : trimmed;
     }
+
+    // Pha 1: Decision Dashboard - Portfolio-level queries
+    @Override
+    @Transactional(readOnly = true)
+    public PortfolioOverviewSnapshot getPortfolioOverview(String userId) {
+        List<UserSubscriptionEntity> activeSubscriptions = springDataUserSubscriptionRepository
+                .findByUserIdAndStatus(userId, SubscriptionStatus.ACTIVE);
+
+        int activeBotsCount = activeSubscriptions.size();
+        double totalCapital = 10_000.0;  // User's base capital
+
+        // Calculate aggregated win rate: (total successful signals) / (total signals) for all active bots in last 24h
+        LocalDateTime yesterday = LocalDateTime.now().minusHours(24);
+        List<SignalEntity> allSignals24h = activeSubscriptions.stream()
+                .flatMap(sub -> springDataSignalRepository.findByBotIdAndCreatedAtAfter(sub.getBotId(), yesterday).stream())
+                .collect(Collectors.toList());
+
+        long successfulSignals = allSignals24h.stream()
+                .filter(signal -> deriveSignalReturn(signal) > 0)
+                .count();
+        double aggregateWinRate24h = allSignals24h.isEmpty() ? 0.0
+                : round4((double) successfulSignals / allSignals24h.size());
+
+        // Count at-risk subscriptions (drawdown < -10%)
+        int atRiskCount = (int) activeSubscriptions.stream()
+                .filter(sub -> calculateDrawdown(sub) < -0.10)
+                .count();
+
+        // Aggregate open P&L: sum of each bot's current P&L
+        double aggregateOpenPnL = activeSubscriptions.stream()
+                .mapToDouble(this::calculateCurrentPnL)
+                .sum();
+
+        return new PortfolioOverviewSnapshot(
+                activeBotsCount,
+                totalCapital,
+                aggregateWinRate24h,
+                atRiskCount,
+                totalCapital,
+                aggregateOpenPnL,
+                LocalDateTime.now()
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SubscriptionDecisionSnapshot> getSubscriptionDecisions(String userId, String statusFilter) {
+        SubscriptionStatus status = parseStatusFilter(statusFilter);
+        List<UserSubscriptionEntity> subscriptions = springDataUserSubscriptionRepository
+                .findByUserIdAndStatus(userId, status);
+
+        return subscriptions.stream()
+                .map(this::enrichSubscriptionWithDecisionReason)
+                .sorted(
+                        Comparator.comparingInt((SubscriptionDecisionSnapshot snap) -> reasonPriority(snap.reason()))
+                                .thenComparing(SubscriptionDecisionSnapshot::riskScore, Comparator.reverseOrder())
+                )
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SubscriptionDecisionSnapshot getSubscriptionDecision(String subscriptionId) {
+        UserSubscriptionEntity subscription = springDataUserSubscriptionRepository.findById(subscriptionId)
+                .orElseThrow(() -> new NoSuchElementException("Subscription not found: " + subscriptionId));
+        return enrichSubscriptionWithDecisionReason(subscription);
+    }
+
+    // Helper: Enrich subscription with decision reason tag
+    private SubscriptionDecisionSnapshot enrichSubscriptionWithDecisionReason(UserSubscriptionEntity subscription) {
+        LocalDateTime yesterday = LocalDateTime.now().minusHours(24);
+        List<SignalEntity> signals24h = springDataSignalRepository.findByBotIdAndCreatedAtAfter(
+                subscription.getBotId(),
+                yesterday
+        );
+
+        long successfulSignals = signals24h.stream()
+                .filter(signal -> deriveSignalReturn(signal) > 0)
+                .count();
+        double winRate = signals24h.isEmpty() ? 0.0 : round4((double) successfulSignals / signals24h.size());
+        double drawdown = calculateDrawdown(subscription);
+        double currentPnL = calculateCurrentPnL(subscription);
+        double failureRate = signals24h.isEmpty() ? 0.0 : 1.0 - winRate;
+
+        // Determine decision reason
+        TerminalReadPort.DecisionReason reason = determineReason(winRate, drawdown, signals24h, failureRate);
+        String explanation = generateReasonExplanation(reason, winRate, drawdown);
+        double riskScore = Math.max(0.0, Math.min(1.0, 1.0 + drawdown));  // 0=safe, 1=high risk
+
+        BotEntity bot = springDataBotRepository.findByBotId(subscription.getBotId())
+                .orElseThrow(() -> new NoSuchElementException("Bot not found: " + subscription.getBotId()));
+
+        return new SubscriptionDecisionSnapshot(
+                subscription.getId(),
+                subscription.getBotId(),
+                bot.getName(),
+                "/api/icons/bot/" + subscription.getBotId() + ".png", // Default icon URL
+                subscription.getStatus().name(),
+                currentPnL,
+                currentPnL / 10_000.0, // as % of 10k capital
+                drawdown,
+                winRate,
+                signals24h.size(),
+                (int) successfulSignals,
+                reason,
+                explanation,
+                riskScore,
+                daysSinceSubscribed(subscription),
+                daysInNegative(subscription),
+                signals24h.isEmpty() ? null : signals24h.get(0).getGeneratedTimestamp(),
+                resolveExchangeLabel(bot)
+        );
+    }
+
+    // Helper: Determine decision reason from metrics
+    private TerminalReadPort.DecisionReason determineReason(
+            double winRate,
+            double drawdown,
+            List<SignalEntity> signals,
+            double failureRate
+    ) {
+        if (drawdown < -0.10) {
+            return TerminalReadPort.DecisionReason.HIGH_RISK;
+        }
+        if (drawdown < -0.05 || failureRate > 0.20) {
+            return TerminalReadPort.DecisionReason.NEEDS_REVIEW;
+        }
+        LocalDateTime fourHoursAgo = LocalDateTime.now().minusHours(4);
+        boolean hasRecentSignals = !signals.isEmpty() && signals.stream()
+                .anyMatch(s -> s.getGeneratedTimestamp() != null && s.getGeneratedTimestamp().isAfter(fourHoursAgo));
+        if (signals.isEmpty() || !hasRecentSignals) {
+            return TerminalReadPort.DecisionReason.SLIPPING;
+        }
+        if (winRate > 0.60) {
+            return TerminalReadPort.DecisionReason.SOLID_PERFORMER;
+        }
+        return TerminalReadPort.DecisionReason.NEEDS_REVIEW;
+    }
+
+    // Helper: Generate human-readable reason explanation
+    private String generateReasonExplanation(TerminalReadPort.DecisionReason reason, double winRate, double drawdown) {
+        return switch (reason) {
+            case SOLID_PERFORMER ->
+                String.format("↑%.1f%% win rate", winRate * 100);
+            case NEEDS_REVIEW ->
+                String.format("%.0f%% drawdown in 7 days", drawdown * 100);
+            case HIGH_RISK ->
+                String.format("%.0f%% critical drawdown", drawdown * 100);
+            case SLIPPING ->
+                "No recent signals";
+        };
+    }
+
+    // Helper: Calculate drawdown for a subscription
+    private double calculateDrawdown(UserSubscriptionEntity subscription) {
+        LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
+        List<SignalEntity> signals = springDataSignalRepository.findByBotIdAndCreatedAtAfter(
+                subscription.getBotId(),
+                sevenDaysAgo
+        );
+        if (signals.isEmpty()) {
+            return 0.0;
+        }
+        double minValue = signals.stream()
+                .mapToDouble(this::deriveSignalReturn)
+                .min()
+                .orElse(0.0);
+        return Math.min(0.0, minValue);  // Return as negative value
+    }
+
+    // Helper: Calculate current P&L for a subscription
+    private double calculateCurrentPnL(UserSubscriptionEntity subscription) {
+        List<SignalEntity> signals = springDataSignalRepository.findByBotIdAndCreatedAtAfter(
+                subscription.getBotId(),
+                LocalDateTime.now().minusDays(30)
+        );
+        if (signals.isEmpty()) {
+            return 0.0;
+        }
+        double totalReturn = signals.stream()
+                .mapToDouble(this::deriveSignalReturn)
+                .sum();
+        return round2(totalReturn * 10_000.0);  // As absolute value in 10k capital
+    }
+
+    // Helper: Days since subscription started
+    private int daysSinceSubscribed(UserSubscriptionEntity subscription) {
+        if (subscription.getCreatedAt() == null) {
+            return 0;
+        }
+        return (int) java.time.Duration.between(subscription.getCreatedAt(), LocalDateTime.now()).toDays();
+    }
+
+    // Helper: Consecutive days with negative P&L
+    private int daysInNegative(UserSubscriptionEntity subscription) {
+        LocalDateTime yesterday = LocalDateTime.now().minusHours(24);
+        List<SignalEntity> recentSignals = springDataSignalRepository.findByBotIdAndCreatedAtAfter(
+                subscription.getBotId(),
+                yesterday
+        );
+        long lossingSignals = recentSignals.stream()
+                .filter(s -> deriveSignalReturn(s) < 0)
+                .count();
+        return lossingSignals > 0 ? 1 : 0;  // Simplified: 1 if any loss in last 24h
+    }
+
+    private SubscriptionStatus parseStatusFilter(String statusFilter) {
+        if (statusFilter == null) {
+            return null;
+        }
+        String normalized = statusFilter.trim().toUpperCase();
+        if (normalized.isEmpty() || "ALL".equals(normalized)) {
+            return null;
+        }
+        try {
+            return SubscriptionStatus.valueOf(normalized);
+        } catch (IllegalArgumentException ex) {
+            // Unknown filter falls back to "all" to avoid 500s from invalid query params.
+            return null;
+        }
+    }
+
+    private int reasonPriority(TerminalReadPort.DecisionReason reason) {
+        return switch (reason) {
+            case HIGH_RISK ->
+                0;
+            case NEEDS_REVIEW ->
+                1;
+            case SLIPPING ->
+                2;
+            case SOLID_PERFORMER ->
+                3;
+        };
+    }
 }

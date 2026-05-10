@@ -56,6 +56,11 @@ public class JpaBotRepositoryImpl implements BotRepository {
     }
 
     @Override
+    public long countActive() {
+        return springDataBotRepository.countByStatus(BotStatus.ACTIVE);
+    }
+
+    @Override
     public List<Bot> findAllByDeveloperId(String developerId) {
         return springDataBotRepository.findByDeveloperId(developerId)
                 .stream()

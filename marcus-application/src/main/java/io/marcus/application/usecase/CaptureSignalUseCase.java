@@ -14,13 +14,14 @@ import java.util.Set;
 @Service
 @RequiredArgsConstructor
 public class CaptureSignalUseCase {
+
     private final SignalRepository signalRepository;
     private final BotRepository botRepository;
     private final ResolveBotRoutingTargetsUseCase resolveBotRoutingTargetsUseCase;
     private final SignalPublisherPort signalPublisherPort;
     private final SignalServerDispatchPort signalServerDispatchPort;
 
-    public void execute(Signal signal){
+    public void execute(Signal signal) {
         if (signal == null) {
             throw new IllegalArgumentException("Signal is required");
         }
@@ -30,12 +31,12 @@ public class CaptureSignalUseCase {
         if (signal.getSignalId() == null || signal.getSignalId().isBlank()) {
             throw new IllegalArgumentException("Signal id is required");
         }
-        
+
         // Validate that the bot exists in the database
         if (!botRepository.findByBotId(signal.getBotId()).isPresent()) {
             throw new IllegalArgumentException("Bot not found: " + signal.getBotId());
         }
-        
+
         // Check for duplicate signal ID
         if (signalRepository.existsBySignalId(signal.getSignalId())) {
             throw new IllegalArgumentException("Signal already exists: " + signal.getSignalId());

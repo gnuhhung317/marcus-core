@@ -79,7 +79,7 @@ class BotSignalE2eFlowIntegrationTest {
                 inMemorySignalPublisherPort,
                 inMemorySignalServerDispatchPort
         );
-        
+
         // Register test bot
         inMemoryBotRepository.registerBot(BOT_ID);
     }
@@ -224,6 +224,7 @@ class BotSignalE2eFlowIntegrationTest {
 
     // ============ In-Memory Adapters (reuse pattern from CaptureSignalRoutingFlowIntegrationTest) ============
     private static final class InMemoryBotRepository implements BotRepository {
+
         private final Set<String> botIds = new HashSet<>();
 
         public void registerBot(String botId) {
@@ -258,6 +259,11 @@ class BotSignalE2eFlowIntegrationTest {
         @Override
         public Optional<String> findSecretByApiKey(String apiKey) {
             return Optional.empty();
+        }
+
+        @Override
+        public long countActive() {
+            return 0;
         }
     }
 

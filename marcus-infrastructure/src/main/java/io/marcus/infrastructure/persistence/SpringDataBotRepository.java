@@ -23,5 +23,7 @@ public interface SpringDataBotRepository extends JpaRepository<BotEntity, String
 
     List<BotEntity> findByStatus(BotStatus status);
 
+    long countByStatus(BotStatus status);
+
     List<BotEntity> findByDeveloperId(String developerId);
 }

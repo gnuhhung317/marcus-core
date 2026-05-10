@@ -20,4 +20,9 @@ public class JpaUserRepository implements UserRepository {
     public boolean existsByIdAndRole(String id, Role role) {
         return springDataUserRepository.existsByIdAndRole(id, role);
     }
+
+    @Override
+    public long count() {
+        return springDataUserRepository.count();
+    }
 }

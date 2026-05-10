@@ -329,6 +329,13 @@ class BotSignalDispatchFlowIntegrationTest {
                     .map(Bot::getSecretKey)
                     .findFirst();
         }
+
+        @Override
+        public long countActive() {
+            return botsByBotId.values().stream()
+                    .filter(bot -> bot.getStatus() == BotStatus.ACTIVE)
+                    .count();
+        }
     }
 
     private static final class InMemoryUserRepository implements UserRepository {
@@ -347,6 +354,11 @@ class BotSignalDispatchFlowIntegrationTest {
         @Override
         public boolean existsByIdAndRole(String id, Role role) {
             return userId.equals(id) && role == Role.USER;
+        }
+
+        @Override
+        public long count() {
+            return 1;
         }
     }
 
