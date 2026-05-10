@@ -2,6 +2,7 @@ package io.marcus.api.websocket;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.marcus.api.websocket.executor.AuditPushEventHandler;
 import io.marcus.api.websocket.executor.ExecutorEventEventHandler;
 import io.marcus.domain.port.UserSubscriptionPersistencePort;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,8 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
     private final UserSubscriptionPersistencePort userSubscriptionPersistencePort;
     @Lazy
     private final ExecutorEventEventHandler executorEventEventHandler;
+    @Lazy
+    private final AuditPushEventHandler auditPushEventHandler;
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
@@ -61,6 +64,11 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
 
             if ("execution_event".equals(frameType)) {
                 executorEventEventHandler.handleExecutionEvent(session, root);
+                return;
+            }
+
+            if ("audit-push".equals(frameType)) {
+                auditPushEventHandler.handleAuditPush(session, root);
                 return;
             }
 
@@ -118,6 +126,8 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
                 subscription.get().getUserSubscriptionId(),
                 session
         );
+        session.getAttributes().put(ExecutorHandshakeInterceptor.USER_ID_ATTRIBUTE, subscription.get().getUserId());
+        session.getAttributes().put("botId", botId);
         userSubscriptionPersistencePort.markExecutorConnected(subscription.get().getUserSubscriptionId(), true);
         sendFrame(session, buildAckFrame("handshake", "ok", botId));
     }

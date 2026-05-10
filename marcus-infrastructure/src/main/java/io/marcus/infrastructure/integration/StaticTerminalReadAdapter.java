@@ -1,20 +1,21 @@
 package io.marcus.infrastructure.integration;
 
 import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.service.SignalMetricsCalculator;
 import io.marcus.domain.vo.SubscriptionStatus;
-import io.marcus.infrastructure.integration.demo.DemoTerminalReadAdapter;
 import io.marcus.infrastructure.persistence.SpringDataBotRepository;
 import io.marcus.infrastructure.persistence.SpringDataSignalRepository;
 import io.marcus.infrastructure.persistence.SpringDataUserSubscriptionRepository;
 import io.marcus.infrastructure.persistence.entity.BotEntity;
 import io.marcus.infrastructure.persistence.entity.SignalEntity;
+import io.marcus.infrastructure.persistence.entity.UserPortfolioEntity;
 import io.marcus.infrastructure.persistence.entity.UserSubscriptionEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -36,12 +37,12 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
     private final SpringDataBotRepository springDataBotRepository;
     private final SpringDataSignalRepository springDataSignalRepository;
     private final SpringDataUserSubscriptionRepository springDataUserSubscriptionRepository;
-    private final DemoTerminalReadAdapter demoTerminalReadAdapter;
+    private final io.marcus.infrastructure.persistence.SpringDataUserPortfolioRepository springDataUserPortfolioRepository;
 
     @Override
     @Transactional(readOnly = true)
     public BotDetailSnapshot getBotDetail(String botId) {
-        String normalizedBotId = normalize(botId, "bot-demo-001");
+        String normalizedBotId = requireNonBlank(botId, "botId");
         BotEntity bot = springDataBotRepository.findByBotIdWithExchange(normalizedBotId)
                 .orElseThrow(() -> new NoSuchElementException("Bot not found: " + normalizedBotId));
 
@@ -77,14 +78,21 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
         String normalizedSort = normalize(sort, "-return").toLowerCase(Locale.ROOT);
 
         Map<String, Long> subscribersByBotId = springDataUserSubscriptionRepository
-                .findAll()
+                .countByStatusGroupByBotId(SubscriptionStatus.ACTIVE)
                 .stream()
-                .filter(entity -> entity.getStatus() == SubscriptionStatus.ACTIVE)
-                .collect(Collectors.groupingBy(UserSubscriptionEntity::getBotId, Collectors.counting()));
+                .collect(Collectors.toMap(
+                        row -> (String) row[0],
+                        row -> (Long) row[1],
+                        (a, b) -> a
+                ));
 
-        Map<String, List<SignalEntity>> signalsByBotId = springDataSignalRepository.findAll()
+        Map<String, List<SignalEntity>> signalsByBotId = springDataBotRepository.findAllWithExchange()
                 .stream()
-                .collect(Collectors.groupingBy(SignalEntity::getBotId));
+                .collect(Collectors.toMap(
+                        BotEntity::getBotId,
+                        bot -> springDataSignalRepository.findByBotId(bot.getBotId()),
+                        (a, b) -> a
+                ));
 
         List<BotDiscoverySnapshot> filtered = springDataBotRepository.findAllWithExchange()
                 .stream()
@@ -123,29 +131,39 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
 
     @Override
     public FavoriteStrategySnapshot favoriteStrategy(String userId, String strategyId) {
-        return demoTerminalReadAdapter.favoriteStrategy(userId, strategyId);
+        // Not yet implemented — return toggled state without persistence
+        return new FavoriteStrategySnapshot(strategyId != null ? strategyId : "", true);
     }
 
     @Override
     @Transactional(readOnly = true)
     public DashboardOverviewSnapshot getDashboardOverview(String userId) {
-        String normalizedUserId = normalize(userId, "user-demo-001");
+        String normalizedUserId = requireNonBlank(userId, "userId");
+        UserPortfolioEntity portfolio = findPortfolioOrDefault(normalizedUserId);
+
         List<UserSubscriptionEntity> activeSubscriptions = springDataUserSubscriptionRepository
                 .findByUserIdAndStatusOrderByCreatedAtDesc(normalizedUserId, SubscriptionStatus.ACTIVE);
-        List<SignalEntity> relatedSignals = springDataSignalRepository.findAll()
-                .stream()
-                .filter(signal -> activeSubscriptions.stream()
-                .anyMatch(subscription -> Objects.equals(subscription.getBotId(), signal.getBotId())))
+
+        List<String> botIds = activeSubscriptions.stream()
+                .map(UserSubscriptionEntity::getBotId)
                 .toList();
 
-        double score = relatedSignals.stream().mapToDouble(this::deriveSignalReturn).sum();
-        long successfulSignals = relatedSignals.stream()
-                .filter(signal -> deriveSignalReturn(signal) > 0)
+        List<SignalEntity> relatedSignals = botIds.isEmpty()
+                ? List.of()
+                : springDataSignalRepository.findByBotIdInAndGeneratedTimestampIsNotNullOrderByGeneratedTimestampAsc(botIds);
+
+        List<SignalMetricsCalculator.SignalData> signalDataList = relatedSignals.stream()
+                .map(this::toSignalData)
+                .toList();
+
+        long successfulSignals = signalDataList.stream()
+                .filter(s -> SignalMetricsCalculator.deriveReturn(s) > 0)
                 .count();
 
-        double totalEquity = round2(10_000.0 + activeSubscriptions.size() * 250.0 + score * 1_000.0);
-        double openPnl = round2(score * 1_000.0);
-        double winRate = relatedSignals.isEmpty() ? 0.0 : round4(successfulSignals / (double) relatedSignals.size());
+        double totalEquity = SignalMetricsCalculator.round2(portfolio.getTotalCapital().doubleValue());
+        double openPnl = SignalMetricsCalculator.round2(portfolio.getUnrealizedPnl().doubleValue());
+        double winRate = signalDataList.isEmpty() ? 0.0
+                : SignalMetricsCalculator.round4(successfulSignals / (double) signalDataList.size());
         int activeBots = activeSubscriptions.size();
         return new DashboardOverviewSnapshot(totalEquity, openPnl, winRate, activeBots);
     }
@@ -153,7 +171,8 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
     @Override
     @Transactional(readOnly = true)
     public List<TimeSeriesPointSnapshot> listDashboardEquitySeries(String userId, String range) {
-        String normalizedUserId = normalize(userId, "user-demo-001");
+        String normalizedUserId = requireNonBlank(userId, "userId");
+        UserPortfolioEntity portfolio = findPortfolioOrDefault(normalizedUserId);
         String normalizedRange = normalize(range, "1M").toUpperCase(Locale.ROOT);
         int points = pointsForRange(normalizedRange);
 
@@ -163,12 +182,12 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
                 .map(UserSubscriptionEntity::getBotId)
                 .toList();
 
-        List<SignalEntity> orderedSignals = springDataSignalRepository.findAll()
-                .stream()
-                .filter(signal -> subscribedBotIds.contains(signal.getBotId()))
-                .filter(signal -> signal.getGeneratedTimestamp() != null)
-                .sorted(Comparator.comparing(SignalEntity::getGeneratedTimestamp))
-                .toList();
+        if (subscribedBotIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<SignalEntity> orderedSignals = springDataSignalRepository
+                .findByBotIdInAndGeneratedTimestampIsNotNullOrderByGeneratedTimestampAsc(subscribedBotIds);
 
         if (orderedSignals.isEmpty()) {
             return List.of();
@@ -176,11 +195,23 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
 
         int startIndex = Math.max(0, orderedSignals.size() - points);
         List<SignalEntity> window = orderedSignals.subList(startIndex, orderedSignals.size());
+        
+        // Calculate the net sum of return points within this window to find base anchor
+        double totalWindowImpact = window.stream()
+                .mapToDouble(s -> SignalMetricsCalculator.deriveReturn(toSignalData(s)) * 1_000.0)
+                .sum();
+        
+        double currentEquity = portfolio.getTotalCapital().doubleValue();
+        double historicalAnchor = currentEquity - totalWindowImpact;
+        
         List<TimeSeriesPointSnapshot> result = new ArrayList<>(window.size());
-        double cumulative = 0.0;
+        double rollingTotal = historicalAnchor;
+        
         for (SignalEntity signal : window) {
-            cumulative += deriveSignalReturn(signal);
-            result.add(new TimeSeriesPointSnapshot(signal.getGeneratedTimestamp(), round4(10_000.0 + cumulative * 1_000.0)));
+            double stepImpact = SignalMetricsCalculator.deriveReturn(toSignalData(signal)) * 1_000.0;
+            rollingTotal += stepImpact;
+            result.add(new TimeSeriesPointSnapshot(signal.getGeneratedTimestamp(),
+                    SignalMetricsCalculator.round4(rollingTotal)));
         }
         return result;
     }
@@ -188,7 +219,7 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
     @Override
     @Transactional(readOnly = true)
     public List<ExchangeAllocationSnapshot> listExchangeAllocation(String userId) {
-        String normalizedUserId = normalize(userId, "user-demo-001");
+        String normalizedUserId = requireNonBlank(userId, "userId");
         Map<String, String> exchangeByBotId = springDataBotRepository.findAllWithExchange()
                 .stream()
                 .collect(Collectors.toMap(
@@ -214,126 +245,162 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
         }
 
         return countsByExchange.entrySet().stream()
-                .map(entry -> new ExchangeAllocationSnapshot(entry.getKey(), round2(entry.getValue() / (double) total)))
+                .map(entry -> new ExchangeAllocationSnapshot(entry.getKey(),
+                        SignalMetricsCalculator.round2(entry.getValue() / (double) total)))
                 .sorted((left, right) -> Double.compare(right.percentage(), left.percentage()))
                 .toList();
     }
 
+    // --- Not yet implemented: Strategy, Leaderboard, Paper Trading, User Settings ---
+    // These return empty/default responses until real backend data is available.
+
     @Override
     public StrategyDetailSnapshot getStrategyDetail(String strategyId) {
-        return demoTerminalReadAdapter.getStrategyDetail(strategyId);
+        return new StrategyDetailSnapshot(strategyId, "", "", "", "INACTIVE");
     }
 
     @Override
     public StrategyMetricsSnapshot getStrategyMetrics(String strategyId, String feeMode) {
-        return demoTerminalReadAdapter.getStrategyMetrics(strategyId, feeMode);
+        return new StrategyMetricsSnapshot(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     }
 
     @Override
     public List<TimeSeriesPointSnapshot> listStrategyPerformanceSeries(String strategyId, String range) {
-        return demoTerminalReadAdapter.listStrategyPerformanceSeries(strategyId, range);
+        return List.of();
     }
 
     @Override
     public TradeLogPageSnapshot listStrategyTrades(String strategyId, int page, int size, String asset) {
-        return demoTerminalReadAdapter.listStrategyTrades(strategyId, page, size, asset);
+        return new TradeLogPageSnapshot(List.of(), Math.max(page, 0), Math.max(1, size), 0L);
     }
 
     @Override
     public LeaderboardStrategiesPageSnapshot listLeaderboardStrategies(
-            String timeframe,
-            String market,
-            String asset,
-            String rankMetric,
-            int page,
-            int size
+            String timeframe, String market, String asset, String rankMetric, int page, int size
     ) {
-        return demoTerminalReadAdapter.listLeaderboardStrategies(timeframe, market, asset, rankMetric, page, size);
+        int p = Math.max(page, 0);
+        int s = Math.max(1, Math.min(size, 100));
+        return new LeaderboardStrategiesPageSnapshot(List.of(),
+                new OffsetPaginationMetaSnapshot(p, s, 0, 0, false));
     }
 
     @Override
     public LeaderboardFeaturedSnapshot listLeaderboardFeatured() {
-        return demoTerminalReadAdapter.listLeaderboardFeatured();
+        return new LeaderboardFeaturedSnapshot(List.of());
     }
 
     @Override
     public List<StrategySpotlightSnapshot> listLeaderboardSpotlights() {
-        return demoTerminalReadAdapter.listLeaderboardSpotlights();
+        return List.of();
     }
 
     @Override
     public PaperSessionSummarySnapshot getPaperSessionSummary(String userId) {
-        return demoTerminalReadAdapter.getPaperSessionSummary(userId);
+        return new PaperSessionSummarySnapshot("", "STOPPED", 0.0, 0.0, 0.0);
     }
 
     @Override
     public List<PaperSignalSnapshot> listPaperSignals(String status, int limit) {
-        return demoTerminalReadAdapter.listPaperSignals(status, limit);
+        return List.of();
     }
 
     @Override
     public PaperExecutionLogPageSnapshot listPaperExecutionLogs(String userId, String cursor, int limit) {
-        return demoTerminalReadAdapter.listPaperExecutionLogs(userId, cursor, limit);
+        return new PaperExecutionLogPageSnapshot(List.of(),
+                new CursorPaginationMetaSnapshot(cursor, null, Math.max(1, limit), false));
     }
 
     @Override
     public PaperOrderSnapshot createPaperOrder(String userId, PaperOrderCreateSnapshot request) {
-        return demoTerminalReadAdapter.createPaperOrder(userId, request);
+        return new PaperOrderSnapshot("", "REJECTED", 0.0);
     }
 
     @Override
     public PaperSessionStateSnapshot pausePaperSession(String userId) {
-        return demoTerminalReadAdapter.pausePaperSession(userId);
+        return new PaperSessionStateSnapshot("", "PAUSED");
     }
 
     @Override
     public PaperSessionStateSnapshot resumePaperSession(String userId) {
-        return demoTerminalReadAdapter.resumePaperSession(userId);
+        return new PaperSessionStateSnapshot("", "RUNNING");
     }
 
     @Override
     public UserProfileSnapshot getCurrentUserProfile(String userId) {
-        return demoTerminalReadAdapter.getCurrentUserProfile(userId);
+        return new UserProfileSnapshot(userId != null ? userId : "", "", "", "USER");
     }
 
     @Override
     public UserPreferencesSnapshot updateCurrentUserPreferences(String userId, UserPreferencesUpdateSnapshot request) {
-        return demoTerminalReadAdapter.updateCurrentUserPreferences(userId, request);
+        return new UserPreferencesSnapshot(
+                request != null && request.timezone() != null ? request.timezone() : "UTC",
+                request != null && request.locale() != null ? request.locale() : "en-US",
+                request != null && request.emailNotificationsEnabled() != null
+                        ? request.emailNotificationsEnabled() : true
+        );
     }
 
     @Override
     public List<ApiKeySummarySnapshot> listCurrentUserApiKeys(String userId) {
-        return demoTerminalReadAdapter.listCurrentUserApiKeys(userId);
+        return List.of();
     }
 
     @Override
     public CreateApiKeySnapshot createCurrentUserApiKey(String userId, String label) {
-        return demoTerminalReadAdapter.createCurrentUserApiKey(userId, label);
+        return new CreateApiKeySnapshot("", "", label != null ? label : "");
     }
 
     @Override
     public void deleteCurrentUserApiKey(String userId, String apiKeyId) {
-        demoTerminalReadAdapter.deleteCurrentUserApiKey(userId, apiKeyId);
+        // No-op until real API key management is implemented
     }
 
     @Override
     public LoginActivityPageSnapshot listCurrentUserLoginActivities(String userId, int page, int size) {
-        return demoTerminalReadAdapter.listCurrentUserLoginActivities(userId, page, size);
+        int p = Math.max(page, 0);
+        int s = Math.max(1, Math.min(size, 100));
+        return new LoginActivityPageSnapshot(List.of(),
+                new OffsetPaginationMetaSnapshot(p, s, 0, 0, false));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<SignalItemSnapshot> listSignals(String status, int limit) {
-        return demoTerminalReadAdapter.listSignals(status, limit);
+        int normalizedLimit = Math.max(1, Math.min(limit, 200));
+        String normalizedStatus = (status == null || status.isBlank()) ? "ALL" : status.trim().toUpperCase(Locale.ROOT);
+
+        List<SignalEntity> signals;
+        if ("ALL".equals(normalizedStatus)) {
+            signals = springDataSignalRepository.findAllOrderByGeneratedTimestampDesc(
+                    PageRequest.of(0, normalizedLimit));
+        } else {
+            signals = springDataSignalRepository.findByStatusStringOrderByGeneratedTimestampDesc(
+                    normalizedStatus, PageRequest.of(0, normalizedLimit));
+        }
+
+        return signals.stream()
+                .map(signal -> new SignalItemSnapshot(
+                        signal.getSignalId(),
+                        signal.getBotId(),
+                        resolveExchangeForSignal(signal.getBotId()),
+                        signal.getSymbol(),
+                        signal.getAction() != null ? signal.getAction().name() : "",
+                        signal.getEntry() != null ? signal.getEntry().doubleValue() : 0.0,
+                        signal.getStatus() != null ? signal.getStatus().name() : "",
+                        signal.getGeneratedTimestamp()
+                ))
+                .toList();
     }
 
     @Override
     public ConnectivityHealthSnapshot getSystemConnectivityHealth() {
-        return demoTerminalReadAdapter.getSystemConnectivityHealth();
+        // Return real-time health when monitoring is implemented
+        return new ConnectivityHealthSnapshot("UNKNOWN", LocalDateTime.now(), List.of());
     }
 
     @Override
     public ExecutionLogPageSnapshot listSystemExecutionLogs(String cursor, int limit) {
-        return demoTerminalReadAdapter.listSystemExecutionLogs(cursor, limit);
+        return new ExecutionLogPageSnapshot(cursor, List.of());
     }
 
     private BotDiscoverySnapshot toDiscoverySnapshot(BotEntity bot, long subscribers, BotMetrics metrics) {
@@ -342,7 +409,7 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
                 bot.getName(),
                 bot.getDescription(),
                 bot.getTradingPair(),
-                deriveRisk(metrics),
+                metrics.risk(),
                 metrics.annualReturn(),
                 metrics.maxDrawdown(),
                 (int) subscribers
@@ -378,32 +445,36 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
     }
 
     private BotMetrics calculateBotMetrics(String botId) {
-        List<SignalEntity> signals = springDataSignalRepository.findAll().stream()
-                .filter(signal -> Objects.equals(signal.getBotId(), botId))
-                .toList();
-        long subscribers = springDataUserSubscriptionRepository.findAll().stream()
-                .filter(subscription -> subscription.getStatus() == SubscriptionStatus.ACTIVE)
-                .filter(subscription -> Objects.equals(subscription.getBotId(), botId))
-                .count();
+        List<SignalEntity> signals = springDataSignalRepository.findByBotId(botId);
+        long subscribers = springDataUserSubscriptionRepository
+                .countByStatusGroupByBotId(SubscriptionStatus.ACTIVE)
+                .stream()
+                .filter(row -> botId.equals(row[0]))
+                .map(row -> (Long) row[1])
+                .findFirst()
+                .orElse(0L);
         return calculateBotMetrics(botId, signals, subscribers);
     }
 
     private BotMetrics calculateBotMetrics(String botId, List<SignalEntity> signals, long subscribers) {
         if (signals == null || signals.isEmpty()) {
-            return new BotMetrics(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, deriveRisk(0.0, 0.0), subscribers);
+            return new BotMetrics(0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                    SignalMetricsCalculator.classifyRisk(0.0, 0.0), subscribers);
         }
 
-        double annualReturn = round4(signals.stream().mapToDouble(this::deriveSignalReturn).average().orElse(0.0));
-        double maxDrawdown = round4(signals.stream().mapToDouble(this::deriveSignalDrawdown).max().orElse(0.0));
-        long profitableSignals = signals.stream().filter(signal -> deriveSignalReturn(signal) > 0).count();
-        double winRate = round4(profitableSignals / (double) signals.size());
-        double avgTradeReturn = round4(signals.stream().mapToDouble(this::deriveSignalReturn).average().orElse(0.0));
-        double tradesPerDay = round4(signals.size() / Math.max(1.0, calculateAgeDays(signals)));
-        double sharpe = round4(annualReturn / Math.max(0.01, maxDrawdown + 0.01));
-        return new BotMetrics(annualReturn, maxDrawdown, sharpe, winRate, avgTradeReturn, tradesPerDay, deriveRisk(annualReturn, maxDrawdown), subscribers);
+        List<SignalMetricsCalculator.SignalData> signalDataList = signals.stream()
+                .map(this::toSignalData)
+                .toList();
+
+        SignalMetricsCalculator.MetricsResult result = SignalMetricsCalculator.calculate(
+                signalDataList, calculateAgeDays(signals));
+
+        return new BotMetrics(result.annualReturn(), result.maxDrawdown(), result.sharpe(),
+                result.winRate(), result.avgTradeReturn(), result.tradesPerDay(),
+                result.risk(), subscribers);
     }
 
-    private double calculateAgeDays(List<SignalEntity> signals) {
+    private long calculateAgeDays(List<SignalEntity> signals) {
         LocalDateTime earliest = signals.stream()
                 .map(SignalEntity::getGeneratedTimestamp)
                 .filter(Objects::nonNull)
@@ -418,50 +489,20 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
         return Math.max(days, 1L);
     }
 
-    private double deriveSignalReturn(SignalEntity signal) {
-        double entry = toDouble(signal.getEntry());
-        if (entry == 0.0d) {
-            return 0.0d;
-        }
-
-        double referencePrice = toDouble(signal.getTakeProfit());
-        if (referencePrice == 0.0d) {
-            referencePrice = toDouble(signal.getStopLoss());
-        }
-        if (referencePrice == 0.0d) {
-            return 0.0d;
-        }
-
-        double direction = switch (signal.getAction()) {
-            case OPEN_SHORT, CLOSE_SHORT ->
-                -1.0d;
-            default ->
-                1.0d;
-        };
-        return round4(((referencePrice - entry) / Math.abs(entry)) * direction);
+    /** Convert JPA entity to domain-layer signal data for calculation. */
+    private SignalMetricsCalculator.SignalData toSignalData(SignalEntity signal) {
+        return new SignalMetricsCalculator.SignalData(
+                signal.getEntry(), signal.getTakeProfit(),
+                signal.getStopLoss(), signal.getAction()
+        );
     }
 
-    private double deriveSignalDrawdown(SignalEntity signal) {
-        double entry = toDouble(signal.getEntry());
-        double stopLoss = toDouble(signal.getStopLoss());
-        if (entry == 0.0d || stopLoss == 0.0d) {
-            return 0.0d;
-        }
-        return round4(Math.max(0.0d, Math.abs(entry - stopLoss) / Math.abs(entry)));
-    }
-
-    private String deriveRisk(double annualReturn, double maxDrawdown) {
-        if (maxDrawdown >= 0.25d || annualReturn <= 0.05d) {
-            return "HIGH";
-        }
-        if (maxDrawdown >= 0.12d) {
-            return "MEDIUM";
-        }
-        return "LOW";
-    }
-
-    private String deriveRisk(BotMetrics metrics) {
-        return deriveRisk(metrics.annualReturn(), metrics.maxDrawdown());
+    /** Resolve exchange slug for a signal's bot. Falls back to "unknown". */
+    private String resolveExchangeForSignal(String botId) {
+        return springDataBotRepository.findByBotIdWithExchange(botId)
+                .map(this::resolveExchangeLabel)
+                .orElse("unknown")
+                .toLowerCase(Locale.ROOT);
     }
 
     private String resolveExchangeLabel(BotEntity bot) {
@@ -485,45 +526,20 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
 
     private int pointsForRange(String range) {
         return switch (range) {
-            case "1D" ->
-                24;
-            case "1W" ->
-                7;
-            case "1M" ->
-                30;
-            case "YTD" ->
-                24;
-            case "ALL" ->
-                36;
-            default ->
-                30;
+            case "1D" -> 24;
+            case "1W" -> 7;
+            case "1M" -> 30;
+            case "YTD" -> 24;
+            case "ALL" -> 36;
+            default -> 30;
         };
     }
 
-    private double toDouble(BigDecimal value) {
-        return value == null ? 0.0d : value.doubleValue();
-    }
-
     private record BotMetrics(
-            double annualReturn,
-            double maxDrawdown,
-            double sharpe,
-            double winRate,
-            double avgTradeReturn,
-            double tradesPerDay,
-            String risk,
-            long subscribers
-            ) {
-
-    }
-
-    private double round4(double value) {
-        return Math.round(value * 10_000.0) / 10_000.0;
-    }
-
-    private double round2(double value) {
-        return Math.round(value * 100.0) / 100.0;
-    }
+            double annualReturn, double maxDrawdown, double sharpe,
+            double winRate, double avgTradeReturn, double tradesPerDay,
+            String risk, long subscribers
+    ) {}
 
     private String normalize(String value, String fallback) {
         if (value == null) {
@@ -533,6 +549,13 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
         return trimmed.isEmpty() ? fallback : trimmed;
     }
 
+    private String requireNonBlank(String value, String paramName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(paramName + " must not be blank");
+        }
+        return value.trim();
+    }
+
     // Pha 1: Decision Dashboard - Portfolio-level queries
     @Override
     @Transactional(readOnly = true)
@@ -540,29 +563,27 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
         List<UserSubscriptionEntity> activeSubscriptions = springDataUserSubscriptionRepository
                 .findByUserIdAndStatus(userId, SubscriptionStatus.ACTIVE);
 
+        UserPortfolioEntity portfolio = findPortfolioOrDefault(userId);
         int activeBotsCount = activeSubscriptions.size();
-        double totalCapital = 10_000.0;  // User's base capital
+        double totalCapital = portfolio.getTotalCapital().doubleValue();
 
-        // Calculate aggregated win rate: (total successful signals) / (total signals) for all active bots in last 24h
         LocalDateTime yesterday = LocalDateTime.now().minusHours(24);
         List<SignalEntity> allSignals24h = activeSubscriptions.stream()
                 .flatMap(sub -> springDataSignalRepository.findByBotIdAndCreatedAtAfter(sub.getBotId(), yesterday).stream())
-                .collect(Collectors.toList());
+                .toList();
 
         long successfulSignals = allSignals24h.stream()
-                .filter(signal -> deriveSignalReturn(signal) > 0)
+                .filter(signal -> SignalMetricsCalculator.deriveReturn(toSignalData(signal)) > 0)
                 .count();
         double aggregateWinRate24h = allSignals24h.isEmpty() ? 0.0
-                : round4((double) successfulSignals / allSignals24h.size());
+                : SignalMetricsCalculator.round4((double) successfulSignals / allSignals24h.size());
 
-        // Count at-risk subscriptions (drawdown < -10%)
         int atRiskCount = (int) activeSubscriptions.stream()
-                .filter(sub -> calculateDrawdown(sub) < -0.10)
+                .filter(sub -> calculateDrawdown(sub) < -Math.abs(portfolio.getMaxDrawdownThreshold().doubleValue()))
                 .count();
 
-        // Aggregate open P&L: sum of each bot's current P&L
         double aggregateOpenPnL = activeSubscriptions.stream()
-                .mapToDouble(this::calculateCurrentPnL)
+                .mapToDouble(sub -> calculateCurrentPnL(sub, portfolio))
                 .sum();
 
         return new PortfolioOverviewSnapshot(
@@ -602,6 +623,8 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
 
     // Helper: Enrich subscription with decision reason tag
     private SubscriptionDecisionSnapshot enrichSubscriptionWithDecisionReason(UserSubscriptionEntity subscription) {
+        UserPortfolioEntity portfolio = findPortfolioOrDefault(subscription.getUserId());
+        
         LocalDateTime yesterday = LocalDateTime.now().minusHours(24);
         List<SignalEntity> signals24h = springDataSignalRepository.findByBotIdAndCreatedAtAfter(
                 subscription.getBotId(),
@@ -609,15 +632,16 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
         );
 
         long successfulSignals = signals24h.stream()
-                .filter(signal -> deriveSignalReturn(signal) > 0)
+                .filter(signal -> SignalMetricsCalculator.deriveReturn(toSignalData(signal)) > 0)
                 .count();
-        double winRate = signals24h.isEmpty() ? 0.0 : round4((double) successfulSignals / signals24h.size());
+        double winRate = signals24h.isEmpty() ? 0.0
+                : SignalMetricsCalculator.round4((double) successfulSignals / signals24h.size());
         double drawdown = calculateDrawdown(subscription);
-        double currentPnL = calculateCurrentPnL(subscription);
+        double currentPnL = calculateCurrentPnL(subscription, portfolio);
         double failureRate = signals24h.isEmpty() ? 0.0 : 1.0 - winRate;
 
         // Determine decision reason
-        TerminalReadPort.DecisionReason reason = determineReason(winRate, drawdown, signals24h, failureRate);
+        TerminalReadPort.DecisionReason reason = determineReason(winRate, drawdown, signals24h, failureRate, portfolio);
         String explanation = generateReasonExplanation(reason, winRate, drawdown);
         double riskScore = Math.max(0.0, Math.min(1.0, 1.0 + drawdown));  // 0=safe, 1=high risk
 
@@ -631,7 +655,7 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
                 "/api/icons/bot/" + subscription.getBotId() + ".png", // Default icon URL
                 subscription.getStatus().name(),
                 currentPnL,
-                currentPnL / 10_000.0, // as % of 10k capital
+                currentPnL / portfolio.getTotalCapital().doubleValue(), // Dynamic total portfolio denominator
                 drawdown,
                 winRate,
                 signals24h.size(),
@@ -651,12 +675,16 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
             double winRate,
             double drawdown,
             List<SignalEntity> signals,
-            double failureRate
+            double failureRate,
+            UserPortfolioEntity portfolio
     ) {
-        if (drawdown < -0.10) {
+        double highRiskThresh = -Math.abs(portfolio.getMaxDrawdownThreshold().doubleValue());
+        double medRiskThresh = -Math.abs(portfolio.getMediumRiskThreshold().doubleValue());
+
+        if (drawdown < highRiskThresh) {
             return TerminalReadPort.DecisionReason.HIGH_RISK;
         }
-        if (drawdown < -0.05 || failureRate > 0.20) {
+        if (drawdown < medRiskThresh || failureRate > 0.20) {
             return TerminalReadPort.DecisionReason.NEEDS_REVIEW;
         }
         LocalDateTime fourHoursAgo = LocalDateTime.now().minusHours(4);
@@ -696,14 +724,14 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
             return 0.0;
         }
         double minValue = signals.stream()
-                .mapToDouble(this::deriveSignalReturn)
+                .mapToDouble(s -> SignalMetricsCalculator.deriveReturn(toSignalData(s)))
                 .min()
                 .orElse(0.0);
         return Math.min(0.0, minValue);  // Return as negative value
     }
 
     // Helper: Calculate current P&L for a subscription
-    private double calculateCurrentPnL(UserSubscriptionEntity subscription) {
+    private double calculateCurrentPnL(UserSubscriptionEntity subscription, UserPortfolioEntity portfolio) {
         List<SignalEntity> signals = springDataSignalRepository.findByBotIdAndCreatedAtAfter(
                 subscription.getBotId(),
                 LocalDateTime.now().minusDays(30)
@@ -712,9 +740,9 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
             return 0.0;
         }
         double totalReturn = signals.stream()
-                .mapToDouble(this::deriveSignalReturn)
+                .mapToDouble(s -> SignalMetricsCalculator.deriveReturn(toSignalData(s)))
                 .sum();
-        return round2(totalReturn * 10_000.0);  // As absolute value in 10k capital
+        return SignalMetricsCalculator.round2(totalReturn * portfolio.getTotalCapital().doubleValue());
     }
 
     // Helper: Days since subscription started
@@ -732,10 +760,10 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
                 subscription.getBotId(),
                 yesterday
         );
-        long lossingSignals = recentSignals.stream()
-                .filter(s -> deriveSignalReturn(s) < 0)
+        long losingSignals = recentSignals.stream()
+                .filter(s -> SignalMetricsCalculator.deriveReturn(toSignalData(s)) < 0)
                 .count();
-        return lossingSignals > 0 ? 1 : 0;  // Simplified: 1 if any loss in last 24h
+        return losingSignals > 0 ? 1 : 0;  // Simplified: 1 if any loss in last 24h
     }
 
     private SubscriptionStatus parseStatusFilter(String statusFilter) {
@@ -765,5 +793,18 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
             case SOLID_PERFORMER ->
                 3;
         };
+    }
+
+    private UserPortfolioEntity findPortfolioOrDefault(String userId) {
+        return springDataUserPortfolioRepository.findByUserId(userId)
+                .orElseGet(() -> UserPortfolioEntity.builder()
+                        .totalCapital(java.math.BigDecimal.valueOf(10000))
+                        .availableBalance(java.math.BigDecimal.valueOf(10000))
+                        .unrealizedPnl(java.math.BigDecimal.ZERO)
+                        .realizedPnl(java.math.BigDecimal.ZERO)
+                        .maxDrawdownThreshold(java.math.BigDecimal.valueOf(0.1000))
+                        .mediumRiskThreshold(java.math.BigDecimal.valueOf(0.0500))
+                        .build()
+                );
     }
 }

@@ -17,6 +17,7 @@ public class ExecutorHandshakeInterceptor implements HandshakeInterceptor {
     private static final String AUTHORIZATION_HEADER = HttpHeaders.AUTHORIZATION;
     private static final String BEARER_PREFIX = "Bearer ";
     static final String WS_TOKEN_ATTRIBUTE = "wsToken";
+    public static final String USER_ID_ATTRIBUTE = "userId";
 
     @Override
     public boolean beforeHandshake(
