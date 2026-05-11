@@ -77,3 +77,18 @@ Luồng giao tiếp giữa Backend và Executor được thực hiện qua WebSo
 - **Sự chồng chéo persistence**: Hiện tại Signal đang được lưu cả ở UseCase (đồng bộ) và Kafka Consumer (bất đồng bộ). Cần làm rõ mục đích của việc này hoặc hợp nhất để tránh xung đột dữ liệu.
 - **Error Handling trong WebSocket**: Việc dispatch tín hiệu nếu thất bại chưa có cơ chế retry rõ ràng (hiện tại dựa vào tính bền vững của Kafka).
 - **Scalability**: Khi số lượng kết nối WebSocket tăng cao, cần cơ chế Redis Pub/Sub để dispatch tín hiệu giữa các instance backend khác nhau một cách hiệu quả hơn.
+
+### Change: Removed Kafka storage consumer (operational note)
+
+Gần đây repository đã loại bỏ `KafkaSignalStorageConsumerAdapter` — component trước đây tiêu thụ topic `trading-signals` để batch-write lại các tín hiệu vào bảng `signals`.
+
+- Lý do: tồn tại hai writer vào cùng một bảng (1. `CaptureSignalUseCase` ghi đồng bộ, 2. consumer ghi bất đồng bộ) dẫn tới race conditions và lỗi `unique` trên cột `signalId` khi consumer cố INSERT lại cùng một `signalId` đã được lưu. Consumer không thực hiện upsert/idempotency nên dễ gây `DataIntegrityViolationException`, làm listener fail/retry và tiêu tốn tài nguyên Kafka/DB.
+
+- Hành động đã thực hiện: consumer lưu trữ đã bị xóa; producer vẫn giữ để Kafka phục vụ mục đích phân phối/dispatch realtime giữa các instance.
+
+- Khuyến nghị:
+  1. Nếu cần đảm bảo tính chắc chắn trong việc publish + persist, triển khai Transactional Outbox: ghi outbox record trong cùng transaction với domain write, rồi một worker chịu trách nhiệm publish outbox sang Kafka.
+  2. Nếu muốn consumer lưu trở lại DB, làm cho consumer idempotent (upsert theo `signalId` hoặc kiểm tra tồn tại trước khi insert) và xử lý `DataIntegrityViolationException` một cách có thể phục hồi.
+  3. Nếu mục tiêu là giảm latency trả về cho Bot, có thể publish Kafka bất đồng bộ (`@Async` / `CompletableFuture`) sau khi đã commit DB — tuy nhiên điều này không thay thế outbox nếu đòi hỏi guarantee.
+
+- Operational note: Sau deploy, theo dõi consumer-group lag và các lỗi DB logs trong vài giờ để đảm bảo không có thành phần nào khác lệ thuộc vào hành vi consumer trước đây.
