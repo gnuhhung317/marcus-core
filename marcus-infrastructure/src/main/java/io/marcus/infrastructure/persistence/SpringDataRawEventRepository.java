@@ -63,13 +63,13 @@ public interface SpringDataRawEventRepository extends JpaRepository<RawEventEnti
     );
 
     /**
-     * Find raw events by correlationId (for debugging and audit trail).
-     * Results are offset-paginated and ordered deterministically by sequence.
+     * Find raw events by correlationId (for debugging and audit trail). Results
+     * are offset-paginated and ordered deterministically by sequence.
      */
-    @Query(value = "SELECT * FROM raw_events " +
-            "WHERE correlation_id = :correlationId " +
-            "ORDER BY sequence_no ASC " +
-            "OFFSET :offset LIMIT :limit", nativeQuery = true)
+    @Query(value = "SELECT * FROM raw_events "
+            + "WHERE correlation_id = :correlationId "
+            + "ORDER BY sequence_no ASC "
+            + "OFFSET :offset LIMIT :limit", nativeQuery = true)
     List<RawEventEntity> findByCorrelationId(
             @Param("correlationId") String correlationId,
             @Param("limit") int limit,

@@ -2,6 +2,7 @@ package io.marcus.api.websocket;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.marcus.api.websocket.executor.ExecutorEventEventHandler;
+import io.marcus.api.websocket.executor.AuditPushEventHandler;
 import io.marcus.application.dto.UpsertUserSessionRequest;
 import io.marcus.application.usecase.CaptureSignalUseCase;
 import io.marcus.application.usecase.ResolveBotRoutingTargetsUseCase;
@@ -28,6 +29,8 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,6 +40,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -94,11 +100,13 @@ class BotSignalDispatchFlowIntegrationTest {
         ExecutorSessionRegistry sessionRegistry = new ExecutorSessionRegistry();
         ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
         ExecutorEventEventHandler executorEventEventHandler = mock(ExecutorEventEventHandler.class);
+        AuditPushEventHandler auditPushEventHandler = mock(AuditPushEventHandler.class);
         ExecutorWebSocketHandler webSocketHandler = new ExecutorWebSocketHandler(
                 objectMapper,
                 sessionRegistry,
                 subscriptionPersistencePort,
-                executorEventEventHandler
+                executorEventEventHandler,
+                auditPushEventHandler
         );
 
         WebSocketSession webSocketSession = mock(WebSocketSession.class);
@@ -108,16 +116,23 @@ class BotSignalDispatchFlowIntegrationTest {
         when(webSocketSession.getAttributes()).thenReturn(attributes);
         when(webSocketSession.isOpen()).thenReturn(true);
 
+        String timestamp = Instant.now().toString();
+        Map<String, Object> handshakePayload = Map.of("botId", botId);
+        String signature = signHandshake(objectMapper, botId, timestamp, handshakePayload, wsToken);
+
         webSocketHandler.handleTextMessage(
                 webSocketSession,
                 new TextMessage("""
                         {
-                          "type": "subscribe",
+                  "type": "handshake",
+                  "botId": "%s",
+                  "timestamp": "%s",
+                  "signature": "%s",
                           "payload": {
-                            "bot_id": "%s"
+                    "botId": "%s"
                           }
                         }
-                        """.formatted(botId))
+                """.formatted(botId, timestamp, signature, botId))
         );
 
         assertThat(subscriptionPersistencePort.findActiveByBotIdAndWsToken(botId, wsToken))
@@ -167,7 +182,7 @@ class BotSignalDispatchFlowIntegrationTest {
                 .toList();
 
         assertThat(frames.get(0)).contains("\"type\":\"ack\"");
-        assertThat(frames.get(0)).contains("\"ack_type\":\"subscribe\"");
+        assertThat(frames.get(0)).contains("\"ack_type\":\"handshake\"");
         assertThat(frames.get(0)).contains("\"bot_id\":\"" + botId + "\"");
 
         assertThat(frames.get(1)).contains("\"type\":\"signal\"");
@@ -218,6 +233,17 @@ class BotSignalDispatchFlowIntegrationTest {
         public void publish(Signal signal) {
             // no-op for this integration test
         }
+    }
+
+    private static String signHandshake(ObjectMapper objectMapper, String botId, String timestamp, Map<String, Object> payload, String wsToken) throws Exception {
+        String payloadJson = objectMapper.writeValueAsString(payload);
+        String payloadBase64 = java.util.Base64.getEncoder().encodeToString(payloadJson.getBytes(StandardCharsets.UTF_8));
+        String message = botId + "|" + timestamp + "|" + payloadBase64;
+
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(new SecretKeySpec(wsToken.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+        byte[] rawHmac = mac.doFinal(message.getBytes(StandardCharsets.UTF_8));
+        return java.util.Base64.getEncoder().encodeToString(rawHmac);
     }
 
     private static final class InMemoryBotSubscriberRoutingPort implements BotSubscriberRoutingPort {

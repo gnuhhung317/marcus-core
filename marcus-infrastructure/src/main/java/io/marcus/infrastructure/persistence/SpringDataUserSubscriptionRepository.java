@@ -55,4 +55,17 @@ public interface SpringDataUserSubscriptionRepository extends JpaRepository<User
      * @return count of subscriptions with given status
      */
     long countByUserIdAndStatus(String userId, SubscriptionStatus status);
+
+    // --- Aggregate queries (replacing findAll().stream().groupingBy patterns) ---
+
+    /**
+     * Count subscriptions per bot grouped by status. Replaces
+     * {@code findAll().stream().filter(ACTIVE).collect(groupingBy(botId, counting()))}.
+     *
+     * @param status subscription status filter
+     * @return list of [botId, count] tuples
+     */
+    @Query("SELECT s.botId, COUNT(s) FROM UserSubscriptionEntity s " +
+           "WHERE s.status = :status GROUP BY s.botId")
+    List<Object[]> countByStatusGroupByBotId(@Param("status") SubscriptionStatus status);
 }
