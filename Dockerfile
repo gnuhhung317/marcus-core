@@ -9,6 +9,8 @@ COPY marcus-application/pom.xml ./marcus-application/pom.xml
 COPY marcus-infrastructure/pom.xml ./marcus-infrastructure/pom.xml
 COPY marcus-api/pom.xml ./marcus-api/pom.xml
 
+RUN --mount=type=cache,target=/root/.m2 mvn -pl marcus-api -am dependency:go-offline -q
+
 # Copy the full source tree
 COPY marcus-domain ./marcus-domain
 COPY marcus-application ./marcus-application
@@ -16,7 +18,7 @@ COPY marcus-infrastructure ./marcus-infrastructure
 COPY marcus-api ./marcus-api
 
 # Build only the API module and its dependencies
-RUN mvn -pl marcus-api -am clean package -DskipTests
+RUN --mount=type=cache,target=/root/.m2 mvn -pl marcus-api -am clean package -DskipTests
 
 FROM eclipse-temurin:17-jre
 
