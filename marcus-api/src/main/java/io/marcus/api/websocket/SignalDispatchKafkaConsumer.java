@@ -50,6 +50,12 @@ public class SignalDispatchKafkaConsumer {
             payload.put("take_profit", signal.getTakeProfit());
             payload.put("status", signal.getStatus() != null ? signal.getStatus().name() : null);
             payload.put("generated_timestamp", signal.getGeneratedTimestamp() != null ? signal.getGeneratedTimestamp().toString() : null);
+            
+            // Translator Layer: Convert timeframe to absolute cancel epoch
+            payload.put("timeframe", signal.getTimeframe() != null ? signal.getTimeframe() : "unknown");
+            long expiryEpoch = calculateCancelAfterTimestamp(signal.getTimeframe(), signal.getMetadata());
+            payload.put("cancel_after_timestamp", expiryEpoch);
+
             payload.put("metadata", signal.getMetadata());
 
             Map<String, Object> frame = new HashMap<>();
@@ -59,5 +65,40 @@ public class SignalDispatchKafkaConsumer {
         } catch (Exception exception) {
             throw new IllegalStateException("Failed to build signal websocket frame", exception);
         }
+    }
+
+    private long calculateCancelAfterTimestamp(String timeframe, Map<String, Object> metadata) {
+        long nowEpoch = java.time.Instant.now().getEpochSecond();
+        
+        // 1. Check explicit metadata directive first
+        if (metadata != null && metadata.containsKey("cancel_after_seconds")) {
+            try {
+                long customSeconds = Long.parseLong(metadata.get("cancel_after_seconds").toString());
+                return nowEpoch + customSeconds;
+            } catch (Exception e) { /* Ignore and fallback */ }
+        }
+
+        // 2. Default fallback logic based on timeframe format (e.g. "1h", "15m")
+        if (timeframe == null || timeframe.isBlank()) {
+            return nowEpoch + 3600; // Default 1 hour
+        }
+
+        String cleaned = timeframe.toLowerCase().trim();
+        try {
+            if (cleaned.endsWith("m")) {
+                long num = Long.parseLong(cleaned.replace("m", ""));
+                return nowEpoch + (num * 60); // 1 bar duration
+            } else if (cleaned.endsWith("h")) {
+                long num = Long.parseLong(cleaned.replace("h", ""));
+                return nowEpoch + (num * 3600);
+            } else if (cleaned.endsWith("d")) {
+                long num = Long.parseLong(cleaned.replace("d", ""));
+                return nowEpoch + (num * 86400);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to parse timeframe '{}', using default fallback.", timeframe);
+        }
+
+        return nowEpoch + 3600;
     }
 }

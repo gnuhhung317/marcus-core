@@ -14,4 +14,9 @@ public interface SignalRepository {
      * duplicate signals.
      */
     boolean existsBySignalId(String signalId);
+
+    /**
+     * Update signal lifecycle status.
+     */
+    void updateStatus(String signalId, io.marcus.domain.vo.SignalStatus status);
 }

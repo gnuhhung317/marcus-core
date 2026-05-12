@@ -26,4 +26,13 @@ public class JpaSignalRepositoryImpl implements SignalRepository {
     public boolean existsBySignalId(String signalId) {
         return springDataSignalRepository.findBySignalId(signalId).isPresent();
     }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public void updateStatus(String signalId, io.marcus.domain.vo.SignalStatus status) {
+        springDataSignalRepository.findBySignalId(signalId).ifPresent(entity -> {
+            entity.setStatus(status);
+            // Entity becomes managed and automatically updated by Hibernate/SpringData on transaction commit
+        });
+    }
 }

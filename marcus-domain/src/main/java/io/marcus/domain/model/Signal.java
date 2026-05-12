@@ -28,5 +28,6 @@ public class Signal extends BaseModel {
     private BigDecimal takeProfit;
     private SignalStatus status;
     private LocalDateTime generatedTimestamp;
+    private String timeframe;
     private Map<String, Object> metadata;
 }

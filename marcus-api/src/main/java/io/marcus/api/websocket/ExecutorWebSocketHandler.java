@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.marcus.api.websocket.executor.AuditPushEventHandler;
 import io.marcus.api.websocket.executor.ExecutorEventEventHandler;
 import io.marcus.domain.port.UserSubscriptionPersistencePort;
+import io.marcus.domain.repository.SignalRepository;
+import io.marcus.domain.vo.SignalStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
@@ -36,6 +38,7 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
     private final ObjectMapper objectMapper;
     private final ExecutorSessionRegistry sessionRegistry;
     private final UserSubscriptionPersistencePort userSubscriptionPersistencePort;
+    private final SignalRepository signalRepository;
     @Lazy
     private final ExecutorEventEventHandler executorEventEventHandler;
     @Lazy
@@ -69,6 +72,11 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
 
             if ("audit-push".equals(frameType)) {
                 auditPushEventHandler.handleAuditPush(session, root);
+                return;
+            }
+
+            if ("signal_ack".equals(frameType)) {
+                handleSignalAck(session, root);
                 return;
             }
 
@@ -183,6 +191,24 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
             return Base64.getEncoder().encodeToString(rawHmac);
         } catch (Exception ex) {
             throw new IOException("Failed to sign handshake", ex);
+        }
+    }
+
+    private void handleSignalAck(WebSocketSession session, JsonNode root) {
+        JsonNode payload = root.path("payload");
+        String signalId = payload.path("signal_id").asText(payload.path("signalId").asText(""));
+        String botId = (String) session.getAttributes().get("botId");
+
+        if (signalId.isBlank()) {
+            log.warn("[WebSocket] Received signal_ack with empty signalId from botId={}", botId);
+            return;
+        }
+
+        log.info("[WebSocket] Received delivery ACK for signalId={} from botId={}", signalId, botId);
+        try {
+            signalRepository.updateStatus(signalId, SignalStatus.ACKNOWLEDGED);
+        } catch (Exception e) {
+            log.error("[WebSocket] Failed to update signal status for signalId={}: {}", signalId, e.getMessage());
         }
     }
 }
