@@ -6,6 +6,7 @@ import io.marcus.application.dto.UpsertBotSubscriberRequest;
 import io.marcus.application.dto.UpsertUserSessionRequest;
 import io.marcus.domain.model.Bot;
 import io.marcus.domain.model.Signal;
+import io.marcus.domain.vo.SignalStatus;
 import io.marcus.domain.port.BotSubscriberRoutingPort;
 import io.marcus.domain.port.SignalPublisherPort;
 import io.marcus.domain.port.SignalServerDispatchPort;
@@ -53,15 +54,14 @@ class CaptureSignalRoutingFlowIntegrationTest {
         upsertUserSessionUseCase = new UpsertUserSessionUseCase(userSessionRoutingPort);
         removeUserSessionUseCase = new RemoveUserSessionUseCase(userSessionRoutingPort);
 
-        ResolveBotRoutingTargetsUseCase resolveBotRoutingTargetsUseCase
-                = new ResolveBotRoutingTargetsUseCase(botSubscriberRoutingPort, userSessionRoutingPort);
+        ResolveBotRoutingTargetsUseCase resolveBotRoutingTargetsUseCase = new ResolveBotRoutingTargetsUseCase(
+                botSubscriberRoutingPort, userSessionRoutingPort);
         captureSignalUseCase = new CaptureSignalUseCase(
                 inMemorySignalRepository,
                 inMemoryBotRepository,
                 resolveBotRoutingTargetsUseCase,
                 inMemorySignalPublisherPort,
-                inMemorySignalServerDispatchPort
-        );
+                inMemorySignalServerDispatchPort);
     }
 
     @Test
@@ -237,6 +237,11 @@ class CaptureSignalRoutingFlowIntegrationTest {
         public boolean existsBySignalId(String signalId) {
             return savedSignals.stream()
                     .anyMatch(signal -> signal.getSignalId().equals(signalId));
+        }
+
+        @Override
+        public void updateStatus(String signalId, SignalStatus status) {
+
         }
     }
 

@@ -7,8 +7,12 @@ import io.marcus.application.dto.SubscribeBotResult;
 import io.marcus.application.dto.SubscriptionSummaryResult;
 import io.marcus.application.exception.ForbiddenOperationException;
 import io.marcus.application.exception.UnauthenticatedException;
+import io.marcus.application.usecase.ConnectExecutorToSubscriptionUseCase;
+import io.marcus.application.usecase.GetSubscriptionDeliverySummaryUseCase;
+import io.marcus.application.usecase.ListActiveSubscriptionsForBotUseCase;
 import io.marcus.application.usecase.ListMySubscriptionsUseCase;
 import io.marcus.application.usecase.SubscribeBotUseCase;
+import io.marcus.application.usecase.UnsubscribeFromBotUseCase;
 import io.marcus.domain.exception.BotNotFoundException;
 import io.marcus.infrastructure.security.BotSignatureInterceptor;
 import jakarta.servlet.http.HttpServletRequest;
@@ -46,6 +50,18 @@ class SubscriptionControllerTest {
 
     @MockBean
     private ListMySubscriptionsUseCase listMySubscriptionsUseCase;
+
+        @MockBean
+        private UnsubscribeFromBotUseCase unsubscribeFromBotUseCase;
+
+        @MockBean
+        private ConnectExecutorToSubscriptionUseCase connectExecutorToSubscriptionUseCase;
+
+        @MockBean
+        private ListActiveSubscriptionsForBotUseCase listActiveSubscriptionsForBotUseCase;
+
+        @MockBean
+        private GetSubscriptionDeliverySummaryUseCase getSubscriptionDeliverySummaryUseCase;
 
     @MockBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;

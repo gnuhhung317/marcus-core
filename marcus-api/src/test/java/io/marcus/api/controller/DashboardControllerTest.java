@@ -6,6 +6,8 @@ import io.marcus.application.exception.UnauthenticatedException;
 import io.marcus.application.usecase.GetDashboardEquitySeriesUseCase;
 import io.marcus.application.usecase.GetDashboardExchangeAllocationUseCase;
 import io.marcus.application.usecase.GetDashboardOverviewUseCase;
+import io.marcus.application.usecase.GetPortfolioDecisionsUseCase;
+import io.marcus.application.usecase.GetPortfolioOverviewUseCase;
 import io.marcus.domain.port.TerminalReadPort;
 import io.marcus.infrastructure.security.BotSignatureInterceptor;
 import jakarta.servlet.http.HttpServletRequest;
@@ -45,6 +47,12 @@ class DashboardControllerTest {
 
     @MockBean
     private GetDashboardExchangeAllocationUseCase getDashboardExchangeAllocationUseCase;
+
+        @MockBean
+        private GetPortfolioOverviewUseCase getPortfolioOverviewUseCase;
+
+        @MockBean
+        private GetPortfolioDecisionsUseCase getPortfolioDecisionsUseCase;
 
     @MockBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;

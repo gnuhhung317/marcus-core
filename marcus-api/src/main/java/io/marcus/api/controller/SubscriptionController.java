@@ -8,6 +8,8 @@ import io.marcus.application.usecase.SubscribeBotUseCase;
 import io.marcus.application.usecase.ListMySubscriptionsUseCase;
 import io.marcus.application.usecase.ConnectExecutorToSubscriptionUseCase;
 import io.marcus.application.usecase.ListActiveSubscriptionsForBotUseCase;
+import io.marcus.application.usecase.GetSubscriptionDeliverySummaryUseCase;
+import io.marcus.domain.port.TerminalReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,6 +36,7 @@ public class SubscriptionController {
     private final UnsubscribeFromBotUseCase unsubscribeFromBotUseCase;
     private final ConnectExecutorToSubscriptionUseCase connectExecutorToSubscriptionUseCase;
     private final ListActiveSubscriptionsForBotUseCase listActiveSubscriptionsForBotUseCase;
+    private final GetSubscriptionDeliverySummaryUseCase getSubscriptionDeliverySummaryUseCase;
 
     // User endpoints
     @PostMapping("/{botId}")
@@ -61,5 +64,10 @@ public class SubscriptionController {
     @GetMapping("/{botId}/active")
     public ResponseEntity<List<BotSubscriptionResult>> listActiveForBot(@PathVariable String botId) {
         return ResponseEntity.ok(listActiveSubscriptionsForBotUseCase.execute(botId));
+    }
+
+    @GetMapping("/{subscriptionId}/delivery-summary")
+    public ResponseEntity<TerminalReadPort.SubscriptionDeliverySummarySnapshot> getDeliverySummary(@PathVariable String subscriptionId) {
+        return ResponseEntity.ok(getSubscriptionDeliverySummaryUseCase.execute(subscriptionId));
     }
 }

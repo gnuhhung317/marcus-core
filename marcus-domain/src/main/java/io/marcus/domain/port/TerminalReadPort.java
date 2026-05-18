@@ -66,6 +66,30 @@ public interface TerminalReadPort {
 
     ConnectivityHealthSnapshot getSystemConnectivityHealth();
 
+        /**
+         * Per-bot integration health snapshot. Contains dependency checks and last signal timestamp.
+         *
+         * @param botId bot identifier
+         * @return integration health snapshot for the bot
+         */
+        BotIntegrationHealthSnapshot getBotIntegrationHealth(String botId);
+
+        /**
+         * Delivery summary for a subscription (recent window, e.g. 24h).
+         *
+         * @param subscriptionId subscription identifier
+         * @return delivery summary snapshot
+         */
+        SubscriptionDeliverySummarySnapshot getSubscriptionDeliverySummary(String subscriptionId);
+
+        /**
+         * Bot credentials summary (masked only). Raw secret is not retrievable via this API.
+         *
+         * @param botId bot identifier
+         * @return credentials snapshot
+         */
+        ApiKeySnapshot getBotCredentials(String botId);
+
     ExecutionLogPageSnapshot listSystemExecutionLogs(String cursor, int limit);
 
     // Pha 1: Decision Dashboard - Portfolio-level queries
@@ -404,6 +428,33 @@ public interface TerminalReadPort {
             LocalDateTime checkedAt,
             List<ConnectivityHealthDependencySnapshot> dependencies
             ) {
+
+    }
+
+    record BotIntegrationHealthSnapshot(
+            String overallStatus,
+            LocalDateTime lastCheckedAt,
+            List<ConnectivityHealthDependencySnapshot> dependencies,
+            LocalDateTime lastSignalAt,
+            String message
+    ) {
+
+    }
+
+    record SubscriptionDeliverySummarySnapshot(
+            long successCount24h,
+            long failureCount24h,
+            LocalDateTime lastDeliveryAt,
+            DeliveryErrorSnapshot lastError
+    ) {
+
+    }
+
+    record DeliveryErrorSnapshot(String code, String message) {
+
+    }
+
+    record ApiKeySnapshot(String apiKeyId, String maskedKey, boolean rawSecretRetrievable) {
 
     }
 

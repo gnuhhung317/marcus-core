@@ -105,7 +105,7 @@ public class EventHistoryController {
                             .build())
                     .collect(Collectors.toList());
 
-            // Check if there are more events
+            // Check if the requested sequence window has remaining events after it.
             boolean hasMore = (toSequence + 1) < totalCount;
 
             EventHistoryResponse response = EventHistoryResponse.builder()

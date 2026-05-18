@@ -69,9 +69,12 @@ public class SecurityConfig {
                         "/content/research/reports/library", "/api/content/research/reports/library", "/api/v1/content/research/reports/library"
                 ).permitAll()
                 .requestMatchers(HttpMethod.GET, "/bots/my-bots", "/api/bots/my-bots", "/api/v1/bots/my-bots").hasRole(Role.DEVELOPER.name())
+                .requestMatchers(HttpMethod.GET, "/bots/*/integration-health", "/api/bots/*/integration-health", "/api/v1/bots/*/integration-health").hasRole(Role.DEVELOPER.name())
+                .requestMatchers(HttpMethod.GET, "/bots/*/credentials", "/api/bots/*/credentials", "/api/v1/bots/*/credentials").hasRole(Role.DEVELOPER.name())
                 .requestMatchers(HttpMethod.POST, "/bots", "/api/bots", "/api/v1/bots", "/bots/register", "/api/bots/register", "/api/v1/bots/register").hasRole(Role.DEVELOPER.name())
                 .requestMatchers(HttpMethod.GET, "/subscriptions", "/subscriptions/my-subscriptions", "/api/subscriptions", "/api/subscriptions/my-subscriptions", "/api/v1/subscriptions", "/api/v1/subscriptions/my-subscriptions").hasRole(Role.USER.name())
                 .requestMatchers(HttpMethod.POST, "/subscriptions/**", "/api/subscriptions/**", "/api/v1/subscriptions/**").hasRole(Role.USER.name())
+                .requestMatchers(HttpMethod.GET, "/subscriptions/*/delivery-summary", "/api/subscriptions/*/delivery-summary", "/api/v1/subscriptions/*/delivery-summary").hasRole(Role.DEVELOPER.name())
                 .anyRequest().authenticated())
                 .addFilterBefore(requestCachingFilter, SecurityContextHolderFilter.class)
                 .addFilterAfter(jwtAuthenticationFilter, SecurityContextHolderFilter.class)

@@ -65,6 +65,11 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
                 return;
             }
 
+            if ("subscribe".equals(frameType)) {
+                handleSubscribe(session, root);
+                return;
+            }
+
             if ("execution_event".equals(frameType)) {
                 executorEventEventHandler.handleExecutionEvent(session, root);
                 return;
@@ -138,6 +143,36 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
         session.getAttributes().put("botId", botId);
         userSubscriptionPersistencePort.markExecutorConnected(subscription.get().getUserSubscriptionId(), true);
         sendFrame(session, buildAckFrame("handshake", "ok", botId));
+    }
+
+    private void handleSubscribe(WebSocketSession session, JsonNode root) throws IOException {
+        JsonNode payload = root.path("payload");
+        String botId = payload.path("botId").asText(payload.path("bot_id").asText(""));
+        String wsToken = (String) session.getAttributes().get(ExecutorHandshakeInterceptor.WS_TOKEN_ATTRIBUTE);
+
+        if (botId.isBlank() || wsToken == null || wsToken.isBlank()) {
+            sendFrame(session, buildErrorFrame("invalid_subscribe", "botId and ws_token are required"));
+            session.close(CloseStatus.BAD_DATA);
+            return;
+        }
+
+        var subscription = userSubscriptionPersistencePort.findActiveByBotIdAndWsToken(botId, wsToken);
+        if (subscription.isEmpty()) {
+            sendFrame(session, buildErrorFrame("unauthorized", "No active subscription matches the websocket token"));
+            session.close(CloseStatus.NOT_ACCEPTABLE);
+            return;
+        }
+
+        sessionRegistry.register(
+                wsToken,
+                botId,
+                subscription.get().getUserSubscriptionId(),
+                session
+        );
+        session.getAttributes().put(ExecutorHandshakeInterceptor.USER_ID_ATTRIBUTE, subscription.get().getUserId());
+        session.getAttributes().put("botId", botId);
+        userSubscriptionPersistencePort.markExecutorConnected(subscription.get().getUserSubscriptionId(), true);
+        sendFrame(session, buildAckFrame("subscribe", "ok", botId));
     }
 
     private Map<String, Object> buildAckFrame(String ackType, String status, String botId) {

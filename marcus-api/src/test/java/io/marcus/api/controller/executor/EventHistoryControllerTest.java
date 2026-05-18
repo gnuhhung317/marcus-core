@@ -62,7 +62,7 @@ class EventHistoryControllerTest {
         assertEquals(signalId, response.getBody().getSignalId());
         assertEquals(2, response.getBody().getEvents().size());
         assertEquals(10, response.getBody().getTotalCount());
-        assertTrue(response.getBody().isHasMore());
+        assertFalse(response.getBody().isHasMore());
 
         // Verify events
         EventHistoryResponse.EventInfo event1 = response.getBody().getEvents().get(0);

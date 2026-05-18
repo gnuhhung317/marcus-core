@@ -6,6 +6,7 @@ import io.marcus.application.dto.UpsertUserSessionRequest;
 import io.marcus.domain.model.Bot;
 import io.marcus.domain.model.Signal;
 import io.marcus.domain.vo.SignalAction;
+import io.marcus.domain.vo.SignalStatus;
 import io.marcus.domain.port.BotSubscriberRoutingPort;
 import io.marcus.domain.port.SignalPublisherPort;
 import io.marcus.domain.port.SignalServerDispatchPort;
@@ -70,15 +71,14 @@ class BotSignalE2eFlowIntegrationTest {
         removeBotSubscriberUseCase = new RemoveBotSubscriberUseCase(botSubscriberRoutingPort);
         upsertUserSessionUseCase = new UpsertUserSessionUseCase(userSessionRoutingPort);
 
-        ResolveBotRoutingTargetsUseCase resolveBotRoutingTargetsUseCase
-                = new ResolveBotRoutingTargetsUseCase(botSubscriberRoutingPort, userSessionRoutingPort);
+        ResolveBotRoutingTargetsUseCase resolveBotRoutingTargetsUseCase = new ResolveBotRoutingTargetsUseCase(
+                botSubscriberRoutingPort, userSessionRoutingPort);
         captureSignalUseCase = new CaptureSignalUseCase(
                 inMemorySignalRepository,
                 inMemoryBotRepository,
                 resolveBotRoutingTargetsUseCase,
                 inMemorySignalPublisherPort,
-                inMemorySignalServerDispatchPort
-        );
+                inMemorySignalServerDispatchPort);
 
         // Register test bot
         inMemoryBotRepository.registerBot(BOT_ID);
@@ -101,7 +101,8 @@ class BotSignalE2eFlowIntegrationTest {
                 .action(SignalAction.OPEN_LONG)
                 .build();
 
-        // Step 4: Backend captures signal and dispatches to subscribed users' websockets
+        // Step 4: Backend captures signal and dispatches to subscribed users'
+        // websockets
         captureSignalUseCase.execute(signal);
 
         // Assertions: Verify signal was published
@@ -222,7 +223,8 @@ class BotSignalE2eFlowIntegrationTest {
                 .containsExactly(new LinkedHashSet<>(List.of(WS_TOKEN)));
     }
 
-    // ============ In-Memory Adapters (reuse pattern from CaptureSignalRoutingFlowIntegrationTest) ============
+    // ============ In-Memory Adapters (reuse pattern from
+    // CaptureSignalRoutingFlowIntegrationTest) ============
     private static final class InMemoryBotRepository implements BotRepository {
 
         private final Set<String> botIds = new HashSet<>();
@@ -340,6 +342,11 @@ class BotSignalE2eFlowIntegrationTest {
         public boolean existsBySignalId(String signalId) {
             return savedSignals.stream()
                     .anyMatch(signal -> signal.getSignalId().equals(signalId));
+        }
+
+        @Override
+        public void updateStatus(String signalId, SignalStatus status) {
+
         }
     }
 

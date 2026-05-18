@@ -399,6 +399,79 @@ public class StaticTerminalReadAdapter implements TerminalReadPort {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public BotIntegrationHealthSnapshot getBotIntegrationHealth(String botId) {
+        String normalizedBotId = requireNonBlank(botId, "botId");
+        BotEntity bot = springDataBotRepository.findByBotId(normalizedBotId)
+                .orElseThrow(() -> new NoSuchElementException("Bot not found: " + normalizedBotId));
+
+        List<TerminalReadPort.ConnectivityHealthDependencySnapshot> deps = List.of(
+                new TerminalReadPort.ConnectivityHealthDependencySnapshot("Signal Router", "UP", 8),
+                new TerminalReadPort.ConnectivityHealthDependencySnapshot("Price Feed", "UP", 12),
+                new TerminalReadPort.ConnectivityHealthDependencySnapshot("Order Executor", "DEGRADED", 38)
+        );
+
+        LocalDateTime lastSignalAt = springDataSignalRepository.findByBotId(bot.getBotId())
+                .stream()
+                .map(SignalEntity::getGeneratedTimestamp)
+                .filter(Objects::nonNull)
+                .max(LocalDateTime::compareTo)
+                .orElse(null);
+
+        String overall = (lastSignalAt != null && lastSignalAt.isAfter(LocalDateTime.now().minusHours(1))) ? "UP" : "DEGRADED";
+        String message = overall.equals("UP") ? "" : "No recent signal within 1 hour";
+
+        return new BotIntegrationHealthSnapshot(overall, LocalDateTime.now(), deps, lastSignalAt, message);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SubscriptionDeliverySummarySnapshot getSubscriptionDeliverySummary(String subscriptionId) {
+        String normalized = requireNonBlank(subscriptionId, "subscriptionId");
+        UserSubscriptionEntity subscription = springDataUserSubscriptionRepository.findById(normalized)
+                .orElseThrow(() -> new NoSuchElementException("Subscription not found: " + normalized));
+
+        LocalDateTime since = LocalDateTime.now().minusHours(24);
+        List<SignalEntity> recent = springDataSignalRepository.findByBotIdAndCreatedAtAfter(subscription.getBotId(), since);
+
+        long success = recent.stream().filter(s -> SignalMetricsCalculator.deriveReturn(toSignalData(s)) > 0).count();
+        long failure = recent.size() - success;
+
+        LocalDateTime lastDeliveryAt = recent.stream()
+                .map(SignalEntity::getGeneratedTimestamp)
+                .filter(Objects::nonNull)
+                .max(LocalDateTime::compareTo)
+                .orElse(null);
+
+        TerminalReadPort.DeliveryErrorSnapshot lastError = null;
+        if (failure > 0) {
+            lastError = new TerminalReadPort.DeliveryErrorSnapshot("E_DELIVERY_FAILURE", "Some executions failed in the last 24h");
+        }
+
+        return new SubscriptionDeliverySummarySnapshot(success, failure, lastDeliveryAt, lastError);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TerminalReadPort.ApiKeySnapshot getBotCredentials(String botId) {
+        String normalizedBotId = requireNonBlank(botId, "botId");
+        BotEntity bot = springDataBotRepository.findByBotId(normalizedBotId)
+                .orElseThrow(() -> new NoSuchElementException("Bot not found: " + normalizedBotId));
+
+        String apiKey = bot.getApiKey() == null ? "" : bot.getApiKey();
+        String masked;
+        if (apiKey.length() <= 4) {
+            masked = "****";
+        } else {
+            int keep = Math.min(4, apiKey.length());
+            masked = apiKey.substring(0, keep) + "*".repeat(Math.max(0, apiKey.length() - keep));
+        }
+
+        String apiKeyId = bot.getBotId() + "-key";
+        return new TerminalReadPort.ApiKeySnapshot(apiKeyId, masked, false);
+    }
+
+    @Override
     public ExecutionLogPageSnapshot listSystemExecutionLogs(String cursor, int limit) {
         return new ExecutionLogPageSnapshot(cursor, List.of());
     }

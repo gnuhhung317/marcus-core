@@ -51,7 +51,7 @@ public class BotSignatureInterceptor implements HandlerInterceptor {
         String signatureHeader = request.getHeader(HEADER_SIGNATURE);
 
         if (timestampHeader == null || apiKey == null || signatureHeader == null) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return false;
         }
 

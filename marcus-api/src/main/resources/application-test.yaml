@@ -2,7 +2,7 @@ spring:
   application:
     name: marcus-parent
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://200.200.201.4:5432/signal_db}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://171.244.195.150:5432/signal_db}
     username: ${SPRING_DATASOURCE_USERNAME:user}
     password: ${SPRING_DATASOURCE_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
@@ -14,7 +14,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
   kafka:
-    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:200.200.201.4:9092}
+    bootstrap-servers: 171.244.195.150:9092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -31,7 +31,7 @@ spring:
     baseline-on-migrate: true
   data:
     redis:
-      url: ${SPRING_REDIS_URL:redis://200.200.201.4:6379}
+      url: ${SPRING_REDIS_URL:redis://171.244.195.150:6379}
 marcus:
   security:
     master-key: coleemchangkhocchutnaocoleemchangquantamanhrasao

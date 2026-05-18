@@ -1,0 +1,81 @@
+{
+  "info": {
+    "name": "Developer Dashboard MVP",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "List developer bots",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/bots/my-bots",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "bots", "my-bots"]
+        }
+      }
+    },
+    {
+      "name": "Get developer bot detail",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/bots/{{botId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "bots", "{{botId}}"]
+        }
+      }
+    },
+    {
+      "name": "List bot subscriptions",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/subscriptions/{{botId}}/active",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "subscriptions", "{{botId}}", "active"]
+        }
+      }
+    }
+    ,
+    {
+      "name": "Get bot integration health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/bots/{{botId}}/integration-health",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "bots", "{{botId}}", "integration-health"]
+        }
+      }
+    },
+    {
+      "name": "Get bot credentials (masked)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/bots/{{botId}}/credentials",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "bots", "{{botId}}", "credentials"]
+        }
+      }
+    },
+    {
+      "name": "Get subscription delivery summary",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/subscriptions/{{subscriptionId}}/delivery-summary",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "v1", "subscriptions", "{{subscriptionId}}", "delivery-summary"]
+        }
+      }
+    }
+  ]
+}

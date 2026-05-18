@@ -34,12 +34,12 @@ public class ExecutorRecoveryController {
     public ResponseEntity<ExecutorRecoveryResponse> recovery(
             @RequestBody ExecutorRecoveryRequest request
     ) {
-        log.info("Recovery request for {} signals", request.getSignalIds().size());
-
         if (request.getSignalIds() == null || request.getSignalIds().isEmpty()) {
             log.warn("Recovery request with empty signal IDs");
             return ResponseEntity.badRequest().build();
         }
+
+        log.info("Recovery request for {} signals", request.getSignalIds().size());
 
         // Fetch recovery information for each signal
         List<ExecutorRecoveryResponse.SignalRecoveryInfo> signals = request.getSignalIds()

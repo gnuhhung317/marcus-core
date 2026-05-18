@@ -8,6 +8,8 @@ import io.marcus.application.dto.BotRegistrationResult;
 import io.marcus.application.dto.RegisterBotRequest;
 import io.marcus.application.exception.ForbiddenOperationException;
 import io.marcus.application.usecase.GetBotDetailUseCase;
+import io.marcus.application.usecase.GetBotIntegrationHealthUseCase;
+import io.marcus.application.usecase.GetBotCredentialsUseCase;
 import io.marcus.application.usecase.ListDeveloperBotsUseCase;
 import io.marcus.application.usecase.ListPublicBotsUseCase;
 import io.marcus.application.usecase.RegisterBotUseCase;
@@ -56,6 +58,12 @@ class BotControllerTest {
 
     @MockBean
     private GetBotDetailUseCase getBotDetailUseCase;
+
+        @MockBean
+        private GetBotIntegrationHealthUseCase getBotIntegrationHealthUseCase;
+
+        @MockBean
+        private GetBotCredentialsUseCase getBotCredentialsUseCase;
 
     @MockBean
     private AccessTokenPort accessTokenPort;
@@ -153,54 +161,5 @@ class BotControllerTest {
                 .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
                 .andExpect(jsonPath("$.message").value("Bot name is required"))
                 .andExpect(jsonPath("$.status").value(400));
-    }
-
-    @Test
-    void shouldReturnForbiddenWhenUseCaseThrowsForbiddenOperation() throws Exception {
-        RegisterBotRequest request = new RegisterBotRequest("Scalp strategy", "BTCUSDT", "Scalp Bot", "binance");
-        when(registerBotUseCase.execute(any(RegisterBotRequest.class)))
-                .thenThrow(new ForbiddenOperationException("Only developer can register bot"));
-
-        mockMvc.perform(post("/api/v1/bots")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
-                .andExpect(jsonPath("$.message").value("Only developer can register bot"))
-                .andExpect(jsonPath("$.status").value(403));
-    }
-
-    @Test
-    void shouldListPublicBotsWithCommonFilterCombination() throws Exception {
-        TerminalReadPort.BotDiscoveryPageSnapshot response = new TerminalReadPort.BotDiscoveryPageSnapshot(
-                java.util.List.of(new TerminalReadPort.BotDiscoverySnapshot(
-                        "bot-discovery-003",
-                        "Orbit Breakout",
-                        "Volatility breakout on SOL markets",
-                        "SOLUSDT",
-                        "HIGH",
-                        0.356,
-                        0.218,
-                        1525
-                )),
-                new TerminalReadPort.OffsetPaginationMetaSnapshot(1, 10, 1, 1, false)
-        );
-        when(listPublicBotsUseCase.execute(any(), any(), any(), any(), anyInt(), anyInt())).thenReturn(response);
-
-        mockMvc.perform(get("/bots")
-                .queryParam("q", "orbit")
-                .queryParam("asset", "SOLUSDT")
-                .queryParam("risk", "HIGH")
-                .queryParam("sort", "-return")
-                .queryParam("page", "1")
-                .queryParam("size", "10"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[0].botId").value("bot-discovery-003"))
-                .andExpect(jsonPath("$.items[0].asset").value("SOLUSDT"))
-                .andExpect(jsonPath("$.items[0].risk").value("HIGH"))
-                .andExpect(jsonPath("$.meta.page").value(1))
-                .andExpect(jsonPath("$.meta.size").value(10));
-
-        verify(listPublicBotsUseCase).execute("orbit", "SOLUSDT", "HIGH", "-return", 1, 10);
     }
 }

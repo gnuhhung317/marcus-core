@@ -18,6 +18,7 @@ import io.marcus.domain.port.UserSessionRoutingPort;
 import io.marcus.domain.port.UserSubscriptionPersistencePort;
 import io.marcus.domain.repository.BotRepository;
 import io.marcus.domain.repository.UserRepository;
+import io.marcus.domain.repository.SignalRepository;
 import io.marcus.domain.service.IdentityService;
 import io.marcus.domain.vo.BotStatus;
 import io.marcus.domain.vo.Role;
@@ -74,8 +75,8 @@ class BotSignalDispatchFlowIntegrationTest {
         InMemoryBotRepository botRepository = new InMemoryBotRepository();
         botRepository.save(bot);
         InMemoryUserRepository userRepository = new InMemoryUserRepository(userId);
-        InMemoryUserSubscriptionPersistencePort subscriptionPersistencePort
-                = new InMemoryUserSubscriptionPersistencePort(Map.of(userId, wsToken));
+        InMemoryUserSubscriptionPersistencePort subscriptionPersistencePort = new InMemoryUserSubscriptionPersistencePort(
+                Map.of(userId, wsToken));
         InMemoryBotSubscriberRoutingPort botSubscriberRoutingPort = new InMemoryBotSubscriberRoutingPort();
         InMemoryUserSessionRoutingPort userSessionRoutingPort = new InMemoryUserSessionRoutingPort();
 
@@ -86,8 +87,7 @@ class BotSignalDispatchFlowIntegrationTest {
                 userRepository,
                 botRepository,
                 subscriptionPersistencePort,
-                botSubscriberRoutingPort
-        );
+                botSubscriberRoutingPort);
 
         var subscribeResult = subscribeBotUseCase.execute(botId);
         assertThat(subscribeResult.botId()).isEqualTo(botId);
@@ -101,13 +101,14 @@ class BotSignalDispatchFlowIntegrationTest {
         ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
         ExecutorEventEventHandler executorEventEventHandler = mock(ExecutorEventEventHandler.class);
         AuditPushEventHandler auditPushEventHandler = mock(AuditPushEventHandler.class);
+        SignalRepository signalReposistory = new InMemorySignalRepository();
         ExecutorWebSocketHandler webSocketHandler = new ExecutorWebSocketHandler(
                 objectMapper,
                 sessionRegistry,
                 subscriptionPersistencePort,
+                signalReposistory,
                 executorEventEventHandler,
-                auditPushEventHandler
-        );
+                auditPushEventHandler);
 
         WebSocketSession webSocketSession = mock(WebSocketSession.class);
         Map<String, Object> attributes = new HashMap<>();
@@ -123,17 +124,16 @@ class BotSignalDispatchFlowIntegrationTest {
         webSocketHandler.handleTextMessage(
                 webSocketSession,
                 new TextMessage("""
-                        {
-                  "type": "handshake",
-                  "botId": "%s",
-                  "timestamp": "%s",
-                  "signature": "%s",
-                          "payload": {
-                    "botId": "%s"
-                          }
-                        }
-                """.formatted(botId, timestamp, signature, botId))
-        );
+                                {
+                          "type": "handshake",
+                          "botId": "%s",
+                          "timestamp": "%s",
+                          "signature": "%s",
+                                  "payload": {
+                            "botId": "%s"
+                                  }
+                                }
+                        """.formatted(botId, timestamp, signature, botId)));
 
         assertThat(subscriptionPersistencePort.findActiveByBotIdAndWsToken(botId, wsToken))
                 .get()
@@ -144,8 +144,7 @@ class BotSignalDispatchFlowIntegrationTest {
         RecordingSignalServerDispatchPort signalServerDispatchPort = new RecordingSignalServerDispatchPort(consumer);
         ResolveBotRoutingTargetsUseCase resolveBotRoutingTargetsUseCase = new ResolveBotRoutingTargetsUseCase(
                 botSubscriberRoutingPort,
-                userSessionRoutingPort
-        );
+                userSessionRoutingPort);
         InMemoryBotRepository inMemoryBotRepository = new InMemoryBotRepository();
         inMemoryBotRepository.registerBot(botId);
         CaptureSignalUseCase captureSignalUseCase = new CaptureSignalUseCase(
@@ -153,8 +152,7 @@ class BotSignalDispatchFlowIntegrationTest {
                 inMemoryBotRepository,
                 resolveBotRoutingTargetsUseCase,
                 new InMemorySignalPublisherPort(),
-                signalServerDispatchPort
-        );
+                signalServerDispatchPort);
 
         Signal signal = Signal.builder()
                 .signalId("sig_1")
@@ -213,7 +211,7 @@ class BotSignalDispatchFlowIntegrationTest {
         }
     }
 
-    private static final class InMemorySignalRepository implements io.marcus.domain.repository.SignalRepository {
+    private static final class InMemorySignalRepository implements SignalRepository {
 
         @Override
         public void save(Signal signal) {
@@ -222,8 +220,14 @@ class BotSignalDispatchFlowIntegrationTest {
 
         @Override
         public boolean existsBySignalId(String signalId) {
-            // no-op for this integration test - always return false to allow signal publishing
+            // no-op for this integration test - always return false to allow signal
+            // publishing
             return false;
+        }
+
+        @Override
+        public void updateStatus(String signalId, SignalStatus status) {
+
         }
     }
 
@@ -235,9 +239,11 @@ class BotSignalDispatchFlowIntegrationTest {
         }
     }
 
-    private static String signHandshake(ObjectMapper objectMapper, String botId, String timestamp, Map<String, Object> payload, String wsToken) throws Exception {
+    private static String signHandshake(ObjectMapper objectMapper, String botId, String timestamp,
+            Map<String, Object> payload, String wsToken) throws Exception {
         String payloadJson = objectMapper.writeValueAsString(payload);
-        String payloadBase64 = java.util.Base64.getEncoder().encodeToString(payloadJson.getBytes(StandardCharsets.UTF_8));
+        String payloadBase64 = java.util.Base64.getEncoder()
+                .encodeToString(payloadJson.getBytes(StandardCharsets.UTF_8));
         String message = botId + "|" + timestamp + "|" + payloadBase64;
 
         Mac mac = Mac.getInstance("HmacSHA256");
@@ -408,8 +414,8 @@ class BotSignalDispatchFlowIntegrationTest {
         public Optional<UserSubscription> findActiveByUserIdAndBotId(String userId, String botId) {
             return subscriptionsById.values().stream()
                     .filter(subscription -> subscription.getStatus() == SubscriptionStatus.ACTIVE
-                    && userId.equals(subscription.getUserId())
-                    && botId.equals(subscription.getBotId()))
+                            && userId.equals(subscription.getUserId())
+                            && botId.equals(subscription.getBotId()))
                     .findFirst();
         }
 
@@ -417,7 +423,7 @@ class BotSignalDispatchFlowIntegrationTest {
         public List<UserSubscription> findActiveByUserId(String userId) {
             return subscriptionsById.values().stream()
                     .filter(subscription -> subscription.getStatus() == SubscriptionStatus.ACTIVE
-                    && userId.equals(subscription.getUserId()))
+                            && userId.equals(subscription.getUserId()))
                     .toList();
         }
 
@@ -430,7 +436,7 @@ class BotSignalDispatchFlowIntegrationTest {
 
             return subscriptionsById.values().stream()
                     .filter(subscription -> subscription.getStatus() == SubscriptionStatus.ACTIVE
-                    && userId.equals(subscription.getUserId()))
+                            && userId.equals(subscription.getUserId()))
                     .map(UserSubscription::getWsToken)
                     .filter(wsToken -> wsToken != null && !wsToken.isBlank())
                     .findFirst();
@@ -451,7 +457,7 @@ class BotSignalDispatchFlowIntegrationTest {
         public List<UserSubscription> findActiveByBotId(String botId) {
             return subscriptionsById.values().stream()
                     .filter(subscription -> subscription.getStatus() == SubscriptionStatus.ACTIVE
-                    && botId.equals(subscription.getBotId()))
+                            && botId.equals(subscription.getBotId()))
                     .toList();
         }
 
@@ -459,8 +465,8 @@ class BotSignalDispatchFlowIntegrationTest {
         public Optional<UserSubscription> findActiveByBotIdAndWsToken(String botId, String wsToken) {
             return subscriptionsById.values().stream()
                     .filter(subscription -> subscription.getStatus() == SubscriptionStatus.ACTIVE
-                    && botId.equals(subscription.getBotId())
-                    && wsToken.equals(subscription.getWsToken()))
+                            && botId.equals(subscription.getBotId())
+                            && wsToken.equals(subscription.getWsToken()))
                     .findFirst();
         }
 

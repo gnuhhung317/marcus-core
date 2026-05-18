@@ -7,6 +7,8 @@ import io.marcus.application.usecase.GetBotDetailUseCase;
 import io.marcus.application.usecase.ListDeveloperBotsUseCase;
 import io.marcus.application.usecase.ListPublicBotsUseCase;
 import io.marcus.application.usecase.RegisterBotUseCase;
+import io.marcus.application.usecase.GetBotIntegrationHealthUseCase;
+import io.marcus.application.usecase.GetBotCredentialsUseCase;
 import io.marcus.domain.port.TerminalReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -30,6 +32,8 @@ public class BotController {
     private final ListPublicBotsUseCase listPublicBotsUseCase;
     private final ListDeveloperBotsUseCase listDeveloperBotsUseCase;
     private final GetBotDetailUseCase getBotDetailUseCase;
+    private final GetBotIntegrationHealthUseCase getBotIntegrationHealthUseCase;
+    private final GetBotCredentialsUseCase getBotCredentialsUseCase;
 
     @PostMapping({"", "/register"})
     public ResponseEntity<BotRegistrationResult> registerBot(@RequestBody RegisterBotRequest botRequest) {
@@ -59,5 +63,15 @@ public class BotController {
             @PathVariable String botId
     ) {
         return ResponseEntity.ok(getBotDetailUseCase.execute(botId));
+    }
+
+    @GetMapping("/{botId}/integration-health")
+    public ResponseEntity<TerminalReadPort.BotIntegrationHealthSnapshot> getBotIntegrationHealth(@PathVariable String botId) {
+        return ResponseEntity.ok(getBotIntegrationHealthUseCase.execute(botId));
+    }
+
+    @GetMapping("/{botId}/credentials")
+    public ResponseEntity<TerminalReadPort.ApiKeySnapshot> getBotCredentials(@PathVariable String botId) {
+        return ResponseEntity.ok(getBotCredentialsUseCase.execute(botId));
     }
 }
