@@ -5,3 +5,5 @@ target/*
 .brv/
 .idea/workspace.xml
 .understand-anything/
+*.txt
+docs/*
