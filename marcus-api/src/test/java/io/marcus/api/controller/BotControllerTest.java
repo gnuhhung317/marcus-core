@@ -6,6 +6,8 @@ import io.marcus.api.security.JwtAuthenticationFilter;
 import io.marcus.application.dto.BotSummaryResult;
 import io.marcus.application.dto.BotRegistrationResult;
 import io.marcus.application.dto.RegisterBotRequest;
+import io.marcus.application.dto.UpdateBotStatusRequest;
+import io.marcus.application.dto.UpdateBotMetadataRequest;
 import io.marcus.application.exception.ForbiddenOperationException;
 import io.marcus.application.usecase.GetBotDetailUseCase;
 import io.marcus.application.usecase.GetBotIntegrationHealthUseCase;
@@ -13,9 +15,14 @@ import io.marcus.application.usecase.GetBotCredentialsUseCase;
 import io.marcus.application.usecase.ListDeveloperBotsUseCase;
 import io.marcus.application.usecase.ListPublicBotsUseCase;
 import io.marcus.application.usecase.RegisterBotUseCase;
+import io.marcus.application.usecase.UpdateBotStatusUseCase;
+import io.marcus.application.usecase.UpdateBotMetadataUseCase;
+import io.marcus.application.usecase.DeleteBotUseCase;
 import io.marcus.domain.port.AccessTokenPort;
 import io.marcus.domain.port.BotDiscoveryReadPort;
 import io.marcus.domain.port.UserProfileReadPort;
+import io.marcus.domain.model.Bot;
+import io.marcus.domain.vo.BotStatus;
 import io.marcus.infrastructure.security.BotSignatureInterceptor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,11 +37,14 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -66,6 +76,15 @@ class BotControllerTest {
 
     @MockBean
     private GetBotCredentialsUseCase getBotCredentialsUseCase;
+
+    @MockBean
+    private UpdateBotStatusUseCase updateBotStatusUseCase;
+
+    @MockBean
+    private UpdateBotMetadataUseCase updateBotMetadataUseCase;
+
+    @MockBean
+    private DeleteBotUseCase deleteBotUseCase;
 
     @MockBean
     private AccessTokenPort accessTokenPort;
@@ -177,5 +196,44 @@ class BotControllerTest {
                 .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
                 .andExpect(jsonPath("$.message").value("Invalid bot configuration"))
                 .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void shouldUpdateStatus() throws Exception {
+        UpdateBotStatusRequest request = new UpdateBotStatusRequest(BotStatus.PAUSED);
+        Bot response = Bot.builder().botId("bot_123").status(BotStatus.PAUSED).build();
+
+        when(updateBotStatusUseCase.execute("bot_123", BotStatus.PAUSED)).thenReturn(response);
+
+        mockMvc.perform(patch("/api/v1/bots/bot_123/status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.botId").value("bot_123"))
+                .andExpect(jsonPath("$.status").value("PAUSED"));
+    }
+
+    @Test
+    void shouldUpdateMetadata() throws Exception {
+        UpdateBotMetadataRequest request = new UpdateBotMetadataRequest("New Name", "New Desc", "BTCUSDT", null, null, null, null);
+        Bot response = Bot.builder().botId("bot_123").name("New Name").description("New Desc").tradingPair("BTCUSDT").build();
+
+        when(updateBotMetadataUseCase.execute(eq("bot_123"), any(UpdateBotMetadataRequest.class))).thenReturn(response);
+
+        mockMvc.perform(patch("/api/v1/bots/bot_123/metadata")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.botId").value("bot_123"))
+                .andExpect(jsonPath("$.name").value("New Name"))
+                .andExpect(jsonPath("$.description").value("New Desc"));
+    }
+
+    @Test
+    void shouldDeleteBot() throws Exception {
+        mockMvc.perform(delete("/api/v1/bots/bot_123"))
+                .andExpect(status().isNoContent());
+
+        verify(deleteBotUseCase).execute("bot_123");
     }
 }

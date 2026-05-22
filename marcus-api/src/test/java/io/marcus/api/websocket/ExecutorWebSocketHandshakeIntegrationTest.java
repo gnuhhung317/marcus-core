@@ -54,6 +54,18 @@ class ExecutorWebSocketHandshakeIntegrationTest {
     private UserSubscriptionPersistencePort userSubscriptionPersistencePort;
 
     @Mock
+    private io.marcus.domain.repository.SignalRepository signalRepository;
+
+    @Mock
+    private io.marcus.domain.port.ExecutorOnlineStatusPort executorOnlineStatusPort;
+
+    @Mock
+    private io.marcus.api.websocket.executor.ExecutorEventEventHandler executorEventEventHandler;
+
+    @Mock
+    private io.marcus.api.websocket.executor.AuditPushEventHandler auditPushEventHandler;
+
+    @Mock
     private WebSocketSession session;
 
     @InjectMocks

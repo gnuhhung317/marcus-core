@@ -3,19 +3,27 @@ package io.marcus.api.controller;
 import io.marcus.application.dto.BotSummaryResult;
 import io.marcus.application.dto.BotRegistrationResult;
 import io.marcus.application.dto.RegisterBotRequest;
+import io.marcus.application.dto.UpdateBotStatusRequest;
+import io.marcus.application.dto.UpdateBotMetadataRequest;
 import io.marcus.application.usecase.GetBotDetailUseCase;
 import io.marcus.application.usecase.ListDeveloperBotsUseCase;
 import io.marcus.application.usecase.ListPublicBotsUseCase;
 import io.marcus.application.usecase.RegisterBotUseCase;
 import io.marcus.application.usecase.GetBotIntegrationHealthUseCase;
 import io.marcus.application.usecase.GetBotCredentialsUseCase;
+import io.marcus.application.usecase.UpdateBotStatusUseCase;
+import io.marcus.application.usecase.UpdateBotMetadataUseCase;
+import io.marcus.application.usecase.DeleteBotUseCase;
 import io.marcus.domain.port.BotDiscoveryReadPort;
 import io.marcus.domain.port.PortfolioReadPort;
+import io.marcus.domain.model.Bot;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -36,6 +44,9 @@ public class BotController {
     private final GetBotDetailUseCase getBotDetailUseCase;
     private final GetBotIntegrationHealthUseCase getBotIntegrationHealthUseCase;
     private final GetBotCredentialsUseCase getBotCredentialsUseCase;
+    private final UpdateBotStatusUseCase updateBotStatusUseCase;
+    private final UpdateBotMetadataUseCase updateBotMetadataUseCase;
+    private final DeleteBotUseCase deleteBotUseCase;
 
     @PostMapping({"", "/register"})
     public ResponseEntity<BotRegistrationResult> registerBot(@Valid @RequestBody RegisterBotRequest botRequest) {
@@ -75,5 +86,27 @@ public class BotController {
     @GetMapping("/{botId}/credentials")
     public ResponseEntity<PortfolioReadPort.ApiKeySnapshot> getBotCredentials(@PathVariable String botId) {
         return ResponseEntity.ok(getBotCredentialsUseCase.execute(botId));
+    }
+
+    @PatchMapping("/{botId}/status")
+    public ResponseEntity<Bot> updateBotStatus(
+            @PathVariable String botId,
+            @RequestBody UpdateBotStatusRequest request
+    ) {
+        return ResponseEntity.ok(updateBotStatusUseCase.execute(botId, request.status()));
+    }
+
+    @PatchMapping("/{botId}/metadata")
+    public ResponseEntity<Bot> updateBotMetadata(
+            @PathVariable String botId,
+            @RequestBody UpdateBotMetadataRequest request
+    ) {
+        return ResponseEntity.ok(updateBotMetadataUseCase.execute(botId, request));
+    }
+
+    @DeleteMapping("/{botId}")
+    public ResponseEntity<Void> deleteBot(@PathVariable String botId) {
+        deleteBotUseCase.execute(botId);
+        return ResponseEntity.noContent().build();
     }
 }
