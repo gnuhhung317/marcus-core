@@ -75,6 +75,18 @@ public interface PortfolioReadPort {
                         LocalDateTime generatedTimestamp) {
         }
 
+        /**
+         * KPI summary for the Bot Operator Hub header.
+         * Delivery rate = successCount24h / max(totalDispatched24h, 1) * 100.
+         */
+        record BotSignalSummarySnapshot(
+                        long totalSignals24h,
+                        long successfulSignals24h,
+                        double deliveryRatePercent,
+                        int activeSubscriberCount,
+                        LocalDateTime lastSignalAt) {
+        }
+
         record ConnectivityHealthDependencySnapshot(String name, String status, int latencyMs) {
         }
 
@@ -164,6 +176,30 @@ public interface PortfolioReadPort {
         PaperSessionStateSnapshot resumePaperSession(String userId);
 
         List<SignalItemSnapshot> listSignals(String status, int limit);
+
+        /**
+         * List signals for a specific bot (developer view).
+         *
+         * @param botId  the bot identifier
+         * @param status lifecycle filter (ALL, RECEIVED, DISPATCHED, ACKNOWLEDGED, FAILED)
+         * @param limit  max rows to return
+         */
+        List<SignalItemSnapshot> listSignalsByBot(String botId, String status, int limit);
+
+        /**
+         * Look up a single signal by its unique identifier.
+         *
+         * @param signalId the signal identifier
+         * @return single-element list or empty list if not found
+         */
+        List<SignalItemSnapshot> listSignalsBySignalId(String signalId);
+
+        /**
+         * Aggregate KPI summary for the developer dashboard header.
+         *
+         * @param botId the bot identifier
+         */
+        BotSignalSummarySnapshot getBotSignalSummary(String botId);
 
         ConnectivityHealthSnapshot getSystemConnectivityHealth();
 

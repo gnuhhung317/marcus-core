@@ -81,7 +81,13 @@ class CaptureSignalRoutingFlowIntegrationTest {
                 "bot-1",
                 "BTCUSDT",
                 io.marcus.domain.vo.SignalAction.OPEN_LONG,
+                null,
+                null,
                 new java.math.BigDecimal("50000"),
+                null,
+                null,
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -117,7 +123,13 @@ class CaptureSignalRoutingFlowIntegrationTest {
                 "bot-1",
                 "BTCUSDT",
                 io.marcus.domain.vo.SignalAction.OPEN_LONG,
+                null,
+                null,
                 new java.math.BigDecimal("50000"),
+                null,
+                null,
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -135,7 +147,13 @@ class CaptureSignalRoutingFlowIntegrationTest {
                 "bot-1",
                 "BTCUSDT",
                 io.marcus.domain.vo.SignalAction.OPEN_LONG,
+                null,
+                null,
                 new java.math.BigDecimal("50000"),
+                null,
+                null,
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -278,6 +296,21 @@ class CaptureSignalRoutingFlowIntegrationTest {
         @Override
         public void updateStatus(String signalId, SignalStatus status) {
 
+        }
+
+        @Override
+        public Optional<Signal> findBySignalId(String signalId) {
+            return savedSignals.stream()
+                    .filter(signal -> signal.getSignalId().equals(signalId))
+                    .findFirst();
+        }
+
+        @Override
+        public List<Signal> findByBotId(String botId, int limit) {
+            return savedSignals.stream()
+                    .filter(signal -> signal.getBotId().equals(botId))
+                    .limit(limit)
+                    .toList();
         }
     }
 

@@ -6,6 +6,7 @@ import io.marcus.domain.vo.OrderType;
 import io.marcus.domain.vo.SignalAction;
 import io.marcus.domain.vo.SignalStatus;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -27,8 +28,8 @@ import java.util.Map;
  * </ul>
  */
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 public class Signal extends BaseModel {

@@ -71,9 +71,15 @@ class CaptureSignalUseCaseTest {
                 "bot-1",
                 "BTCUSDT",
                 SignalAction.OPEN_LONG,
+                null,
+                null,
                 new BigDecimal("50000"),
                 new BigDecimal("49000"),
                 new BigDecimal("55000"),
+                null,
+                null,
+                null,
+                null,
                 SignalStatus.RECEIVED,
                 LocalDateTime.now(),
                 "1h",
@@ -107,9 +113,15 @@ class CaptureSignalUseCaseTest {
                 "bot-1",
                 "BTCUSDT",
                 SignalAction.OPEN_LONG,
+                null,
+                null,
                 new BigDecimal("50000"),
                 new BigDecimal("49000"),
                 new BigDecimal("55000"),
+                null,
+                null,
+                null,
+                null,
                 SignalStatus.RECEIVED,
                 LocalDateTime.now(),
                 "1h",
@@ -150,7 +162,13 @@ class CaptureSignalUseCaseTest {
                 "bot-9",
                 "BTCUSDT",
                 SignalAction.OPEN_LONG,
+                null,
+                null,
                 new BigDecimal("50000"),
+                null,
+                null,
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -181,7 +199,13 @@ class CaptureSignalUseCaseTest {
                 "demo-bot-id",
                 "BTCUSDT",
                 SignalAction.OPEN_LONG,
+                null,
+                null,
                 new BigDecimal("50000"),
+                null,
+                null,
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -193,7 +217,7 @@ class CaptureSignalUseCaseTest {
         when(botRepository.findByBotId("demo-bot-id"))
                 .thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> useCase.execute(request));
+        io.marcus.domain.exception.BotNotFoundException exception = assertThrows(io.marcus.domain.exception.BotNotFoundException.class, () -> useCase.execute(request));
 
         assertEquals("Bot not found: demo-bot-id", exception.getMessage());
         verify(botRepository).findByBotId("demo-bot-id");
@@ -208,6 +232,12 @@ class CaptureSignalUseCaseTest {
                 "bot-1",
                 "BTCUSDT",
                 SignalAction.OPEN_LONG,
+                null,
+                null,
+                new BigDecimal("50000"),
+                null,
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -244,6 +274,12 @@ class CaptureSignalUseCaseTest {
                 null,
                 null,
                 null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
                 null
         );
 
@@ -252,7 +288,7 @@ class CaptureSignalUseCaseTest {
         when(signalRepository.existsBySignalId("signal-1"))
                 .thenReturn(true);
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> useCase.execute(request));
+        io.marcus.domain.exception.DuplicateSignalException exception = assertThrows(io.marcus.domain.exception.DuplicateSignalException.class, () -> useCase.execute(request));
 
         assertEquals("Signal already exists: signal-1", exception.getMessage());
         verify(signalRepository).existsBySignalId("signal-1");

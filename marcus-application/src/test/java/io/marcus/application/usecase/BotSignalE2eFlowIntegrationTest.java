@@ -101,6 +101,12 @@ class BotSignalE2eFlowIntegrationTest {
                 SignalAction.OPEN_LONG,
                 null,
                 null,
+                new java.math.BigDecimal("50000"),
+                null,
+                null,
+                null,
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -143,6 +149,12 @@ class BotSignalE2eFlowIntegrationTest {
                 SignalAction.OPEN_LONG,
                 null,
                 null,
+                new java.math.BigDecimal("50000"),
+                null,
+                null,
+                null,
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -157,6 +169,12 @@ class BotSignalE2eFlowIntegrationTest {
                 BOT_ID,
                 "BTC/USDT",
                 SignalAction.CLOSE_LONG,
+                null,
+                null,
+                new java.math.BigDecimal("50000"),
+                null,
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -194,6 +212,12 @@ class BotSignalE2eFlowIntegrationTest {
                 SignalAction.OPEN_LONG,
                 null,
                 null,
+                new java.math.BigDecimal("50000"),
+                null,
+                null,
+                null,
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -211,6 +235,12 @@ class BotSignalE2eFlowIntegrationTest {
                 BOT_ID,
                 "BTC/USDT",
                 SignalAction.CLOSE_LONG,
+                null,
+                null,
+                new java.math.BigDecimal("50000"),
+                null,
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -251,6 +281,12 @@ class BotSignalE2eFlowIntegrationTest {
                 BOT_ID,
                 "BTC/USDT",
                 SignalAction.OPEN_LONG,
+                null,
+                null,
+                new java.math.BigDecimal("50000"),
+                null,
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -390,8 +426,23 @@ class BotSignalE2eFlowIntegrationTest {
         }
 
         @Override
-        public void updateStatus(String signalId, SignalStatus status) {
+        public void updateStatus(String signalId, io.marcus.domain.vo.SignalStatus status) {
 
+        }
+
+        @Override
+        public java.util.Optional<Signal> findBySignalId(String signalId) {
+            return savedSignals.stream()
+                    .filter(signal -> signal.getSignalId().equals(signalId))
+                    .findFirst();
+        }
+
+        @Override
+        public java.util.List<Signal> findByBotId(String botId, int limit) {
+            return savedSignals.stream()
+                    .filter(signal -> signal.getBotId().equals(botId))
+                    .limit(limit)
+                    .toList();
         }
     }
 

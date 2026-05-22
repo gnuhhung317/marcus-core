@@ -37,8 +37,10 @@ public class SignalController {
     @GetMapping
     public ResponseEntity<List<PortfolioReadPort.SignalItemSnapshot>> listSignals(
             @RequestParam(required = false, defaultValue = "ALL") String status,
-            @RequestParam(required = false, defaultValue = "50") int limit
+            @RequestParam(required = false, defaultValue = "50") int limit,
+            @RequestParam(required = false) String botId,
+            @RequestParam(required = false) String signalId
     ) {
-        return ResponseEntity.ok(listSignalsUseCase.execute(status, limit));
+        return ResponseEntity.ok(listSignalsUseCase.execute(status, limit, botId, signalId));
     }
 }

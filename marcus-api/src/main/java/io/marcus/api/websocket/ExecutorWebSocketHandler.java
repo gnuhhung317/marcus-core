@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.marcus.api.websocket.executor.AuditPushEventHandler;
 import io.marcus.api.websocket.executor.ExecutorEventEventHandler;
+import io.marcus.domain.port.ExecutorOnlineStatusPort;
 import io.marcus.domain.port.UserSubscriptionPersistencePort;
 import io.marcus.domain.repository.SignalRepository;
 import io.marcus.domain.vo.SignalStatus;
@@ -39,6 +40,7 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
     private final ExecutorSessionRegistry sessionRegistry;
     private final UserSubscriptionPersistencePort userSubscriptionPersistencePort;
     private final SignalRepository signalRepository;
+    private final ExecutorOnlineStatusPort executorOnlineStatusPort;
     @Lazy
     private final ExecutorEventEventHandler executorEventEventHandler;
     @Lazy
@@ -47,6 +49,10 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         sessionRegistry.unregister(session);
+        String wsToken = (String) session.getAttributes().get(ExecutorHandshakeInterceptor.WS_TOKEN_ATTRIBUTE);
+        if (wsToken != null) {
+            executorOnlineStatusPort.markOffline(wsToken);
+        }
     }
 
     @Override
@@ -61,6 +67,10 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
             }
 
             if ("heartbeat".equals(frameType)) {
+                String wsToken = (String) session.getAttributes().get(ExecutorHandshakeInterceptor.WS_TOKEN_ATTRIBUTE);
+                if (wsToken != null) {
+                    executorOnlineStatusPort.markOnline(wsToken, 30);
+                }
                 sendFrame(session, buildAckFrame("heartbeat", "ok", null));
                 return;
             }
@@ -142,6 +152,7 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
         session.getAttributes().put(ExecutorHandshakeInterceptor.USER_ID_ATTRIBUTE, subscription.get().getUserId());
         session.getAttributes().put("botId", botId);
         userSubscriptionPersistencePort.markExecutorConnected(subscription.get().getUserSubscriptionId(), true);
+        executorOnlineStatusPort.markOnline(wsToken, 30);
         sendFrame(session, buildAckFrame("handshake", "ok", botId));
     }
 
@@ -172,6 +183,7 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
         session.getAttributes().put(ExecutorHandshakeInterceptor.USER_ID_ATTRIBUTE, subscription.get().getUserId());
         session.getAttributes().put("botId", botId);
         userSubscriptionPersistencePort.markExecutorConnected(subscription.get().getUserSubscriptionId(), true);
+        executorOnlineStatusPort.markOnline(wsToken, 30);
         sendFrame(session, buildAckFrame("subscribe", "ok", botId));
     }
 

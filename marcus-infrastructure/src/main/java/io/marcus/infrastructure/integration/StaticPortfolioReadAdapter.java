@@ -107,6 +107,103 @@ public class StaticPortfolioReadAdapter implements PortfolioReadPort {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<SignalItemSnapshot> listSignalsByBot(String botId, String status, int limit) {
+        if (botId == null || botId.isBlank()) {
+            throw new IllegalArgumentException("botId must not be blank");
+        }
+        int normalizedLimit = Math.max(1, Math.min(limit, 200));
+        String normalizedStatus = (status == null || status.isBlank()) ? "ALL" : status.trim().toUpperCase(Locale.ROOT);
+
+        // For simplicity we just use findByBotIdOrderByGeneratedTimestampDesc and filter in memory if status != ALL
+        // In a real system you'd add a method findByBotIdAndStatusStringOrderByGeneratedTimestampDesc
+        List<SignalEntity> signals = springDataSignalRepository.findByBotIdOrderByGeneratedTimestampDesc(
+                botId, PageRequest.of(0, normalizedLimit)
+        );
+
+        if (!"ALL".equals(normalizedStatus)) {
+            signals = signals.stream()
+                    .filter(s -> s.getStatus() != null && s.getStatus().name().equals(normalizedStatus))
+                    .toList();
+        }
+
+        return signals.stream()
+                .map(signal -> new SignalItemSnapshot(
+                        signal.getSignalId(),
+                        signal.getBotId(),
+                        resolveExchangeForSignal(signal.getBotId()),
+                        signal.getSymbol(),
+                        signal.getAction() != null ? signal.getAction().name() : "",
+                        signal.getEntry() != null ? signal.getEntry().doubleValue() : 0.0,
+                        signal.getStatus() != null ? signal.getStatus().name() : "",
+                        signal.getGeneratedTimestamp()
+                ))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SignalItemSnapshot> listSignalsBySignalId(String signalId) {
+        if (signalId == null || signalId.isBlank()) {
+            return List.of();
+        }
+        return springDataSignalRepository.findBySignalId(signalId)
+                .map(signal -> new SignalItemSnapshot(
+                        signal.getSignalId(),
+                        signal.getBotId(),
+                        resolveExchangeForSignal(signal.getBotId()),
+                        signal.getSymbol(),
+                        signal.getAction() != null ? signal.getAction().name() : "",
+                        signal.getEntry() != null ? signal.getEntry().doubleValue() : 0.0,
+                        signal.getStatus() != null ? signal.getStatus().name() : "",
+                        signal.getGeneratedTimestamp()
+                ))
+                .map(List::of)
+                .orElse(List.of());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BotSignalSummarySnapshot getBotSignalSummary(String botId) {
+        if (botId == null || botId.isBlank()) {
+            throw new IllegalArgumentException("botId must not be blank");
+        }
+
+        LocalDateTime since = LocalDateTime.now().minusHours(24);
+        List<SignalEntity> recent = springDataSignalRepository.findByBotIdAndCreatedAtAfter(botId, since);
+
+        long totalSignals24h = recent.size();
+        long success = recent.stream()
+                .filter(s -> SignalMetricsCalculator.deriveReturn(toSignalData(s)) > 0)
+                .count();
+
+        // Calculate active subscribers
+        // Using UserSubscription repository
+        List<UserSubscriptionEntity> subs = springDataUserSubscriptionRepository.findAll();
+        int activeSubscribers = (int) subs.stream()
+                .filter(s -> s.getBotId().equals(botId) && s.getStatus() == SubscriptionStatus.ACTIVE)
+                .count();
+
+        LocalDateTime lastSignalAt = springDataSignalRepository.findByBotIdOrderByGeneratedTimestampDesc(botId, PageRequest.of(0, 1))
+                .stream()
+                .findFirst()
+                .map(SignalEntity::getGeneratedTimestamp)
+                .orElse(null);
+
+        // Mock dispatched total for now since we don't persist per-subscriber dispatches yet
+        long totalDispatched24h = totalSignals24h * Math.max(1, activeSubscribers);
+        double deliveryRate = totalDispatched24h > 0 ? ((double) (success * Math.max(1, activeSubscribers)) / totalDispatched24h) * 100 : 100.0;
+        
+        return new BotSignalSummarySnapshot(
+                totalSignals24h,
+                success,
+                SignalMetricsCalculator.round4(deliveryRate),
+                activeSubscribers,
+                lastSignalAt
+        );
+    }
+
+    @Override
     public ConnectivityHealthSnapshot getSystemConnectivityHealth() {
         return new ConnectivityHealthSnapshot("UNKNOWN", LocalDateTime.now(), List.of());
     }

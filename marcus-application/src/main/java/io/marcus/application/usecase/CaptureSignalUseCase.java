@@ -55,27 +55,24 @@ public class CaptureSignalUseCase {
         }
 
         // --- Build domain object with defaults applied ---
-        Signal signal = Signal.builder()
-                .signalId(request.signalId())
-                .botId(request.botId())
-                .symbol(request.symbol())
-                .action(request.action())
-                .marketType(request.marketType() != null ? request.marketType() : MarketType.SPOT)
-                .orderType(effectiveOrderType)
-                .entry(request.entry())
-                .stopLoss(request.stopLoss())
-                .takeProfit(request.takeProfit())
-                .amount(request.amount())
-                .leverage(request.leverage() != null ? request.leverage() : 1)
-                .marginMode(request.marginMode() != null ? request.marginMode() : MarginMode.CROSS)
-                .reduceOnly(request.reduceOnly())
-                .status(request.status() != null ? request.status() : SignalStatus.RECEIVED)
-                .generatedTimestamp(request.generatedTimestamp() != null
-                        ? request.generatedTimestamp()
-                        : LocalDateTime.now())
-                .timeframe(request.timeframe())
-                .metadata(request.metadata())
-                .build();
+        Signal signal = new Signal();
+        signal.setSignalId(request.signalId());
+        signal.setBotId(request.botId());
+        signal.setSymbol(request.symbol());
+        signal.setAction(request.action());
+        signal.setMarketType(request.marketType() != null ? request.marketType() : MarketType.SPOT);
+        signal.setOrderType(effectiveOrderType);
+        signal.setEntry(request.entry());
+        signal.setStopLoss(request.stopLoss());
+        signal.setTakeProfit(request.takeProfit());
+        signal.setAmount(request.amount());
+        signal.setLeverage(request.leverage() != null ? request.leverage() : 1);
+        signal.setMarginMode(request.marginMode() != null ? request.marginMode() : MarginMode.CROSS);
+        signal.setReduceOnly(request.reduceOnly());
+        signal.setStatus(request.status() != null ? request.status() : SignalStatus.RECEIVED);
+        signal.setGeneratedTimestamp(request.generatedTimestamp() != null ? request.generatedTimestamp() : LocalDateTime.now());
+        signal.setTimeframe(request.timeframe());
+        signal.setMetadata(request.metadata());
 
         // 1. Persist to PostgreSQL first
         signalRepository.save(signal);

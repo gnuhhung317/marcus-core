@@ -102,11 +102,13 @@ class BotSignalDispatchFlowIntegrationTest {
         ExecutorEventEventHandler executorEventEventHandler = mock(ExecutorEventEventHandler.class);
         AuditPushEventHandler auditPushEventHandler = mock(AuditPushEventHandler.class);
         SignalRepository signalReposistory = new InMemorySignalRepository();
+        io.marcus.domain.port.ExecutorOnlineStatusPort executorOnlineStatusPort = mock(io.marcus.domain.port.ExecutorOnlineStatusPort.class);
         ExecutorWebSocketHandler webSocketHandler = new ExecutorWebSocketHandler(
                 objectMapper,
                 sessionRegistry,
                 subscriptionPersistencePort,
                 signalReposistory,
+                executorOnlineStatusPort,
                 executorEventEventHandler,
                 auditPushEventHandler);
 
@@ -140,7 +142,8 @@ class BotSignalDispatchFlowIntegrationTest {
                 .extracting(UserSubscription::isExecutorConnected)
                 .isEqualTo(true);
 
-        SignalDispatchKafkaConsumer consumer = new SignalDispatchKafkaConsumer(objectMapper, sessionRegistry);
+        SignalFrameBuilder signalFrameBuilder = new SignalFrameBuilder();
+        SignalDispatchKafkaConsumer consumer = new SignalDispatchKafkaConsumer(objectMapper, sessionRegistry, signalFrameBuilder);
         RecordingSignalServerDispatchPort signalServerDispatchPort = new RecordingSignalServerDispatchPort(consumer);
         ResolveBotRoutingTargetsUseCase resolveBotRoutingTargetsUseCase = new ResolveBotRoutingTargetsUseCase(
                 botSubscriberRoutingPort,
@@ -159,9 +162,15 @@ class BotSignalDispatchFlowIntegrationTest {
                 botId,
                 "BTC/USDT",
                 SignalAction.OPEN_LONG,
+                null,
+                null,
                 new BigDecimal("123.45"),
                 new BigDecimal("120.00"),
                 new BigDecimal("130.00"),
+                null,
+                null,
+                null,
+                null,
                 SignalStatus.RECEIVED,
                 LocalDateTime.parse("2026-05-01T00:00:00"),
                 null,
@@ -229,6 +238,16 @@ class BotSignalDispatchFlowIntegrationTest {
         @Override
         public void updateStatus(String signalId, SignalStatus status) {
 
+        }
+
+        @Override
+        public List<Signal> findByBotId(String botId, int limit) {
+            return List.of();
+        }
+
+        @Override
+        public Optional<Signal> findBySignalId(String signalId) {
+            return Optional.empty();
         }
     }
 

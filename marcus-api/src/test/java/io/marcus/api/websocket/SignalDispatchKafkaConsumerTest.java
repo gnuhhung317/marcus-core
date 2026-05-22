@@ -15,7 +15,8 @@ class SignalDispatchKafkaConsumerTest {
         ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
         ExecutorSessionRegistry sessionRegistry = mock(ExecutorSessionRegistry.class);
 
-        SignalDispatchKafkaConsumer consumer = new SignalDispatchKafkaConsumer(objectMapper, sessionRegistry);
+        SignalFrameBuilder signalFrameBuilder = new SignalFrameBuilder();
+        SignalDispatchKafkaConsumer consumer = new SignalDispatchKafkaConsumer(objectMapper, sessionRegistry, signalFrameBuilder);
 
         consumer.consume("""
             {"signalId":"sig-1","botId":"bot-1","symbol":"BTC/USDT","action":"OPEN_LONG","entry":123.45,"stopLoss":120.00,"takeProfit":130.00,"status":"RECEIVED","generatedTimestamp":"2026-05-01T00:00:00","metadata":{"strategy":"sma"}}
