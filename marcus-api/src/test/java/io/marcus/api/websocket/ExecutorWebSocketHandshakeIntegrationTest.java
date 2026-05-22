@@ -66,6 +66,9 @@ class ExecutorWebSocketHandshakeIntegrationTest {
     private io.marcus.api.websocket.executor.AuditPushEventHandler auditPushEventHandler;
 
     @Mock
+    private io.marcus.domain.port.RawEventPersistencePort rawEventPersistencePort;
+
+    @Mock
     private WebSocketSession session;
 
     @InjectMocks
@@ -254,7 +257,7 @@ class ExecutorWebSocketHandshakeIntegrationTest {
         ));
         handler.handleTextMessage(session, new TextMessage(heartbeatMessage));
 
-        // Assert: heartbeat ack received
+        // Assert: heartbeat ack received and persisted
         ArgumentCaptor<TextMessage> messageCaptor = ArgumentCaptor.forClass(TextMessage.class);
         verify(session).sendMessage(messageCaptor.capture());
 
@@ -263,6 +266,8 @@ class ExecutorWebSocketHandshakeIntegrationTest {
         assertEquals("ack", response.get("type").asText());
         assertEquals("ok", response.path("payload").path("status").asText());
         assertEquals("heartbeat", response.path("payload").path("ack_type").asText());
+
+        verify(rawEventPersistencePort, times(1)).save(any(io.marcus.domain.model.RawEvent.class));
     }
 
     @Test

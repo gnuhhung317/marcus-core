@@ -114,4 +114,18 @@ public class Signal extends BaseModel {
 
     /** Arbitrary key-value metadata for extensibility. */
     private Map<String, Object> metadata;
+
+    public boolean simulated() {
+        if (metadata == null) {
+            return false;
+        }
+        Object simulationVal = metadata.get("simulation");
+        if (simulationVal instanceof Boolean) {
+            return (Boolean) simulationVal;
+        }
+        if (simulationVal instanceof String) {
+            return Boolean.parseBoolean((String) simulationVal);
+        }
+        return false;
+    }
 }

@@ -8,3 +8,5 @@ target/*
 **.txt
 **.log
 docs/*
+memories/*
+sample_bot/*

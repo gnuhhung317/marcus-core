@@ -11,13 +11,20 @@ import io.marcus.infrastructure.persistence.SpringDataUserSubscriptionRepository
 import io.marcus.infrastructure.persistence.SpringDataUserPortfolioRepository;
 import io.marcus.infrastructure.persistence.entity.BotEntity;
 import io.marcus.infrastructure.persistence.entity.SignalEntity;
+import io.marcus.infrastructure.persistence.SpringDataRawEventRepository;
+import io.marcus.infrastructure.persistence.entity.RawEventEntity;
 import io.marcus.infrastructure.persistence.entity.UserPortfolioEntity;
 import io.marcus.infrastructure.persistence.entity.UserSubscriptionEntity;
 import lombok.RequiredArgsConstructor;
+import java.time.ZoneId;
+import java.util.Map;
+import java.util.Optional;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -34,6 +41,7 @@ public class StaticPortfolioReadAdapter implements PortfolioReadPort {
     private final SpringDataSignalRepository springDataSignalRepository;
     private final SpringDataUserSubscriptionRepository springDataUserSubscriptionRepository;
     private final SpringDataUserPortfolioRepository springDataUserPortfolioRepository;
+    private final SpringDataRawEventRepository springDataRawEventRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -101,7 +109,8 @@ public class StaticPortfolioReadAdapter implements PortfolioReadPort {
                         signal.getAction() != null ? signal.getAction().name() : "",
                         signal.getEntry() != null ? signal.getEntry().doubleValue() : 0.0,
                         signal.getStatus() != null ? signal.getStatus().name() : "",
-                        signal.getGeneratedTimestamp()
+                        signal.getGeneratedTimestamp(),
+                        isSimulated(signal)
                 ))
                 .toList();
     }
@@ -136,7 +145,8 @@ public class StaticPortfolioReadAdapter implements PortfolioReadPort {
                         signal.getAction() != null ? signal.getAction().name() : "",
                         signal.getEntry() != null ? signal.getEntry().doubleValue() : 0.0,
                         signal.getStatus() != null ? signal.getStatus().name() : "",
-                        signal.getGeneratedTimestamp()
+                        signal.getGeneratedTimestamp(),
+                        isSimulated(signal)
                 ))
                 .toList();
     }
@@ -156,7 +166,8 @@ public class StaticPortfolioReadAdapter implements PortfolioReadPort {
                         signal.getAction() != null ? signal.getAction().name() : "",
                         signal.getEntry() != null ? signal.getEntry().doubleValue() : 0.0,
                         signal.getStatus() != null ? signal.getStatus().name() : "",
-                        signal.getGeneratedTimestamp()
+                        signal.getGeneratedTimestamp(),
+                        isSimulated(signal)
                 ))
                 .map(List::of)
                 .orElse(List.of());
@@ -217,11 +228,7 @@ public class StaticPortfolioReadAdapter implements PortfolioReadPort {
         BotEntity bot = springDataBotRepository.findByBotId(botId)
                 .orElseThrow(() -> new NoSuchElementException("Bot not found: " + botId));
 
-        List<ConnectivityHealthDependencySnapshot> deps = List.of(
-                new ConnectivityHealthDependencySnapshot("Signal Router", "UP", 8),
-                new ConnectivityHealthDependencySnapshot("Price Feed", "UP", 12),
-                new ConnectivityHealthDependencySnapshot("Order Executor", "DEGRADED", 38)
-        );
+        Optional<RawEventEntity> latestHeartbeatOpt = springDataRawEventRepository.findLatestHeartbeatForBot(bot.getBotId());
 
         LocalDateTime lastSignalAt = springDataSignalRepository.findByBotId(bot.getBotId())
                 .stream()
@@ -230,8 +237,44 @@ public class StaticPortfolioReadAdapter implements PortfolioReadPort {
                 .max(LocalDateTime::compareTo)
                 .orElse(null);
 
-        String overall = (lastSignalAt != null && lastSignalAt.isAfter(LocalDateTime.now().minusHours(1))) ? "UP" : "DEGRADED";
-        String message = overall.equals("UP") ? "" : "No recent signal within 1 hour";
+        String wsStatus = "DOWN";
+        long wsLatency = 0;
+        if (latestHeartbeatOpt.isPresent()) {
+            Instant receivedAt = latestHeartbeatOpt.get().getReceivedAt();
+            Duration heartbeatAge = Duration.between(receivedAt, Instant.now());
+            long ageSecs = heartbeatAge.getSeconds();
+            if (ageSecs <= 60) {
+                wsStatus = "UP";
+                wsLatency = 15;
+            } else if (ageSecs <= 300) {
+                wsStatus = "DEGRADED";
+                wsLatency = 45;
+            } else {
+                wsStatus = "DOWN";
+                wsLatency = 999;
+            }
+        }
+
+        String sigStatus = wsStatus;
+
+        String overall;
+        String message;
+        if ("DOWN".equals(wsStatus)) {
+            overall = "DOWN";
+            message = "No heartbeat received within 5 minutes. Executor is offline.";
+        } else if ("DEGRADED".equals(wsStatus)) {
+            overall = "DEGRADED";
+            message = "WebSocket stream is degraded. Heartbeat latency is high.";
+        } else {
+            overall = "UP";
+            message = "System is fully healthy and active.";
+        }
+
+        List<ConnectivityHealthDependencySnapshot> deps = List.of(
+                new ConnectivityHealthDependencySnapshot("WebSocket Stream", wsStatus, (int) wsLatency),
+                new ConnectivityHealthDependencySnapshot("Signal Processor", sigStatus, 8),
+                new ConnectivityHealthDependencySnapshot("Order Executor", wsStatus.equals("DOWN") ? "DOWN" : "UP", 25)
+        );
 
         return new BotIntegrationHealthSnapshot(overall, LocalDateTime.now(), deps, lastSignalAt, message);
     }
@@ -288,8 +331,83 @@ public class StaticPortfolioReadAdapter implements PortfolioReadPort {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ExecutionLogPageSnapshot listSystemExecutionLogs(String cursor, int limit) {
-        return new ExecutionLogPageSnapshot(cursor, List.of());
+        int offset = 0;
+        if (cursor != null && !cursor.isBlank()) {
+            try {
+                offset = Integer.parseInt(cursor.trim());
+            } catch (NumberFormatException e) {
+                // Keep default 0 offset if unparseable
+            }
+        }
+
+        // Fetch limit + 1 records to check if hasMore is true
+        int fetchLimit = limit + 1;
+        List<RawEventEntity> entities = springDataRawEventRepository.findSystemExecutionLogs(fetchLimit, offset);
+
+        boolean hasMore = entities.size() > limit;
+        List<RawEventEntity> pageEntities = hasMore ? entities.subList(0, limit) : entities;
+
+        List<ExecutionLogItemSnapshot> items = pageEntities.stream()
+                .map(entity -> {
+                    LocalDateTime timestamp = LocalDateTime.ofInstant(entity.getReceivedAt(), ZoneId.systemDefault());
+                    String level = determineLogLevel(entity);
+                    String source = entity.getBotId() != null && !entity.getBotId().isBlank() ? entity.getBotId() : "system";
+                    String message = formatLogMessage(entity);
+                    return new ExecutionLogItemSnapshot(timestamp, level, source, message);
+                })
+                .collect(Collectors.toList());
+
+        String nextCursor = hasMore ? String.valueOf(offset + limit) : null;
+        return new ExecutionLogPageSnapshot(nextCursor, items);
+    }
+
+    private String determineLogLevel(RawEventEntity entity) {
+        if ("error".equalsIgnoreCase(entity.getType())) {
+            return "ERROR";
+        }
+        Map<String, Object> payload = entity.getPayload();
+        if (payload != null) {
+            Object status = payload.get("status");
+            if (status != null && ("FAILED".equalsIgnoreCase(status.toString()) || "ERROR".equalsIgnoreCase(status.toString()))) {
+                return "ERROR";
+            }
+            if (payload.containsKey("error") || payload.containsKey("errorMessage")) {
+                return "ERROR";
+            }
+        }
+        return "INFO";
+    }
+
+    private String formatLogMessage(RawEventEntity entity) {
+        String type = entity.getType();
+        Map<String, Object> payload = entity.getPayload();
+        if (payload == null) {
+            return "Event [" + type + "] received. CorrelationID: " + entity.getCorrelationId();
+        }
+        try {
+            if ("ingest".equalsIgnoreCase(type)) {
+                Object action = payload.get("action");
+                Object symbol = payload.get("symbol");
+                Object price = payload.get("price");
+                if (action != null && symbol != null) {
+                    return "Signal Ingested: " + action + " " + symbol + (price != null ? " @ " + price : "") + " (EventID: " + entity.getEventId() + ")";
+                }
+            } else if ("audit-push".equalsIgnoreCase(type)) {
+                Object kind = payload.get("kind");
+                if (kind != null) {
+                    return "Audit Push: " + kind + " received (Conn: " + entity.getSourceConnId() + ")";
+                }
+            } else if ("heartbeat".equalsIgnoreCase(type)) {
+                return "Heartbeat received (Conn: " + entity.getSourceConnId() + ", Seq: " + entity.getSequenceNo() + ")";
+            } else if ("ack".equalsIgnoreCase(type)) {
+                return "Acknowledgment received for EventID: " + payload.get("ackEventId") + " (Status: " + payload.get("status") + ")";
+            }
+        } catch (Exception e) {
+            // Fall through to default formatting
+        }
+        return "Event [" + type + "] processed. Correlation: " + entity.getCorrelationId() + ", EventID: " + entity.getEventId();
     }
 
     @Override
@@ -543,5 +661,19 @@ public class StaticPortfolioReadAdapter implements PortfolioReadPort {
             return bot.getTradingPair().toUpperCase(Locale.ROOT);
         }
         return "UNASSIGNED";
+    }
+
+    private boolean isSimulated(SignalEntity signal) {
+        if (signal == null || signal.getMetadata() == null) {
+            return false;
+        }
+        Object simulationVal = signal.getMetadata().get("simulation");
+        if (simulationVal instanceof Boolean) {
+            return (Boolean) simulationVal;
+        }
+        if (simulationVal instanceof String) {
+            return Boolean.parseBoolean((String) simulationVal);
+        }
+        return false;
     }
 }

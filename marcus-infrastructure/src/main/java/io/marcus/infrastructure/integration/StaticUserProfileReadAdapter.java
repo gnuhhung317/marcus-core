@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.NoSuchElementException;
 
 @Component
@@ -72,26 +71,5 @@ public class StaticUserProfileReadAdapter implements UserProfileReadPort {
                 savedUser.getEmail(),
                 savedUser.getRole() != null ? savedUser.getRole().name() : "USER"
         );
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public LoginActivityPageSnapshot listCurrentUserLoginActivities(String userId, int page, int size) {
-        if (userId == null || userId.isBlank()) {
-            throw new IllegalArgumentException("userId must not be blank");
-        }
-
-        int normalizedPage = Math.max(page, 0);
-        int normalizedSize = Math.max(1, Math.min(size, 100));
-
-        OffsetPaginationMetaSnapshot meta = new OffsetPaginationMetaSnapshot(
-                normalizedPage,
-                normalizedSize,
-                0,
-                0,
-                false
-        );
-
-        return new LoginActivityPageSnapshot(List.of(), meta);
     }
 }

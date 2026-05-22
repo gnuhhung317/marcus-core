@@ -296,4 +296,47 @@ class CaptureSignalUseCaseTest {
         verify(signalPublisherPort, never()).publish(any());
         verifyNoInteractions(resolveBotRoutingTargetsUseCase, signalServerDispatchPort);
     }
+
+    @Test
+    @DisplayName("Should bypass publish and dispatch when signal is simulated")
+    void shouldBypassPublishAndDispatchWhenSignalIsSimulated() {
+        HashMap<String, Object> metadata = new HashMap<>();
+        metadata.put("simulation", true);
+
+        CaptureSignalRequest request = new CaptureSignalRequest(
+                "signal-sim-1",
+                "bot-1",
+                "BTCUSDT",
+                SignalAction.OPEN_LONG,
+                null,
+                null,
+                new BigDecimal("50000"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                metadata
+        );
+
+        when(botRepository.findByBotId("bot-1"))
+                .thenReturn(Optional.of(new Bot()));
+        when(signalRepository.existsBySignalId("signal-sim-1"))
+                .thenReturn(false);
+
+        useCase.execute(request);
+
+        ArgumentCaptor<Signal> signalCaptor = ArgumentCaptor.forClass(Signal.class);
+        verify(signalRepository).save(signalCaptor.capture());
+        Signal savedSignal = signalCaptor.getValue();
+        assertEquals("signal-sim-1", savedSignal.getSignalId());
+        assertEquals(true, savedSignal.simulated());
+
+        verify(signalPublisherPort, never()).publish(any());
+        verify(signalServerDispatchPort, never()).dispatchToServers(any(), any());
+    }
 }

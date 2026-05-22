@@ -28,6 +28,10 @@ import java.util.Map;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+import io.marcus.domain.port.RawEventPersistencePort;
+import io.marcus.domain.model.RawEvent;
+import java.util.UUID;
+
 @Component
 @Slf4j
 @RequiredArgsConstructor
@@ -41,6 +45,7 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
     private final UserSubscriptionPersistencePort userSubscriptionPersistencePort;
     private final SignalRepository signalRepository;
     private final ExecutorOnlineStatusPort executorOnlineStatusPort;
+    private final RawEventPersistencePort rawEventPersistencePort;
     @Lazy
     private final ExecutorEventEventHandler executorEventEventHandler;
     @Lazy
@@ -71,6 +76,38 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
                 if (wsToken != null) {
                     executorOnlineStatusPort.markOnline(wsToken, 30);
                 }
+
+                String botId = (String) session.getAttributes().get("botId");
+                if (botId == null || botId.isBlank()) {
+                    botId = root.path("botId").asText(root.path("bot_id").asText(""));
+                }
+
+                if (botId != null && !botId.isBlank()) {
+                    try {
+                        String eventId = UUID.randomUUID().toString();
+                        RawEvent rawEvent = new RawEvent();
+                        rawEvent.setEventId(eventId);
+                        rawEvent.setBotId(botId);
+                        rawEvent.setIdempotencyKey("hb-key-" + eventId);
+                        rawEvent.setCorrelationId("hb-corr-" + eventId);
+                        rawEvent.setType("heartbeat");
+
+                        Map<String, Object> payloadMap = new HashMap<>();
+                        payloadMap.put("timestamp", root.path("timestamp").asText(Instant.now().toString()));
+                        rawEvent.setPayload(payloadMap);
+                        rawEvent.setReceivedAt(Instant.now());
+                        rawEvent.setSourceConnId(session.getId());
+                        rawEvent.setProcessed(true);
+                        rawEvent.setProcessedAt(Instant.now());
+
+                        rawEventPersistencePort.save(rawEvent);
+                    } catch (Exception e) {
+                        log.error("[WebSocket] Failed to persist heartbeat raw event for botId={}: {}", botId, e.getMessage(), e);
+                    }
+                } else {
+                    log.warn("[WebSocket] Received heartbeat with missing botId from session={}", session.getId());
+                }
+
                 sendFrame(session, buildAckFrame("heartbeat", "ok", null));
                 return;
             }

@@ -72,7 +72,8 @@ public interface PortfolioReadPort {
                         String action,
                         double price,
                         String status,
-                        LocalDateTime generatedTimestamp) {
+                        LocalDateTime generatedTimestamp,
+                        Boolean isSimulated) {
         }
 
         /**

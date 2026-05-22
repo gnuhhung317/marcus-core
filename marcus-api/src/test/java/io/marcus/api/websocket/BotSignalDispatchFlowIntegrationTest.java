@@ -103,12 +103,14 @@ class BotSignalDispatchFlowIntegrationTest {
         AuditPushEventHandler auditPushEventHandler = mock(AuditPushEventHandler.class);
         SignalRepository signalReposistory = new InMemorySignalRepository();
         io.marcus.domain.port.ExecutorOnlineStatusPort executorOnlineStatusPort = mock(io.marcus.domain.port.ExecutorOnlineStatusPort.class);
+        io.marcus.domain.port.RawEventPersistencePort rawEventPersistencePort = mock(io.marcus.domain.port.RawEventPersistencePort.class);
         ExecutorWebSocketHandler webSocketHandler = new ExecutorWebSocketHandler(
                 objectMapper,
                 sessionRegistry,
                 subscriptionPersistencePort,
                 signalReposistory,
                 executorOnlineStatusPort,
+                rawEventPersistencePort,
                 executorEventEventHandler,
                 auditPushEventHandler);
 

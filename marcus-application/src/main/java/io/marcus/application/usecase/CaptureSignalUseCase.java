@@ -76,9 +76,14 @@ public class CaptureSignalUseCase {
 
         // 1. Persist to PostgreSQL first
         signalRepository.save(signal);
-        log.info("[Signal] Captured signalId={} botId={} action={} marketType={} orderType={}",
+        log.info("[Signal] Captured signalId={} botId={} action={} marketType={} orderType={} (SIMULATION={})",
                 signal.getSignalId(), signal.getBotId(), signal.getAction(),
-                signal.getMarketType(), signal.getOrderType());
+                signal.getMarketType(), signal.getOrderType(), signal.simulated());
+
+        if (signal.simulated()) {
+            log.info("[Signal] Skipping Kafka publication and WebSocket dispatch for simulated signalId={}", signal.getSignalId());
+            return;
+        }
 
         // 2. Publish to Kafka (storage + global broadcast)
         signalPublisherPort.publish(signal);

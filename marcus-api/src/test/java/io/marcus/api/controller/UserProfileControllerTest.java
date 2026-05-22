@@ -5,7 +5,6 @@ import io.marcus.api.exception.GlobalExceptionsHandler;
 import io.marcus.api.security.JwtAuthenticationFilter;
 import io.marcus.application.dto.UpdateUserProfileRequest;
 import io.marcus.application.usecase.GetCurrentUserProfileUseCase;
-import io.marcus.application.usecase.ListCurrentUserLoginActivitiesUseCase;
 import io.marcus.application.usecase.UpdateCurrentUserProfileUseCase;
 import io.marcus.domain.port.UserProfileReadPort;
 import io.marcus.infrastructure.security.BotSignatureInterceptor;
@@ -19,9 +18,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-
-import java.time.LocalDateTime;
-import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -47,9 +43,6 @@ class UserProfileControllerTest {
 
     @MockBean
     private UpdateCurrentUserProfileUseCase updateCurrentUserProfileUseCase;
-
-    @MockBean
-    private ListCurrentUserLoginActivitiesUseCase listCurrentUserLoginActivitiesUseCase;
 
     @MockBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -92,24 +85,5 @@ class UserProfileControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("trader_2"))
                 .andExpect(jsonPath("$.email").value("trader2@marcus.local"));
-    }
-
-    @Test
-    void shouldListCurrentUserLoginActivities() throws Exception {
-        when(listCurrentUserLoginActivitiesUseCase.execute(0, 20))
-                .thenReturn(new UserProfileReadPort.LoginActivityPageSnapshot(
-                        List.of(new UserProfileReadPort.LoginActivitySnapshot(
-                                LocalDateTime.of(2026, 4, 2, 10, 0),
-                                "127.0.0.1",
-                                "MarcusTerminal/2.0",
-                                true
-                        )),
-                        new UserProfileReadPort.OffsetPaginationMetaSnapshot(0, 20, 1, 1, false)
-                ));
-
-        mockMvc.perform(get("/api/v1/users/me/login-activities").param("page", "0").param("size", "20"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[0].ipAddress").value("127.0.0.1"))
-                .andExpect(jsonPath("$.meta.page").value(0));
     }
 }
