@@ -1,7 +1,7 @@
 package io.marcus.application.usecase;
 
 import io.marcus.application.exception.UnauthenticatedException;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.PortfolioReadPort;
 import io.marcus.domain.service.IdentityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,7 +28,7 @@ import java.util.List;
 public class GetPortfolioDecisionsUseCase {
 
     private final IdentityService identityService;
-    private final TerminalReadPort terminalReadPort;
+    private final PortfolioReadPort portfolioReadPort;
 
     /**
      * Execute portfolio decisions query for current user.
@@ -38,9 +38,9 @@ public class GetPortfolioDecisionsUseCase {
      * @return sorted list of decision-enriched subscriptions
      * @throws UnauthenticatedException if user is not authenticated
      */
-    public List<TerminalReadPort.SubscriptionDecisionSnapshot> execute(String statusFilter) {
+    public List<PortfolioReadPort.SubscriptionDecisionSnapshot> execute(String statusFilter) {
         String userId = identityService.getCurrentUserId()
                 .orElseThrow(() -> new UnauthenticatedException("No authenticated user found"));
-        return terminalReadPort.getSubscriptionDecisions(userId, statusFilter);
+        return portfolioReadPort.getSubscriptionDecisions(userId, statusFilter);
     }
 }

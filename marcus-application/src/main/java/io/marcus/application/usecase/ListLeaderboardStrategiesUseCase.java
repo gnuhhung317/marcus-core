@@ -1,6 +1,6 @@
 package io.marcus.application.usecase;
 
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.BotDiscoveryReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -8,9 +8,9 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class ListLeaderboardStrategiesUseCase {
 
-    private final TerminalReadPort terminalReadPort;
+    private final BotDiscoveryReadPort botDiscoveryReadPort;
 
-    public TerminalReadPort.LeaderboardStrategiesPageSnapshot execute(
+    public BotDiscoveryReadPort.LeaderboardStrategiesPageSnapshot execute(
             String timeframe,
             String market,
             String asset,
@@ -21,7 +21,7 @@ public class ListLeaderboardStrategiesUseCase {
         int normalizedPage = Math.max(page, 0);
         int normalizedSize = Math.max(1, Math.min(size, 100));
 
-        return terminalReadPort.listLeaderboardStrategies(
+        return botDiscoveryReadPort.listLeaderboardStrategies(
                 timeframe,
                 market,
                 asset,

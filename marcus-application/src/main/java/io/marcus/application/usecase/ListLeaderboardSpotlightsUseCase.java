@@ -1,6 +1,6 @@
 package io.marcus.application.usecase;
 
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.BotDiscoveryReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -10,9 +10,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ListLeaderboardSpotlightsUseCase {
 
-    private final TerminalReadPort terminalReadPort;
+    private final BotDiscoveryReadPort botDiscoveryReadPort;
 
-    public List<TerminalReadPort.StrategySpotlightSnapshot> execute() {
-        return terminalReadPort.listLeaderboardSpotlights();
+    public List<BotDiscoveryReadPort.StrategySpotlightSnapshot> execute() {
+        return botDiscoveryReadPort.listLeaderboardSpotlights();
     }
 }

@@ -3,15 +3,11 @@ package io.marcus.api.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.marcus.api.exception.GlobalExceptionsHandler;
 import io.marcus.api.security.JwtAuthenticationFilter;
-import io.marcus.application.dto.CreateApiKeyRequest;
-import io.marcus.application.dto.UpdateUserPreferencesRequest;
-import io.marcus.application.usecase.CreateCurrentUserApiKeyUseCase;
-import io.marcus.application.usecase.DeleteCurrentUserApiKeyUseCase;
+import io.marcus.application.dto.UpdateUserProfileRequest;
 import io.marcus.application.usecase.GetCurrentUserProfileUseCase;
-import io.marcus.application.usecase.ListCurrentUserApiKeysUseCase;
 import io.marcus.application.usecase.ListCurrentUserLoginActivitiesUseCase;
-import io.marcus.application.usecase.UpdateCurrentUserPreferencesUseCase;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.application.usecase.UpdateCurrentUserProfileUseCase;
+import io.marcus.domain.port.UserProfileReadPort;
 import io.marcus.infrastructure.security.BotSignatureInterceptor;
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,9 +26,7 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -52,16 +46,7 @@ class UserProfileControllerTest {
     private GetCurrentUserProfileUseCase getCurrentUserProfileUseCase;
 
     @MockBean
-    private ListCurrentUserApiKeysUseCase listCurrentUserApiKeysUseCase;
-
-    @MockBean
-    private UpdateCurrentUserPreferencesUseCase updateCurrentUserPreferencesUseCase;
-
-    @MockBean
-    private CreateCurrentUserApiKeyUseCase createCurrentUserApiKeyUseCase;
-
-    @MockBean
-    private DeleteCurrentUserApiKeyUseCase deleteCurrentUserApiKeyUseCase;
+    private UpdateCurrentUserProfileUseCase updateCurrentUserProfileUseCase;
 
     @MockBean
     private ListCurrentUserLoginActivitiesUseCase listCurrentUserLoginActivitiesUseCase;
@@ -88,7 +73,7 @@ class UserProfileControllerTest {
     @Test
     void shouldGetCurrentUserProfile() throws Exception {
         when(getCurrentUserProfileUseCase.execute())
-                .thenReturn(new TerminalReadPort.UserProfileSnapshot("usr_1", "trader_1", "trader@marcus.local", "USER"));
+                .thenReturn(new UserProfileReadPort.UserProfileSnapshot("usr_1", "trader_1", "trader@marcus.local", "USER"));
 
         mockMvc.perform(get("/api/v1/users/me"))
                 .andExpect(status().isOk())
@@ -96,66 +81,30 @@ class UserProfileControllerTest {
     }
 
     @Test
-    void shouldUpdateCurrentUserPreferences() throws Exception {
-        UpdateUserPreferencesRequest request = new UpdateUserPreferencesRequest("UTC", "en-US", true);
-        when(updateCurrentUserPreferencesUseCase.execute(any(UpdateUserPreferencesRequest.class)))
-                .thenReturn(new TerminalReadPort.UserPreferencesSnapshot("UTC", "en-US", true));
+    void shouldUpdateCurrentUserProfile() throws Exception {
+        UpdateUserProfileRequest request = new UpdateUserProfileRequest("trader_2", "trader2@marcus.local");
+        when(updateCurrentUserProfileUseCase.execute(any(UpdateUserProfileRequest.class)))
+                .thenReturn(new UserProfileReadPort.UserProfileSnapshot("usr_1", "trader_2", "trader2@marcus.local", "USER"));
 
-        mockMvc.perform(put("/api/v1/users/me/preferences")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(put("/api/v1/users/me")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.timezone").value("UTC"));
-    }
-
-    @Test
-    void shouldListCurrentUserApiKeys() throws Exception {
-        when(listCurrentUserApiKeysUseCase.execute())
-                .thenReturn(List.of(
-                        new TerminalReadPort.ApiKeySummarySnapshot(
-                                "key_1",
-                                "Terminal",
-                                "mk_live_****ab",
-                                LocalDateTime.of(2026, 4, 1, 1, 0),
-                                LocalDateTime.of(2026, 4, 2, 1, 0)
-                        )
-                ));
-
-        mockMvc.perform(get("/api/v1/users/me/api-keys"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].apiKeyId").value("key_1"));
-    }
-
-    @Test
-    void shouldCreateCurrentUserApiKey() throws Exception {
-        CreateApiKeyRequest request = new CreateApiKeyRequest("Terminal");
-        when(createCurrentUserApiKeyUseCase.execute(any(CreateApiKeyRequest.class)))
-                .thenReturn(new TerminalReadPort.CreateApiKeySnapshot("key_1", "mk_live_secret", "Terminal"));
-
-        mockMvc.perform(post("/api/v1/users/me/api-keys")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.key").value("mk_live_secret"));
-    }
-
-    @Test
-    void shouldDeleteCurrentUserApiKey() throws Exception {
-        mockMvc.perform(delete("/api/v1/users/me/api-keys/key_1"))
-                .andExpect(status().isNoContent());
+                .andExpect(jsonPath("$.username").value("trader_2"))
+                .andExpect(jsonPath("$.email").value("trader2@marcus.local"));
     }
 
     @Test
     void shouldListCurrentUserLoginActivities() throws Exception {
         when(listCurrentUserLoginActivitiesUseCase.execute(0, 20))
-                .thenReturn(new TerminalReadPort.LoginActivityPageSnapshot(
-                        List.of(new TerminalReadPort.LoginActivitySnapshot(
+                .thenReturn(new UserProfileReadPort.LoginActivityPageSnapshot(
+                        List.of(new UserProfileReadPort.LoginActivitySnapshot(
                                 LocalDateTime.of(2026, 4, 2, 10, 0),
                                 "127.0.0.1",
                                 "MarcusTerminal/2.0",
                                 true
                         )),
-                        new TerminalReadPort.OffsetPaginationMetaSnapshot(0, 20, 1, 1, false)
+                        new UserProfileReadPort.OffsetPaginationMetaSnapshot(0, 20, 1, 1, false)
                 ));
 
         mockMvc.perform(get("/api/v1/users/me/login-activities").param("page", "0").param("size", "20"))

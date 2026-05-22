@@ -9,7 +9,9 @@ import io.marcus.application.usecase.ListPublicBotsUseCase;
 import io.marcus.application.usecase.RegisterBotUseCase;
 import io.marcus.application.usecase.GetBotIntegrationHealthUseCase;
 import io.marcus.application.usecase.GetBotCredentialsUseCase;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.BotDiscoveryReadPort;
+import io.marcus.domain.port.PortfolioReadPort;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -36,13 +38,13 @@ public class BotController {
     private final GetBotCredentialsUseCase getBotCredentialsUseCase;
 
     @PostMapping({"", "/register"})
-    public ResponseEntity<BotRegistrationResult> registerBot(@RequestBody RegisterBotRequest botRequest) {
+    public ResponseEntity<BotRegistrationResult> registerBot(@Valid @RequestBody RegisterBotRequest botRequest) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(registerBotUseCase.execute(botRequest));
     }
 
     @GetMapping
-    public ResponseEntity<TerminalReadPort.BotDiscoveryPageSnapshot> listPublicBots(
+    public ResponseEntity<BotDiscoveryReadPort.BotDiscoveryPageSnapshot> listPublicBots(
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String asset,
             @RequestParam(required = false) String risk,
@@ -59,19 +61,19 @@ public class BotController {
     }
 
     @GetMapping("/{botId}")
-    public ResponseEntity<TerminalReadPort.BotDetailSnapshot> getBotDetail(
+    public ResponseEntity<BotDiscoveryReadPort.BotDetailSnapshot> getBotDetail(
             @PathVariable String botId
     ) {
         return ResponseEntity.ok(getBotDetailUseCase.execute(botId));
     }
 
     @GetMapping("/{botId}/integration-health")
-    public ResponseEntity<TerminalReadPort.BotIntegrationHealthSnapshot> getBotIntegrationHealth(@PathVariable String botId) {
+    public ResponseEntity<PortfolioReadPort.BotIntegrationHealthSnapshot> getBotIntegrationHealth(@PathVariable String botId) {
         return ResponseEntity.ok(getBotIntegrationHealthUseCase.execute(botId));
     }
 
     @GetMapping("/{botId}/credentials")
-    public ResponseEntity<TerminalReadPort.ApiKeySnapshot> getBotCredentials(@PathVariable String botId) {
+    public ResponseEntity<PortfolioReadPort.ApiKeySnapshot> getBotCredentials(@PathVariable String botId) {
         return ResponseEntity.ok(getBotCredentialsUseCase.execute(botId));
     }
 }

@@ -1,6 +1,7 @@
 package io.marcus.application.usecase;
 
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.BotDiscoveryReadPort;
+import io.marcus.domain.port.UserProfileReadPort.OffsetPaginationMetaSnapshot;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -20,21 +21,21 @@ import static org.mockito.Mockito.when;
 class ListPublicBotsUseCaseTest {
 
     @Mock
-    private TerminalReadPort terminalReadPort;
+    private BotDiscoveryReadPort botDiscoveryReadPort;
 
     @InjectMocks
     private ListPublicBotsUseCase listPublicBotsUseCase;
 
     @Test
     void shouldNormalizeQueryFiltersAndPagination() {
-        TerminalReadPort.BotDiscoveryPageSnapshot snapshot = new TerminalReadPort.BotDiscoveryPageSnapshot(
+        BotDiscoveryReadPort.BotDiscoveryPageSnapshot snapshot = new BotDiscoveryReadPort.BotDiscoveryPageSnapshot(
                 List.of(),
-                new TerminalReadPort.OffsetPaginationMetaSnapshot(0, 100, 0, 0, false)
+                new OffsetPaginationMetaSnapshot(0, 100, 0, 0, false)
         );
-        when(terminalReadPort.listPublicBots("momentum", "BTCUSDT", "LOW", "-return", 0, 100))
+        when(botDiscoveryReadPort.listPublicBots("momentum", "BTCUSDT", "LOW", "-return", 0, 100))
                 .thenReturn(snapshot);
 
-        TerminalReadPort.BotDiscoveryPageSnapshot result = listPublicBotsUseCase.execute(
+        BotDiscoveryReadPort.BotDiscoveryPageSnapshot result = listPublicBotsUseCase.execute(
                 " momentum ",
                 " btcusdt ",
                 " low ",
@@ -44,7 +45,7 @@ class ListPublicBotsUseCaseTest {
         );
 
         assertSame(snapshot, result);
-        verify(terminalReadPort).listPublicBots("momentum", "BTCUSDT", "LOW", "-return", 0, 100);
+        verify(botDiscoveryReadPort).listPublicBots("momentum", "BTCUSDT", "LOW", "-return", 0, 100);
     }
 
     @Test
@@ -54,7 +55,7 @@ class ListPublicBotsUseCaseTest {
         );
 
         assertEquals("Unsupported risk: EXTREME", thrown.getMessage());
-        verifyNoInteractions(terminalReadPort);
+        verifyNoInteractions(botDiscoveryReadPort);
     }
 
     @Test
@@ -64,6 +65,6 @@ class ListPublicBotsUseCaseTest {
         );
 
         assertEquals("Unsupported sort: alpha", thrown.getMessage());
-        verifyNoInteractions(terminalReadPort);
+        verifyNoInteractions(botDiscoveryReadPort);
     }
 }

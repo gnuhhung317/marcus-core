@@ -8,6 +8,7 @@ import io.marcus.application.usecase.RemoveBotSubscriberUseCase;
 import io.marcus.application.usecase.RemoveUserSessionUseCase;
 import io.marcus.application.usecase.UpsertBotSubscriberUseCase;
 import io.marcus.application.usecase.UpsertUserSessionUseCase;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -39,13 +40,13 @@ public class RoutingController {
     }
 
     @PostMapping("/sessions")
-    public ResponseEntity<Void> upsertUserSession(@RequestBody UpsertUserSessionRequest request) {
+    public ResponseEntity<Void> upsertUserSession(@Valid @RequestBody UpsertUserSessionRequest request) {
         upsertUserSessionUseCase.execute(request);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/subscribers")
-    public ResponseEntity<Void> upsertBotSubscriber(@RequestBody UpsertBotSubscriberRequest request) {
+    public ResponseEntity<Void> upsertBotSubscriber(@Valid @RequestBody UpsertBotSubscriberRequest request) {
         upsertBotSubscriberUseCase.execute(request);
         return ResponseEntity.noContent().build();
     }

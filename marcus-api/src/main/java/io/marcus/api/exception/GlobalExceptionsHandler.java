@@ -1,7 +1,7 @@
 package io.marcus.api.exception;
 
 import io.marcus.application.exception.ForbiddenOperationException;
-import io.marcus.application.exception.ResourceConflictException;
+import io.marcus.domain.exception.ResourceConflictException;
 import io.marcus.application.exception.UnauthenticatedException;
 import io.marcus.domain.exception.BotNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,6 +17,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
+
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 
 @RestControllerAdvice
 @Slf4j
@@ -95,6 +99,38 @@ public class GlobalExceptionsHandler {
                 errors,
                 request
         );
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.FORBIDDEN, "FORBIDDEN", ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponse> handleMissingParameter(MissingServletRequestParameterException ex, HttpServletRequest request) {
+        return buildErrorResponse(
+                HttpStatus.BAD_REQUEST,
+                "MISSING_PARAMETER",
+                String.format("Missing required parameter: %s", ex.getParameterName()),
+                request
+        );
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotAllowed(HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
+        String traceId = resolveTraceId(request);
+        ErrorResponse response = new ErrorResponse(
+                "METHOD_NOT_ALLOWED",
+                ex.getMessage(),
+                HttpStatus.METHOD_NOT_ALLOWED.value(),
+                traceId,
+                request.getRequestURI(),
+                Instant.now()
+        );
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .header(org.springframework.http.HttpHeaders.ALLOW, String.join(", ", ex.getSupportedMethods()))
+                .header("X-Trace-Id", traceId)
+                .body(response);
     }
 
     @ExceptionHandler(Exception.class)

@@ -1,6 +1,6 @@
 package io.marcus.application.usecase;
 
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.PortfolioReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -8,10 +8,10 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class ListSystemExecutionLogsUseCase {
 
-    private final TerminalReadPort terminalReadPort;
+    private final PortfolioReadPort portfolioReadPort;
 
-    public TerminalReadPort.ExecutionLogPageSnapshot execute(String cursor, int limit) {
+    public PortfolioReadPort.ExecutionLogPageSnapshot execute(String cursor, int limit) {
         int normalizedLimit = Math.max(1, Math.min(limit, 200));
-        return terminalReadPort.listSystemExecutionLogs(cursor, normalizedLimit);
+        return portfolioReadPort.listSystemExecutionLogs(cursor, normalizedLimit);
     }
 }

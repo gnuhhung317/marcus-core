@@ -1,6 +1,6 @@
 package io.marcus.application.usecase;
 
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.BotDiscoveryReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -8,12 +8,12 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class GetStrategyDetailUseCase {
 
-    private final TerminalReadPort terminalReadPort;
+    private final BotDiscoveryReadPort botDiscoveryReadPort;
 
-    public TerminalReadPort.StrategyDetailSnapshot execute(String strategyId) {
+    public BotDiscoveryReadPort.StrategyDetailSnapshot execute(String strategyId) {
         if (strategyId == null || strategyId.isBlank()) {
             throw new IllegalArgumentException("Strategy id is required");
         }
-        return terminalReadPort.getStrategyDetail(strategyId.trim());
+        return botDiscoveryReadPort.getStrategyDetail(strategyId.trim());
     }
 }

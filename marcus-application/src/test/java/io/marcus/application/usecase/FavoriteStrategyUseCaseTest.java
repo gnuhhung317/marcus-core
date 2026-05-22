@@ -1,7 +1,7 @@
 package io.marcus.application.usecase;
 
 import io.marcus.application.exception.ForbiddenOperationException;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.BotDiscoveryReadPort;
 import io.marcus.domain.repository.UserRepository;
 import io.marcus.domain.service.IdentityService;
 import io.marcus.domain.vo.Role;
@@ -29,7 +29,7 @@ class FavoriteStrategyUseCaseTest {
     private UserRepository userRepository;
 
     @Mock
-    private TerminalReadPort terminalReadPort;
+    private BotDiscoveryReadPort botDiscoveryReadPort;
 
     @InjectMocks
     private FavoriteStrategyUseCase favoriteStrategyUseCase;
@@ -38,13 +38,13 @@ class FavoriteStrategyUseCaseTest {
     void shouldFavoriteStrategyForTraderUser() {
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("user-1"));
         when(userRepository.existsByIdAndRole("user-1", Role.USER)).thenReturn(true);
-        TerminalReadPort.FavoriteStrategySnapshot snapshot = new TerminalReadPort.FavoriteStrategySnapshot("strat-1", true);
-        when(terminalReadPort.favoriteStrategy("user-1", "strat-1")).thenReturn(snapshot);
+        BotDiscoveryReadPort.FavoriteStrategySnapshot snapshot = new BotDiscoveryReadPort.FavoriteStrategySnapshot("strat-1", true);
+        when(botDiscoveryReadPort.favoriteStrategy("user-1", "strat-1")).thenReturn(snapshot);
 
-        TerminalReadPort.FavoriteStrategySnapshot result = favoriteStrategyUseCase.execute(" strat-1 ");
+        BotDiscoveryReadPort.FavoriteStrategySnapshot result = favoriteStrategyUseCase.execute(" strat-1 ");
 
         assertEquals(snapshot, result);
-        verify(terminalReadPort).favoriteStrategy("user-1", "strat-1");
+        verify(botDiscoveryReadPort).favoriteStrategy("user-1", "strat-1");
     }
 
     @Test
@@ -54,7 +54,7 @@ class FavoriteStrategyUseCaseTest {
 
         assertThrows(ForbiddenOperationException.class, () -> favoriteStrategyUseCase.execute("strat-1"));
 
-        verifyNoInteractions(terminalReadPort);
+        verifyNoInteractions(botDiscoveryReadPort);
     }
 
     @Test
@@ -64,6 +64,6 @@ class FavoriteStrategyUseCaseTest {
 
         assertThrows(IllegalArgumentException.class, () -> favoriteStrategyUseCase.execute("   "));
 
-        verifyNoInteractions(terminalReadPort);
+        verifyNoInteractions(botDiscoveryReadPort);
     }
 }

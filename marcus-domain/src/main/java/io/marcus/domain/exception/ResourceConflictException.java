@@ -1,4 +1,4 @@
-package io.marcus.application.exception;
+package io.marcus.domain.exception;
 
 public class ResourceConflictException extends RuntimeException {
 

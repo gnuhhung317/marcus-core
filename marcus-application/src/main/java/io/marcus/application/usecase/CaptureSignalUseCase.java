@@ -1,7 +1,9 @@
 package io.marcus.application.usecase;
 
+import io.marcus.application.dto.CaptureSignalRequest;
 import io.marcus.application.dto.ResolveBotRoutingTargetsRequest;
 import io.marcus.domain.model.Signal;
+import io.marcus.domain.vo.SignalStatus;
 import io.marcus.domain.port.SignalPublisherPort;
 import io.marcus.domain.port.SignalServerDispatchPort;
 import io.marcus.domain.repository.BotRepository;
@@ -9,6 +11,7 @@ import io.marcus.domain.repository.SignalRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 
 @Service
@@ -21,26 +24,34 @@ public class CaptureSignalUseCase {
     private final SignalPublisherPort signalPublisherPort;
     private final SignalServerDispatchPort signalServerDispatchPort;
 
-    public void execute(Signal signal) {
-        if (signal == null) {
-            throw new IllegalArgumentException("Signal is required");
-        }
-        if (signal.getBotId() == null || signal.getBotId().isBlank()) {
-            throw new IllegalArgumentException("Signal bot id is required");
-        }
-        if (signal.getSignalId() == null || signal.getSignalId().isBlank()) {
-            throw new IllegalArgumentException("Signal id is required");
+    public void execute(CaptureSignalRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Signal request is required");
         }
 
         // Validate that the bot exists in the database
-        if (!botRepository.findByBotId(signal.getBotId()).isPresent()) {
-            throw new IllegalArgumentException("Bot not found: " + signal.getBotId());
+        if (!botRepository.findByBotId(request.botId()).isPresent()) {
+            throw new IllegalArgumentException("Bot not found: " + request.botId());
         }
 
         // Check for duplicate signal ID
-        if (signalRepository.existsBySignalId(signal.getSignalId())) {
-            throw new IllegalArgumentException("Signal already exists: " + signal.getSignalId());
+        if (signalRepository.existsBySignalId(request.signalId())) {
+            throw new IllegalArgumentException("Signal already exists: " + request.signalId());
         }
+
+        Signal signal = Signal.builder()
+                .signalId(request.signalId())
+                .botId(request.botId())
+                .symbol(request.symbol())
+                .action(request.action())
+                .entry(request.entry())
+                .stopLoss(request.stopLoss())
+                .takeProfit(request.takeProfit())
+                .status(request.status() != null ? request.status() : SignalStatus.RECEIVED)
+                .generatedTimestamp(request.generatedTimestamp() != null ? request.generatedTimestamp() : LocalDateTime.now())
+                .timeframe(request.timeframe())
+                .metadata(request.metadata())
+                .build();
 
         // 1. Persist signal to PostgreSQL first
         signalRepository.save(signal);
@@ -57,5 +68,4 @@ public class CaptureSignalUseCase {
         // 3. Dispatch signal to target servers for real-time routing
         signalServerDispatchPort.dispatchToServers(signal, targetServerIds);
     }
-
 }

@@ -1,6 +1,6 @@
 package io.marcus.application.usecase;
 
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.BotDiscoveryReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -8,12 +8,12 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class GetBotDetailUseCase {
 
-    private final TerminalReadPort terminalReadPort;
+    private final BotDiscoveryReadPort botDiscoveryReadPort;
 
-    public TerminalReadPort.BotDetailSnapshot execute(String botId) {
+    public BotDiscoveryReadPort.BotDetailSnapshot execute(String botId) {
         if (botId == null || botId.isBlank()) {
             throw new IllegalArgumentException("Bot id is required");
         }
-        return terminalReadPort.getBotDetail(botId.trim());
+        return botDiscoveryReadPort.getBotDetail(botId.trim());
     }
 }

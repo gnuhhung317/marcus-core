@@ -51,17 +51,17 @@ class SubscriptionControllerTest {
     @MockBean
     private ListMySubscriptionsUseCase listMySubscriptionsUseCase;
 
-        @MockBean
-        private UnsubscribeFromBotUseCase unsubscribeFromBotUseCase;
+    @MockBean
+    private UnsubscribeFromBotUseCase unsubscribeFromBotUseCase;
 
-        @MockBean
-        private ConnectExecutorToSubscriptionUseCase connectExecutorToSubscriptionUseCase;
+    @MockBean
+    private ConnectExecutorToSubscriptionUseCase connectExecutorToSubscriptionUseCase;
 
-        @MockBean
-        private ListActiveSubscriptionsForBotUseCase listActiveSubscriptionsForBotUseCase;
+    @MockBean
+    private ListActiveSubscriptionsForBotUseCase listActiveSubscriptionsForBotUseCase;
 
-        @MockBean
-        private GetSubscriptionDeliverySummaryUseCase getSubscriptionDeliverySummaryUseCase;
+    @MockBean
+    private GetSubscriptionDeliverySummaryUseCase getSubscriptionDeliverySummaryUseCase;
 
     @MockBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;

@@ -1,7 +1,7 @@
 package io.marcus.application.usecase;
 
 import io.marcus.application.exception.UnauthenticatedException;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.PortfolioReadPort;
 import io.marcus.domain.service.IdentityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,7 +23,7 @@ import org.springframework.stereotype.Service;
 public class GetPortfolioOverviewUseCase {
 
     private final IdentityService identityService;
-    private final TerminalReadPort terminalReadPort;
+    private final PortfolioReadPort portfolioReadPort;
 
     /**
      * Execute portfolio overview query for current user.
@@ -31,9 +31,9 @@ public class GetPortfolioOverviewUseCase {
      * @return portfolio overview snapshot with aggregated metrics
      * @throws UnauthenticatedException if user is not authenticated
      */
-    public TerminalReadPort.PortfolioOverviewSnapshot execute() {
+    public PortfolioReadPort.PortfolioOverviewSnapshot execute() {
         String userId = identityService.getCurrentUserId()
                 .orElseThrow(() -> new UnauthenticatedException("No authenticated user found"));
-        return terminalReadPort.getPortfolioOverview(userId);
+        return portfolioReadPort.getPortfolioOverview(userId);
     }
 }

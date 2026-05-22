@@ -1,8 +1,8 @@
 package io.marcus.application.usecase;
 
-import io.marcus.application.dto.UpdateUserPreferencesRequest;
+import io.marcus.application.dto.UpdateUserProfileRequest;
 import io.marcus.application.exception.UnauthenticatedException;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.UserProfileReadPort;
 import io.marcus.domain.service.IdentityService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,33 +17,33 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class UpdateCurrentUserPreferencesUseCaseTest {
+class UpdateCurrentUserProfileUseCaseTest {
 
     @Mock
     private IdentityService identityService;
 
     @Mock
-    private TerminalReadPort terminalReadPort;
+    private UserProfileReadPort userProfileReadPort;
 
-    private UpdateCurrentUserPreferencesUseCase useCase;
+    private UpdateCurrentUserProfileUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new UpdateCurrentUserPreferencesUseCase(identityService, terminalReadPort);
+        useCase = new UpdateCurrentUserProfileUseCase(identityService, userProfileReadPort);
     }
 
     @Test
-    void shouldUpdatePreferencesForCurrentUser() {
-        UpdateUserPreferencesRequest request = new UpdateUserPreferencesRequest("UTC", "en-US", true);
-        TerminalReadPort.UserPreferencesSnapshot response = new TerminalReadPort.UserPreferencesSnapshot("UTC", "en-US", true);
+    void shouldUpdateProfileForCurrentUser() {
+        UpdateUserProfileRequest request = new UpdateUserProfileRequest("trader_2", "trader2@marcus.local");
+        UserProfileReadPort.UserProfileSnapshot response = new UserProfileReadPort.UserProfileSnapshot("usr_1", "trader_2", "trader2@marcus.local", "USER");
 
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("usr_1"));
-        when(terminalReadPort.updateCurrentUserPreferences(
+        when(userProfileReadPort.updateCurrentUserProfile(
                 "usr_1",
-                new TerminalReadPort.UserPreferencesUpdateSnapshot("UTC", "en-US", true)
+                new UserProfileReadPort.UserProfileUpdateSnapshot("trader_2", "trader2@marcus.local")
         )).thenReturn(response);
 
-        TerminalReadPort.UserPreferencesSnapshot result = useCase.execute(request);
+        UserProfileReadPort.UserProfileSnapshot result = useCase.execute(request);
 
         assertThat(result).isEqualTo(response);
     }
@@ -52,7 +52,7 @@ class UpdateCurrentUserPreferencesUseCaseTest {
     void shouldThrowWhenNoAuthenticatedUser() {
         when(identityService.getCurrentUserId()).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> useCase.execute(new UpdateUserPreferencesRequest("UTC", "en-US", true)))
+        assertThatThrownBy(() -> useCase.execute(new UpdateUserProfileRequest("trader_2", "trader2@marcus.local")))
                 .isInstanceOf(UnauthenticatedException.class)
                 .hasMessage("No authenticated user found");
     }

@@ -1,7 +1,7 @@
 package io.marcus.application.usecase;
 
 import io.marcus.application.exception.UnauthenticatedException;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.PortfolioReadPort;
 import io.marcus.domain.service.IdentityService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,26 +23,26 @@ class ListPaperExecutionLogsUseCaseTest {
     private IdentityService identityService;
 
     @Mock
-    private TerminalReadPort terminalReadPort;
+    private PortfolioReadPort portfolioReadPort;
 
     private ListPaperExecutionLogsUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new ListPaperExecutionLogsUseCase(identityService, terminalReadPort);
+        useCase = new ListPaperExecutionLogsUseCase(identityService, portfolioReadPort);
     }
 
     @Test
     void shouldNormalizeLimitAndCursor() {
-        TerminalReadPort.PaperExecutionLogPageSnapshot page = new TerminalReadPort.PaperExecutionLogPageSnapshot(
+        PortfolioReadPort.PaperExecutionLogPageSnapshot page = new PortfolioReadPort.PaperExecutionLogPageSnapshot(
                 List.of(),
-                new TerminalReadPort.CursorPaginationMetaSnapshot(null, "paper-cursor-200", 200, true)
+                new PortfolioReadPort.CursorPaginationMetaSnapshot(null, "paper-cursor-200", 200, true)
         );
 
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("usr_1"));
-        when(terminalReadPort.listPaperExecutionLogs("usr_1", "paper-cursor-10", 200)).thenReturn(page);
+        when(portfolioReadPort.listPaperExecutionLogs("usr_1", "paper-cursor-10", 200)).thenReturn(page);
 
-        TerminalReadPort.PaperExecutionLogPageSnapshot result = useCase.execute(" paper-cursor-10 ", 300);
+        PortfolioReadPort.PaperExecutionLogPageSnapshot result = useCase.execute(" paper-cursor-10 ", 300);
 
         assertThat(result).isEqualTo(page);
     }

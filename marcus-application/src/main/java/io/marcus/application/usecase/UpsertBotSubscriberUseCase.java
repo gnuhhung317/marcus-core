@@ -17,9 +17,11 @@ public class UpsertBotSubscriberUseCase {
         if (request == null) {
             throw new IllegalArgumentException("Upsert bot subscriber request is required");
         }
+
         if (request.botId() == null || request.botId().isBlank()) {
             throw new IllegalArgumentException("Bot id is required");
         }
+
         if (request.userId() == null || request.userId().isBlank()) {
             throw new IllegalArgumentException("User id is required");
         }

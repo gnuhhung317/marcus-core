@@ -1,7 +1,7 @@
 package io.marcus.application.usecase;
 
 import io.marcus.application.exception.UnauthenticatedException;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.PortfolioReadPort;
 import io.marcus.domain.service.IdentityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -11,11 +11,11 @@ import org.springframework.stereotype.Service;
 public class GetPaperSessionSummaryUseCase {
 
     private final IdentityService identityService;
-    private final TerminalReadPort terminalReadPort;
+    private final PortfolioReadPort portfolioReadPort;
 
-    public TerminalReadPort.PaperSessionSummarySnapshot execute() {
+    public PortfolioReadPort.PaperSessionSummarySnapshot execute() {
         String userId = identityService.getCurrentUserId()
                 .orElseThrow(() -> new UnauthenticatedException("No authenticated user found"));
-        return terminalReadPort.getPaperSessionSummary(userId);
+        return portfolioReadPort.getPaperSessionSummary(userId);
     }
 }

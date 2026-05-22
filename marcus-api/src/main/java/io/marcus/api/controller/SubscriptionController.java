@@ -9,11 +9,10 @@ import io.marcus.application.usecase.ListMySubscriptionsUseCase;
 import io.marcus.application.usecase.ConnectExecutorToSubscriptionUseCase;
 import io.marcus.application.usecase.ListActiveSubscriptionsForBotUseCase;
 import io.marcus.application.usecase.GetSubscriptionDeliverySummaryUseCase;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.PortfolioReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -67,7 +66,7 @@ public class SubscriptionController {
     }
 
     @GetMapping("/{subscriptionId}/delivery-summary")
-    public ResponseEntity<TerminalReadPort.SubscriptionDeliverySummarySnapshot> getDeliverySummary(@PathVariable String subscriptionId) {
+    public ResponseEntity<PortfolioReadPort.SubscriptionDeliverySummarySnapshot> getDeliverySummary(@PathVariable String subscriptionId) {
         return ResponseEntity.ok(getSubscriptionDeliverySummaryUseCase.execute(subscriptionId));
     }
 }

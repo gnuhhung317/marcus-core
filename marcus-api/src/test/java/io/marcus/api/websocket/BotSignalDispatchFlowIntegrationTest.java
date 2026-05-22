@@ -154,20 +154,21 @@ class BotSignalDispatchFlowIntegrationTest {
                 new InMemorySignalPublisherPort(),
                 signalServerDispatchPort);
 
-        Signal signal = Signal.builder()
-                .signalId("sig_1")
-                .botId(botId)
-                .symbol("BTC/USDT")
-                .action(SignalAction.OPEN_LONG)
-                .entry(new BigDecimal("123.45"))
-                .stopLoss(new BigDecimal("120.00"))
-                .takeProfit(new BigDecimal("130.00"))
-                .status(SignalStatus.RECEIVED)
-                .generatedTimestamp(LocalDateTime.parse("2026-05-01T00:00:00"))
-                .metadata(Map.of("strategy", "momentum"))
-                .build();
+        io.marcus.application.dto.CaptureSignalRequest request = new io.marcus.application.dto.CaptureSignalRequest(
+                "sig_1",
+                botId,
+                "BTC/USDT",
+                SignalAction.OPEN_LONG,
+                new BigDecimal("123.45"),
+                new BigDecimal("120.00"),
+                new BigDecimal("130.00"),
+                SignalStatus.RECEIVED,
+                LocalDateTime.parse("2026-05-01T00:00:00"),
+                null,
+                Map.of("strategy", "momentum")
+        );
 
-        captureSignalUseCase.execute(signal);
+        captureSignalUseCase.execute(request);
 
         assertThat(signalServerDispatchPort.dispatchedTargetSets).hasSize(1);
         assertThat(signalServerDispatchPort.dispatchedTargetSets.get(0)).containsExactly(serverId);

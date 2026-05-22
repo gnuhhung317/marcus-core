@@ -1,6 +1,6 @@
 package io.marcus.application.usecase;
 
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.PortfolioReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -8,13 +8,13 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class GetSubscriptionDeliverySummaryUseCase {
 
-    private final TerminalReadPort terminalReadPort;
+    private final PortfolioReadPort portfolioReadPort;
 
-    public TerminalReadPort.SubscriptionDeliverySummarySnapshot execute(String subscriptionId) {
+    public PortfolioReadPort.SubscriptionDeliverySummarySnapshot execute(String subscriptionId) {
         if (subscriptionId == null || subscriptionId.isBlank()) {
             throw new IllegalArgumentException("Subscription id is required");
         }
 
-        return terminalReadPort.getSubscriptionDeliverySummary(subscriptionId.trim());
+        return portfolioReadPort.getSubscriptionDeliverySummary(subscriptionId.trim());
     }
 }

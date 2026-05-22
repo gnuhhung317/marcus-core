@@ -14,7 +14,8 @@ import io.marcus.application.usecase.ListDeveloperBotsUseCase;
 import io.marcus.application.usecase.ListPublicBotsUseCase;
 import io.marcus.application.usecase.RegisterBotUseCase;
 import io.marcus.domain.port.AccessTokenPort;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.BotDiscoveryReadPort;
+import io.marcus.domain.port.UserProfileReadPort;
 import io.marcus.infrastructure.security.BotSignatureInterceptor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,7 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -59,11 +61,11 @@ class BotControllerTest {
     @MockBean
     private GetBotDetailUseCase getBotDetailUseCase;
 
-        @MockBean
-        private GetBotIntegrationHealthUseCase getBotIntegrationHealthUseCase;
+    @MockBean
+    private GetBotIntegrationHealthUseCase getBotIntegrationHealthUseCase;
 
-        @MockBean
-        private GetBotCredentialsUseCase getBotCredentialsUseCase;
+    @MockBean
+    private GetBotCredentialsUseCase getBotCredentialsUseCase;
 
     @MockBean
     private AccessTokenPort accessTokenPort;
@@ -87,9 +89,9 @@ class BotControllerTest {
         );
 
         when(listPublicBotsUseCase.execute(null, null, null, "-return", 0, 20)).thenReturn(
-                new TerminalReadPort.BotDiscoveryPageSnapshot(
+                new BotDiscoveryReadPort.BotDiscoveryPageSnapshot(
                         List.of(),
-                        new TerminalReadPort.OffsetPaginationMetaSnapshot(0, 20, 0, 0, false)
+                        new UserProfileReadPort.OffsetPaginationMetaSnapshot(0, 20, 0, 0, false)
                 )
         );
 
@@ -149,17 +151,31 @@ class BotControllerTest {
     }
 
     @Test
-    void shouldReturnBadRequestWhenUseCaseThrowsIllegalArgument() throws Exception {
+    void shouldReturnUnprocessableEntityWhenValidationFails() throws Exception {
         RegisterBotRequest request = new RegisterBotRequest(null, "BTCUSDT", "", "binance");
+
+        mockMvc.perform(post("/api/v1/bots")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.status").value(422));
+
+        verifyNoInteractions(registerBotUseCase);
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenUseCaseThrowsIllegalArgument() throws Exception {
+        RegisterBotRequest request = new RegisterBotRequest("Scalp strategy", "BTCUSDT", "Scalp Bot", "binance");
         when(registerBotUseCase.execute(any(RegisterBotRequest.class)))
-                .thenThrow(new IllegalArgumentException("Bot name is required"));
+                .thenThrow(new IllegalArgumentException("Invalid bot configuration"));
 
         mockMvc.perform(post("/api/v1/bots")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
-                .andExpect(jsonPath("$.message").value("Bot name is required"))
+                .andExpect(jsonPath("$.message").value("Invalid bot configuration"))
                 .andExpect(jsonPath("$.status").value(400));
     }
 }

@@ -76,15 +76,25 @@ class CaptureSignalRoutingFlowIntegrationTest {
         upsertUserSessionUseCase.execute(new UpsertUserSessionRequest("user-2", "session-2", "ws-b"));
         upsertUserSessionUseCase.execute(new UpsertUserSessionRequest("user-2", "session-3", "ws-b"));
 
-        Signal signal = Signal.builder()
-                .signalId("signal-1")
-                .botId("bot-1")
-                .build();
-        captureSignalUseCase.execute(signal);
+        io.marcus.application.dto.CaptureSignalRequest signalRequest = new io.marcus.application.dto.CaptureSignalRequest(
+                "signal-1",
+                "bot-1",
+                "BTCUSDT",
+                io.marcus.domain.vo.SignalAction.OPEN_LONG,
+                new java.math.BigDecimal("50000"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+        captureSignalUseCase.execute(signalRequest);
 
         assertThat(inMemorySignalRepository.savedSignals)
-                .hasSize(1)
-                .containsExactly(signal);
+                .hasSize(1);
+        assertThat(inMemorySignalRepository.savedSignals.get(0).getSignalId())
+                .isEqualTo("signal-1");
         assertThat(inMemorySignalServerDispatchPort.dispatches)
                 .hasSize(1);
         assertThat(inMemorySignalServerDispatchPort.dispatches.get(0).serverIds())
@@ -102,18 +112,44 @@ class CaptureSignalRoutingFlowIntegrationTest {
         upsertUserSessionUseCase.execute(new UpsertUserSessionRequest("user-1", "session-1", "ws-a"));
         upsertUserSessionUseCase.execute(new UpsertUserSessionRequest("user-2", "session-2", "ws-b"));
 
-        Signal firstSignal = Signal.builder().signalId("signal-1").botId("bot-1").build();
+        io.marcus.application.dto.CaptureSignalRequest firstSignal = new io.marcus.application.dto.CaptureSignalRequest(
+                "signal-1",
+                "bot-1",
+                "BTCUSDT",
+                io.marcus.domain.vo.SignalAction.OPEN_LONG,
+                new java.math.BigDecimal("50000"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
         captureSignalUseCase.execute(firstSignal);
 
         removeBotSubscriberUseCase.execute(new RemoveBotSubscriberRequest("bot-1", "user-2"));
         removeUserSessionUseCase.execute(new RemoveUserSessionRequest("user-1", "session-1"));
 
-        Signal secondSignal = Signal.builder().signalId("signal-2").botId("bot-1").build();
+        io.marcus.application.dto.CaptureSignalRequest secondSignal = new io.marcus.application.dto.CaptureSignalRequest(
+                "signal-2",
+                "bot-1",
+                "BTCUSDT",
+                io.marcus.domain.vo.SignalAction.OPEN_LONG,
+                new java.math.BigDecimal("50000"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
         captureSignalUseCase.execute(secondSignal);
 
         assertThat(inMemorySignalRepository.savedSignals)
-                .hasSize(2)
-                .containsExactly(firstSignal, secondSignal);
+                .hasSize(2);
+        assertThat(inMemorySignalRepository.savedSignals)
+                .extracting(Signal::getSignalId)
+                .containsExactly("signal-1", "signal-2");
         assertThat(inMemorySignalServerDispatchPort.dispatches)
                 .hasSize(1);
         assertThat(inMemorySignalServerDispatchPort.dispatches.get(0).signalId())

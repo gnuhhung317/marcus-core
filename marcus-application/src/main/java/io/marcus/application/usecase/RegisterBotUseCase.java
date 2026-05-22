@@ -33,7 +33,9 @@ public class RegisterBotUseCase {
 
     @Transactional
     public BotRegistrationResult execute(RegisterBotRequest botRequest) {
-        validateRequest(botRequest);
+        if (botRequest == null) {
+            throw new IllegalArgumentException("Register bot request is required");
+        }
 
         String currentUserId = identityService.getCurrentUserId()
                 .orElseThrow(() -> new UnauthenticatedException("No authenticated user found"));
@@ -58,21 +60,5 @@ public class RegisterBotUseCase {
 
     private String generateSecureKey(String prefix) {
         return prefix + "_" + UUID.randomUUID().toString().replace("-", "");
-    }
-
-    private void validateRequest(RegisterBotRequest botRequest) {
-        if (botRequest == null) {
-            throw new IllegalArgumentException("Register bot request is required");
-        }
-
-        validateRequiredField("Bot name", botRequest.botName());
-        validateRequiredField("Trading pair", botRequest.tradingPair());
-        validateRequiredField("Exchange id", botRequest.exchangeId());
-    }
-
-    private void validateRequiredField(String fieldName, String value) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(fieldName + " is required");
-        }
     }
 }

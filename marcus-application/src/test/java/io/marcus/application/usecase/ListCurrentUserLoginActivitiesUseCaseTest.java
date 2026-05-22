@@ -1,7 +1,7 @@
 package io.marcus.application.usecase;
 
 import io.marcus.application.exception.UnauthenticatedException;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.UserProfileReadPort;
 import io.marcus.domain.service.IdentityService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,26 +23,26 @@ class ListCurrentUserLoginActivitiesUseCaseTest {
     private IdentityService identityService;
 
     @Mock
-    private TerminalReadPort terminalReadPort;
+    private UserProfileReadPort userProfileReadPort;
 
     private ListCurrentUserLoginActivitiesUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new ListCurrentUserLoginActivitiesUseCase(identityService, terminalReadPort);
+        useCase = new ListCurrentUserLoginActivitiesUseCase(identityService, userProfileReadPort);
     }
 
     @Test
     void shouldListCurrentUserLoginActivitiesWithNormalizedPagination() {
-        TerminalReadPort.LoginActivityPageSnapshot page = new TerminalReadPort.LoginActivityPageSnapshot(
+        UserProfileReadPort.LoginActivityPageSnapshot page = new UserProfileReadPort.LoginActivityPageSnapshot(
                 List.of(),
-                new TerminalReadPort.OffsetPaginationMetaSnapshot(0, 100, 0, 0, false)
+                new UserProfileReadPort.OffsetPaginationMetaSnapshot(0, 100, 0, 0, false)
         );
 
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("usr_1"));
-        when(terminalReadPort.listCurrentUserLoginActivities("usr_1", 0, 100)).thenReturn(page);
+        when(userProfileReadPort.listCurrentUserLoginActivities("usr_1", 0, 100)).thenReturn(page);
 
-        TerminalReadPort.LoginActivityPageSnapshot result = useCase.execute(-1, 300);
+        UserProfileReadPort.LoginActivityPageSnapshot result = useCase.execute(-1, 300);
 
         assertThat(result).isEqualTo(page);
     }

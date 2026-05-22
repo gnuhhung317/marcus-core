@@ -1,6 +1,6 @@
 package io.marcus.application.usecase;
 
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.BotDiscoveryReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -10,9 +10,9 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class ListStrategyTradesUseCase {
 
-    private final TerminalReadPort terminalReadPort;
+    private final BotDiscoveryReadPort botDiscoveryReadPort;
 
-    public TerminalReadPort.TradeLogPageSnapshot execute(String strategyId, int page, int size, String asset) {
+    public BotDiscoveryReadPort.TradeLogPageSnapshot execute(String strategyId, int page, int size, String asset) {
         if (strategyId == null || strategyId.isBlank()) {
             throw new IllegalArgumentException("Strategy id is required");
         }
@@ -23,6 +23,6 @@ public class ListStrategyTradesUseCase {
             ? null
             : asset.trim().toUpperCase(Locale.ROOT);
 
-        return terminalReadPort.listStrategyTrades(strategyId.trim(), normalizedPage, normalizedSize, normalizedAsset);
+        return botDiscoveryReadPort.listStrategyTrades(strategyId.trim(), normalizedPage, normalizedSize, normalizedAsset);
     }
 }

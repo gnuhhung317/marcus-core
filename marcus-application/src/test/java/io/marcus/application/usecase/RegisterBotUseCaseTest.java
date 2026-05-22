@@ -136,51 +136,6 @@ class RegisterBotUseCaseTest {
     }
 
     @Test
-    void shouldRejectMissingBotName() {
-        RegisterBotRequest request = new RegisterBotRequest(
-                "Momentum bot",
-                "BTCUSDT",
-                " ",
-                "binance");
-
-        assertThatThrownBy(() -> registerBotUseCase.execute(request))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Bot name is required");
-
-        verifyNoInteractions(identityService, userRepository, botRepository, encryptionService);
-    }
-
-    @Test
-    void shouldRejectMissingTradingPair() {
-        RegisterBotRequest request = new RegisterBotRequest(
-                "Momentum bot",
-                " ",
-                "Alpha Trader",
-                "binance");
-
-        assertThatThrownBy(() -> registerBotUseCase.execute(request))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Trading pair is required");
-
-        verifyNoInteractions(identityService, userRepository, botRepository, encryptionService);
-    }
-
-    @Test
-    void shouldRejectMissingExchangeId() {
-        RegisterBotRequest request = new RegisterBotRequest(
-                "Momentum bot",
-                "BTCUSDT",
-                "Alpha Trader",
-                " ");
-
-        assertThatThrownBy(() -> registerBotUseCase.execute(request))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Exchange id is required");
-
-        verifyNoInteractions(identityService, userRepository, botRepository, encryptionService);
-    }
-
-    @Test
     void shouldPropagateRepositoryErrorWhenSaveFails() {
         RegisterBotRequest request = new RegisterBotRequest(
                 "Momentum bot",

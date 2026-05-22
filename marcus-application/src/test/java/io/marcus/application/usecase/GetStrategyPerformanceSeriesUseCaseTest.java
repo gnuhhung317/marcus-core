@@ -1,6 +1,7 @@
 package io.marcus.application.usecase;
 
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.BotDiscoveryReadPort;
+import io.marcus.domain.port.PortfolioReadPort.TimeSeriesPointSnapshot;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,23 +19,23 @@ import static org.mockito.Mockito.when;
 class GetStrategyPerformanceSeriesUseCaseTest {
 
     @Mock
-    private TerminalReadPort terminalReadPort;
+    private BotDiscoveryReadPort botDiscoveryReadPort;
 
     private GetStrategyPerformanceSeriesUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new GetStrategyPerformanceSeriesUseCase(terminalReadPort);
+        useCase = new GetStrategyPerformanceSeriesUseCase(botDiscoveryReadPort);
     }
 
     @Test
     void shouldReturnSeriesWithNormalizedRange() {
-        List<TerminalReadPort.TimeSeriesPointSnapshot> expected = List.of(
-                new TerminalReadPort.TimeSeriesPointSnapshot(LocalDateTime.of(2026, 4, 1, 10, 0), 100.0)
+        List<TimeSeriesPointSnapshot> expected = List.of(
+                new TimeSeriesPointSnapshot(LocalDateTime.of(2026, 4, 1, 10, 0), 100.0)
         );
-        when(terminalReadPort.listStrategyPerformanceSeries("stg_1", "1M")).thenReturn(expected);
+        when(botDiscoveryReadPort.listStrategyPerformanceSeries("stg_1", "1M")).thenReturn(expected);
 
-        List<TerminalReadPort.TimeSeriesPointSnapshot> result = useCase.execute("stg_1", "1m");
+        List<TimeSeriesPointSnapshot> result = useCase.execute("stg_1", "1m");
 
         assertThat(result).containsExactlyElementsOf(expected);
     }

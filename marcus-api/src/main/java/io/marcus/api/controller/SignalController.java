@@ -1,10 +1,11 @@
 package io.marcus.api.controller;
 
+import io.marcus.application.dto.CaptureSignalRequest;
 import io.marcus.application.usecase.CaptureSignalUseCase;
 import io.marcus.application.usecase.ListSignalsUseCase;
-import io.marcus.domain.model.Signal;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.PortfolioReadPort;
 import io.marcus.infrastructure.security.RequireBotSignature;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,14 +28,14 @@ public class SignalController {
     @RequireBotSignature
     @PostMapping
     public ResponseEntity<Void> captureSignal(
-            @RequestBody Signal signal
+            @Valid @RequestBody CaptureSignalRequest request
     ) {
-        captureSignalUseCase.execute(signal);
+        captureSignalUseCase.execute(request);
         return ResponseEntity.ok().build();
     }
 
     @GetMapping
-    public ResponseEntity<List<TerminalReadPort.SignalItemSnapshot>> listSignals(
+    public ResponseEntity<List<PortfolioReadPort.SignalItemSnapshot>> listSignals(
             @RequestParam(required = false, defaultValue = "ALL") String status,
             @RequestParam(required = false, defaultValue = "50") int limit
     ) {

@@ -5,7 +5,8 @@ import io.marcus.application.usecase.GetStrategyDetailUseCase;
 import io.marcus.application.usecase.GetStrategyMetricsUseCase;
 import io.marcus.application.usecase.GetStrategyPerformanceSeriesUseCase;
 import io.marcus.application.usecase.ListStrategyTradesUseCase;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.BotDiscoveryReadPort;
+import io.marcus.domain.port.PortfolioReadPort.TimeSeriesPointSnapshot;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,14 +30,14 @@ public class StrategyController {
     private final FavoriteStrategyUseCase favoriteStrategyUseCase;
 
     @GetMapping("/{strategyId}")
-    public ResponseEntity<TerminalReadPort.StrategyDetailSnapshot> getStrategyDetail(
+    public ResponseEntity<BotDiscoveryReadPort.StrategyDetailSnapshot> getStrategyDetail(
             @PathVariable String strategyId
     ) {
         return ResponseEntity.ok(getStrategyDetailUseCase.execute(strategyId));
     }
 
     @GetMapping("/{strategyId}/metrics")
-    public ResponseEntity<TerminalReadPort.StrategyMetricsSnapshot> getStrategyMetrics(
+    public ResponseEntity<BotDiscoveryReadPort.StrategyMetricsSnapshot> getStrategyMetrics(
             @PathVariable String strategyId,
             @RequestParam(required = false, defaultValue = "RAW") String feeMode
     ) {
@@ -44,7 +45,7 @@ public class StrategyController {
     }
 
     @GetMapping("/{strategyId}/performance-series")
-    public ResponseEntity<List<TerminalReadPort.TimeSeriesPointSnapshot>> getStrategyPerformanceSeries(
+    public ResponseEntity<List<TimeSeriesPointSnapshot>> getStrategyPerformanceSeries(
             @PathVariable String strategyId,
             @RequestParam String range
     ) {
@@ -52,14 +53,14 @@ public class StrategyController {
     }
 
     @PostMapping("/{strategyId}/favorite")
-    public ResponseEntity<TerminalReadPort.FavoriteStrategySnapshot> favoriteStrategy(
+    public ResponseEntity<BotDiscoveryReadPort.FavoriteStrategySnapshot> favoriteStrategy(
             @PathVariable String strategyId
     ) {
         return ResponseEntity.ok(favoriteStrategyUseCase.execute(strategyId));
     }
 
     @GetMapping("/{strategyId}/trades")
-    public ResponseEntity<TerminalReadPort.TradeLogPageSnapshot> listStrategyTrades(
+    public ResponseEntity<BotDiscoveryReadPort.TradeLogPageSnapshot> listStrategyTrades(
             @PathVariable String strategyId,
             @RequestParam(required = false, defaultValue = "0") int page,
             @RequestParam(required = false, defaultValue = "20") int size,

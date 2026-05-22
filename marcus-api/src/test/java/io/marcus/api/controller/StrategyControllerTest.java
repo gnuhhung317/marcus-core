@@ -7,7 +7,8 @@ import io.marcus.application.usecase.GetStrategyDetailUseCase;
 import io.marcus.application.usecase.GetStrategyMetricsUseCase;
 import io.marcus.application.usecase.GetStrategyPerformanceSeriesUseCase;
 import io.marcus.application.usecase.ListStrategyTradesUseCase;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.BotDiscoveryReadPort;
+import io.marcus.domain.port.PortfolioReadPort;
 import io.marcus.infrastructure.security.BotSignatureInterceptor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -70,7 +71,7 @@ class StrategyControllerTest {
     @Test
     void shouldGetStrategyDetail() throws Exception {
         when(getStrategyDetailUseCase.execute("stg_1"))
-                .thenReturn(new TerminalReadPort.StrategyDetailSnapshot("stg_1", "Neutron", "Marcus", "CRYPTO", "ACTIVE"));
+                .thenReturn(new BotDiscoveryReadPort.StrategyDetailSnapshot("stg_1", "Neutron", "Marcus", "CRYPTO", "ACTIVE"));
 
         mockMvc.perform(get("/api/v1/strategies/stg_1"))
                 .andExpect(status().isOk())
@@ -80,7 +81,7 @@ class StrategyControllerTest {
     @Test
     void shouldGetStrategyMetrics() throws Exception {
         when(getStrategyMetricsUseCase.execute("stg_1", "AFTER_FEES"))
-                .thenReturn(new TerminalReadPort.StrategyMetricsSnapshot(0.2, 0.1, 1.4, 1.7, 1.1, 2.0));
+                .thenReturn(new BotDiscoveryReadPort.StrategyMetricsSnapshot(0.2, 0.1, 1.4, 1.7, 1.1, 2.0));
 
         mockMvc.perform(get("/api/v1/strategies/stg_1/metrics").param("feeMode", "AFTER_FEES"))
                 .andExpect(status().isOk())
@@ -90,7 +91,7 @@ class StrategyControllerTest {
     @Test
     void shouldGetStrategyPerformanceSeries() throws Exception {
         when(getStrategyPerformanceSeriesUseCase.execute("stg_1", "1M"))
-                .thenReturn(List.of(new TerminalReadPort.TimeSeriesPointSnapshot(LocalDateTime.of(2026, 4, 1, 10, 0), 100.0)));
+                .thenReturn(List.of(new PortfolioReadPort.TimeSeriesPointSnapshot(LocalDateTime.of(2026, 4, 1, 10, 0), 100.0)));
 
         mockMvc.perform(get("/api/v1/strategies/stg_1/performance-series").param("range", "1M"))
                 .andExpect(status().isOk())
@@ -99,8 +100,8 @@ class StrategyControllerTest {
 
     @Test
     void shouldListStrategyTrades() throws Exception {
-        TerminalReadPort.TradeLogPageSnapshot page = new TerminalReadPort.TradeLogPageSnapshot(
-                List.of(new TerminalReadPort.TradeLogSnapshot(
+        BotDiscoveryReadPort.TradeLogPageSnapshot page = new BotDiscoveryReadPort.TradeLogPageSnapshot(
+                List.of(new BotDiscoveryReadPort.TradeLogSnapshot(
                         LocalDateTime.of(2026, 4, 1, 10, 0),
                         "BTCUSDT",
                         "LONG",
@@ -126,7 +127,7 @@ class StrategyControllerTest {
     @Test
     void shouldFavoriteStrategySuccessfully() throws Exception {
         when(favoriteStrategyUseCase.execute("strat-123"))
-                .thenReturn(new TerminalReadPort.FavoriteStrategySnapshot("strat-123", true));
+                .thenReturn(new BotDiscoveryReadPort.FavoriteStrategySnapshot("strat-123", true));
 
         mockMvc.perform(post("/api/v1/strategies/strat-123/favorite"))
                 .andExpect(status().isOk())

@@ -52,4 +52,28 @@ public class UserPortfolio extends BaseModel {
         this.lastSyncAt = LocalDateTime.now();
         this.setUpdatedAt(LocalDateTime.now());
     }
+
+    public boolean isHighRisk() {
+        if (totalCapital == null || totalCapital.compareTo(BigDecimal.ZERO) <= 0) {
+            return false;
+        }
+        if (unrealizedPnl == null || unrealizedPnl.compareTo(BigDecimal.ZERO) >= 0) {
+            return false;
+        }
+        BigDecimal drawdown = unrealizedPnl.negate();
+        BigDecimal drawdownRatio = drawdown.divide(totalCapital, 4, java.math.RoundingMode.HALF_UP);
+        return maxDrawdownThreshold != null && drawdownRatio.compareTo(maxDrawdownThreshold) >= 0;
+    }
+
+    public boolean isMediumRisk() {
+        if (totalCapital == null || totalCapital.compareTo(BigDecimal.ZERO) <= 0) {
+            return false;
+        }
+        if (unrealizedPnl == null || unrealizedPnl.compareTo(BigDecimal.ZERO) >= 0) {
+            return false;
+        }
+        BigDecimal drawdown = unrealizedPnl.negate();
+        BigDecimal drawdownRatio = drawdown.divide(totalCapital, 4, java.math.RoundingMode.HALF_UP);
+        return mediumRiskThreshold != null && drawdownRatio.compareTo(mediumRiskThreshold) >= 0;
+    }
 }

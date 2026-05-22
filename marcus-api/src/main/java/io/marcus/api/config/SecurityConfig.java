@@ -66,7 +66,8 @@ public class SecurityConfig {
                         "/academy/metrics", "/api/academy/metrics", "/api/v1/academy/metrics",
                         "/content/blog/posts", "/api/content/blog/posts", "/api/v1/content/blog/posts",
                         "/content/research/reports", "/api/content/research/reports", "/api/v1/content/research/reports",
-                        "/content/research/reports/library", "/api/content/research/reports/library", "/api/v1/content/research/reports/library"
+                        "/content/research/reports/library", "/api/content/research/reports/library", "/api/v1/content/research/reports/library",
+                        "/public/marketing/**", "/api/public/marketing/**", "/api/v1/public/marketing/**"
                 ).permitAll()
                 .requestMatchers(HttpMethod.GET, "/bots/my-bots", "/api/bots/my-bots", "/api/v1/bots/my-bots").hasRole(Role.DEVELOPER.name())
                 .requestMatchers(HttpMethod.GET, "/bots/*/integration-health", "/api/bots/*/integration-health", "/api/v1/bots/*/integration-health").hasRole(Role.DEVELOPER.name())

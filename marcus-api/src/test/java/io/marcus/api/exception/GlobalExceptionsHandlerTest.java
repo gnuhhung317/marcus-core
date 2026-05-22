@@ -1,6 +1,6 @@
 package io.marcus.api.exception;
 
-import io.marcus.application.exception.ResourceConflictException;
+import io.marcus.domain.exception.ResourceConflictException;
 import io.marcus.application.exception.ForbiddenOperationException;
 import io.marcus.application.exception.UnauthenticatedException;
 import io.marcus.domain.exception.BotNotFoundException;
