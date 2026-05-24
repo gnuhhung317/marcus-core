@@ -2,6 +2,7 @@ package io.marcus.application.usecase;
 
 import io.marcus.application.exception.ForbiddenOperationException;
 import io.marcus.application.exception.UnauthenticatedException;
+import io.marcus.domain.exception.ResourceConflictException;
 import io.marcus.domain.model.Bot;
 import io.marcus.domain.model.UserSubscription;
 import io.marcus.domain.repository.BotRepository;
@@ -38,7 +39,7 @@ public class DeleteBotUseCase {
         // Guard: cannot delete bot if active subscriptions count > 0
         List<UserSubscription> activeSubs = userSubscriptionPersistencePort.findActiveByBotId(botId);
         if (!activeSubs.isEmpty()) {
-            throw new IllegalStateException("Cannot delete bot with active subscriptions (" + activeSubs.size() + " active)");
+            throw new ResourceConflictException("Cannot delete bot with active subscriptions (" + activeSubs.size() + " active)");
         }
 
         bot.setStatus(BotStatus.DELETED);

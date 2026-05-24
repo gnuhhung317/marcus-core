@@ -3,7 +3,6 @@ package io.marcus.infrastructure.integration;
 import io.marcus.domain.port.PortfolioReadPort.ExecutionLogPageSnapshot;
 import io.marcus.domain.port.PortfolioReadPort.ExecutionLogItemSnapshot;
 import io.marcus.domain.port.PortfolioReadPort.BotIntegrationHealthSnapshot;
-import io.marcus.domain.port.PortfolioReadPort.ConnectivityHealthDependencySnapshot;
 import io.marcus.infrastructure.persistence.entity.BotEntity;
 import io.marcus.infrastructure.persistence.entity.SignalEntity;
 import io.marcus.infrastructure.persistence.SpringDataBotRepository;
@@ -231,15 +230,6 @@ class StaticPortfolioReadAdapterTest {
         assertNotNull(snapshot);
         assertEquals("UP", snapshot.overallStatus());
         assertTrue(snapshot.message().contains("healthy"));
-        
-        ConnectivityHealthDependencySnapshot wsDep = snapshot.dependencies().stream()
-                .filter(d -> "WebSocket Stream".equals(d.name())).findFirst().orElseThrow();
-        assertEquals("UP", wsDep.status());
-        assertEquals(15, wsDep.latencyMs());
-
-        ConnectivityHealthDependencySnapshot sigDep = snapshot.dependencies().stream()
-                .filter(d -> "Signal Processor".equals(d.name())).findFirst().orElseThrow();
-        assertEquals("UP", sigDep.status());
     }
 
     @Test
@@ -262,11 +252,6 @@ class StaticPortfolioReadAdapterTest {
         assertNotNull(snapshot);
         assertEquals("DEGRADED", snapshot.overallStatus());
         assertTrue(snapshot.message().contains("degraded"));
-
-        ConnectivityHealthDependencySnapshot wsDep = snapshot.dependencies().stream()
-                .filter(d -> "WebSocket Stream".equals(d.name())).findFirst().orElseThrow();
-        assertEquals("DEGRADED", wsDep.status());
-        assertEquals(45, wsDep.latencyMs());
     }
 
     @Test
@@ -289,11 +274,6 @@ class StaticPortfolioReadAdapterTest {
         assertNotNull(snapshot);
         assertEquals("DOWN", snapshot.overallStatus());
         assertTrue(snapshot.message().contains("offline"));
-
-        ConnectivityHealthDependencySnapshot wsDep = snapshot.dependencies().stream()
-                .filter(d -> "WebSocket Stream".equals(d.name())).findFirst().orElseThrow();
-        assertEquals("DOWN", wsDep.status());
-        assertEquals(999, wsDep.latencyMs());
     }
 
     @Test
@@ -321,13 +301,5 @@ class StaticPortfolioReadAdapterTest {
         assertNotNull(snapshot);
         assertEquals("UP", snapshot.overallStatus());
         assertTrue(snapshot.message().contains("System is fully healthy"));
-
-        ConnectivityHealthDependencySnapshot wsDep = snapshot.dependencies().stream()
-                .filter(d -> "WebSocket Stream".equals(d.name())).findFirst().orElseThrow();
-        assertEquals("UP", wsDep.status());
-
-        ConnectivityHealthDependencySnapshot sigDep = snapshot.dependencies().stream()
-                .filter(d -> "Signal Processor".equals(d.name())).findFirst().orElseThrow();
-        assertEquals("UP", sigDep.status());
     }
 }

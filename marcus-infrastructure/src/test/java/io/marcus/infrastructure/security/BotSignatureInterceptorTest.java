@@ -126,6 +126,7 @@ class BotSignatureInterceptorTest {
 
     private static final class TestController {
 
+        @RequireBotSignature
         public void handle() {
         }
     }

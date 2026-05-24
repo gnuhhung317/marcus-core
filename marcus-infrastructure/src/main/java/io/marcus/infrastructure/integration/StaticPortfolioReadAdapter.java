@@ -216,7 +216,7 @@ public class StaticPortfolioReadAdapter implements PortfolioReadPort {
 
     @Override
     public ConnectivityHealthSnapshot getSystemConnectivityHealth() {
-        return new ConnectivityHealthSnapshot("UNKNOWN", LocalDateTime.now(), List.of());
+        return new ConnectivityHealthSnapshot("UNKNOWN", LocalDateTime.now());
     }
 
     @Override
@@ -238,24 +238,18 @@ public class StaticPortfolioReadAdapter implements PortfolioReadPort {
                 .orElse(null);
 
         String wsStatus = "DOWN";
-        long wsLatency = 0;
         if (latestHeartbeatOpt.isPresent()) {
             Instant receivedAt = latestHeartbeatOpt.get().getReceivedAt();
             Duration heartbeatAge = Duration.between(receivedAt, Instant.now());
             long ageSecs = heartbeatAge.getSeconds();
             if (ageSecs <= 60) {
                 wsStatus = "UP";
-                wsLatency = 15;
             } else if (ageSecs <= 300) {
                 wsStatus = "DEGRADED";
-                wsLatency = 45;
             } else {
                 wsStatus = "DOWN";
-                wsLatency = 999;
             }
         }
-
-        String sigStatus = wsStatus;
 
         String overall;
         String message;
@@ -270,13 +264,7 @@ public class StaticPortfolioReadAdapter implements PortfolioReadPort {
             message = "System is fully healthy and active.";
         }
 
-        List<ConnectivityHealthDependencySnapshot> deps = List.of(
-                new ConnectivityHealthDependencySnapshot("WebSocket Stream", wsStatus, (int) wsLatency),
-                new ConnectivityHealthDependencySnapshot("Signal Processor", sigStatus, 8),
-                new ConnectivityHealthDependencySnapshot("Order Executor", wsStatus.equals("DOWN") ? "DOWN" : "UP", 25)
-        );
-
-        return new BotIntegrationHealthSnapshot(overall, LocalDateTime.now(), deps, lastSignalAt, message);
+        return new BotIntegrationHealthSnapshot(overall, LocalDateTime.now(), lastSignalAt, message);
     }
 
     @Override

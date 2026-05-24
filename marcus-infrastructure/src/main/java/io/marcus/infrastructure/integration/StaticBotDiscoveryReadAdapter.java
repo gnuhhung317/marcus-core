@@ -92,10 +92,7 @@ public class StaticBotDiscoveryReadAdapter implements BotDiscoveryReadPort {
                     return true;
                 })
                 .map(bot -> {
-                    List<SignalEntity> signals = springDataSignalRepository.findByBotIdAndGeneratedTimestampIsNotNullOrderByGeneratedTimestampAsc(bot.getBotId())
-                            .stream()
-                            .filter(s -> !isSimulated(s))
-                            .toList();
+                    List<SignalEntity> signals = springDataSignalRepository.findByBotIdAndGeneratedTimestampIsNotNullOrderByGeneratedTimestampAsc(bot.getBotId());
                     SignalMetricsCalculator.MetricsResult metrics = calculateMetrics(signals);
                     long subscribers = springDataUserSubscriptionRepository.findByBotIdAndStatusOrderByCreatedAtDesc(bot.getBotId(), SubscriptionStatus.ACTIVE).size();
                     return new BotDiscoverySnapshot(
@@ -244,19 +241,5 @@ public class StaticBotDiscoveryReadAdapter implements BotDiscoveryReadPort {
 
         long ageDays = Math.max(1L, ChronoUnit.DAYS.between(firstSignalAt, lastSignalAt) + 1L);
         return SignalMetricsCalculator.calculate(signalDataList, ageDays);
-    }
-
-    private boolean isSimulated(SignalEntity signal) {
-        if (signal == null || signal.getMetadata() == null) {
-            return false;
-        }
-        Object simulationVal = signal.getMetadata().get("simulation");
-        if (simulationVal instanceof Boolean) {
-            return (Boolean) simulationVal;
-        }
-        if (simulationVal instanceof String) {
-            return Boolean.parseBoolean((String) simulationVal);
-        }
-        return false;
     }
 }

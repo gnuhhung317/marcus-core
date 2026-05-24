@@ -46,6 +46,11 @@ public class BotSignatureInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        HandlerMethod handlerMethod = (HandlerMethod) handler;
+        if (!handlerMethod.hasMethodAnnotation(RequireBotSignature.class)) {
+            return true;
+        }
+
         String timestampHeader = request.getHeader(HEADER_TIMESTAMP);
         String apiKey = request.getHeader(HEADER_API_KEY);
         String signatureHeader = request.getHeader(HEADER_SIGNATURE);

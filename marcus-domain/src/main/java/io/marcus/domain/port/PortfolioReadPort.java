@@ -88,19 +88,14 @@ public interface PortfolioReadPort {
                         LocalDateTime lastSignalAt) {
         }
 
-        record ConnectivityHealthDependencySnapshot(String name, String status, int latencyMs) {
-        }
-
         record ConnectivityHealthSnapshot(
                         String overallStatus,
-                        LocalDateTime checkedAt,
-                        List<ConnectivityHealthDependencySnapshot> dependencies) {
+                        LocalDateTime checkedAt) {
         }
 
         record BotIntegrationHealthSnapshot(
                         String overallStatus,
                         LocalDateTime lastCheckedAt,
-                        List<ConnectivityHealthDependencySnapshot> dependencies,
                         LocalDateTime lastSignalAt,
                         String message) {
         }
