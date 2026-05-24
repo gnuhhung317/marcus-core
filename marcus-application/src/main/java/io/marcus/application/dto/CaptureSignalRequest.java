@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.AssertTrue;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -92,6 +93,7 @@ public record CaptureSignalRequest(
 
         SignalStatus status,
 
+        @NotNull(message = "generatedTimestamp is required")
         LocalDateTime generatedTimestamp,
 
         String timeframe,
@@ -99,3 +101,12 @@ public record CaptureSignalRequest(
         Map<String, Object> metadata
 ) {
 }
+
+        @AssertTrue(message = "entry must be provided when orderType is LIMIT")
+        private boolean isEntryProvidedForLimit() {
+                if (orderType == null) return true; // other validators handle nullity
+                if (orderType == OrderType.LIMIT) {
+                        return entry != null && entry.signum() > 0;
+                }
+                return true;
+        }
