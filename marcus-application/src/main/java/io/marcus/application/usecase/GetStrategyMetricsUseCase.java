@@ -1,6 +1,6 @@
 package io.marcus.application.usecase;
 
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.BotDiscoveryReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -13,9 +13,9 @@ public class GetStrategyMetricsUseCase {
 
     private static final Set<String> SUPPORTED_FEE_MODES = Set.of("RAW", "AFTER_FEES");
 
-    private final TerminalReadPort terminalReadPort;
+    private final BotDiscoveryReadPort botDiscoveryReadPort;
 
-    public TerminalReadPort.StrategyMetricsSnapshot execute(String strategyId, String feeMode) {
+    public BotDiscoveryReadPort.StrategyMetricsSnapshot execute(String strategyId, String feeMode) {
         if (strategyId == null || strategyId.isBlank()) {
             throw new IllegalArgumentException("Strategy id is required");
         }
@@ -26,6 +26,6 @@ public class GetStrategyMetricsUseCase {
         if (!SUPPORTED_FEE_MODES.contains(normalizedFeeMode)) {
             throw new IllegalArgumentException("Unsupported fee mode: " + feeMode);
         }
-        return terminalReadPort.getStrategyMetrics(strategyId.trim(), normalizedFeeMode);
+        return botDiscoveryReadPort.getStrategyMetrics(strategyId.trim(), normalizedFeeMode);
     }
 }

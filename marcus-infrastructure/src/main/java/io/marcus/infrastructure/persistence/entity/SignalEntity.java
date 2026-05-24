@@ -52,6 +52,9 @@ public class SignalEntity extends BaseEntity {
     private SignalStatus status;
 
     private LocalDateTime generatedTimestamp;
+    
+    @Column(length = 10)
+    private String timeframe;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")

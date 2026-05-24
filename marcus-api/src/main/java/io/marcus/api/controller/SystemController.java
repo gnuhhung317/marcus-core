@@ -2,7 +2,7 @@ package io.marcus.api.controller;
 
 import io.marcus.application.usecase.GetSystemConnectivityHealthUseCase;
 import io.marcus.application.usecase.ListSystemExecutionLogsUseCase;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.PortfolioReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,12 +19,12 @@ public class SystemController {
     private final ListSystemExecutionLogsUseCase listSystemExecutionLogsUseCase;
 
     @GetMapping("/connectivity")
-    public ResponseEntity<TerminalReadPort.ConnectivityHealthSnapshot> getSystemConnectivity() {
+    public ResponseEntity<PortfolioReadPort.ConnectivityHealthSnapshot> getSystemConnectivity() {
         return ResponseEntity.ok(getSystemConnectivityHealthUseCase.execute());
     }
 
     @GetMapping("/execution-logs")
-    public ResponseEntity<TerminalReadPort.ExecutionLogPageSnapshot> listExecutionLogs(
+    public ResponseEntity<PortfolioReadPort.ExecutionLogPageSnapshot> listExecutionLogs(
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false, defaultValue = "50") int limit
     ) {

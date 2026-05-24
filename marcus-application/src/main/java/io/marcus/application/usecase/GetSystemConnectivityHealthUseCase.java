@@ -1,6 +1,6 @@
 package io.marcus.application.usecase;
 
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.PortfolioReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -8,9 +8,9 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class GetSystemConnectivityHealthUseCase {
 
-    private final TerminalReadPort terminalReadPort;
+    private final PortfolioReadPort portfolioReadPort;
 
-    public TerminalReadPort.ConnectivityHealthSnapshot execute() {
-        return terminalReadPort.getSystemConnectivityHealth();
+    public PortfolioReadPort.ConnectivityHealthSnapshot execute() {
+        return portfolioReadPort.getSystemConnectivityHealth();
     }
 }

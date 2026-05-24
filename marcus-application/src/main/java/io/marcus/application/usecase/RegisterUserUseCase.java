@@ -27,9 +27,9 @@ public class RegisterUserUseCase {
     }
 
     public RegisterUserResponse execute(RegisterUserRequest registerUserRequest) {
-        String normalizedUsername = normalizeUsername(registerUserRequest);
-        String normalizedEmail = requireTrimmed(registerUserRequest.email(), "Email is required");
-        String rawPassword = requireTrimmed(registerUserRequest.password(), "Password is required");
+        String normalizedUsername = registerUserRequest.username().trim();
+        String normalizedEmail = registerUserRequest.email().trim();
+        String rawPassword = registerUserRequest.password();
         Role requestedRole = resolveRequestedRole(registerUserRequest.role());
 
         if (userUniquenessPort.existsByUsername(normalizedUsername)) {
@@ -56,38 +56,6 @@ public class RegisterUserUseCase {
                 savedUser.getEmail(),
                 savedUser.getRole().name()
         );
-    }
-
-    private String normalizeUsername(RegisterUserRequest registerUserRequest) {
-        String username = firstNonBlank(registerUserRequest.username(), registerUserRequest.displayName());
-        if (username == null) {
-            throw new IllegalArgumentException("Username is required");
-        }
-        return username;
-    }
-
-    private String firstNonBlank(String first, String second) {
-        String normalizedFirst = trimToNull(first);
-        if (normalizedFirst != null) {
-            return normalizedFirst;
-        }
-        return trimToNull(second);
-    }
-
-    private String requireTrimmed(String value, String message) {
-        String normalized = trimToNull(value);
-        if (normalized == null) {
-            throw new IllegalArgumentException(message);
-        }
-        return normalized;
-    }
-
-    private String trimToNull(String value) {
-        if (value == null) {
-            return null;
-        }
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private Role resolveRequestedRole(Role requestedRole) {

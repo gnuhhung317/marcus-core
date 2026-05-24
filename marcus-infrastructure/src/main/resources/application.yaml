@@ -3,7 +3,7 @@ spring:
     name: marcus-infrastructure
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://200.200.201.4:5432/marcus
+    url: jdbc:postgresql://171.244.195.150:5432/marcus
     username: user
     password: password
 
@@ -14,10 +14,10 @@ spring:
 
   data:
     redis:
-      url: redis://200.200.201.4:6379
+      url: redis://171.244.195.150:6379
 
   kafka:
-    bootstrap-servers: 200.200.201.4:9092
+    bootstrap-servers: 171.244.195.150:9092
     consumer:
       group-id: marcus-group
       auto-offset-reset: earliest
@@ -41,4 +41,3 @@ marcus:
     signal-routing-topic: trading-signals-routing
     signal-dispatcher-group: marcus-signal-dispatcher
     signal-dispatch-broadcast-channel: marcus:signals:dispatch:broadcast
-

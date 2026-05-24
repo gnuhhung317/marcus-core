@@ -2,14 +2,15 @@ package io.marcus.api.controller;
 
 import io.marcus.api.exception.GlobalExceptionsHandler;
 import io.marcus.api.security.JwtAuthenticationFilter;
-import io.marcus.application.exception.ResourceConflictException;
+import io.marcus.domain.exception.ResourceConflictException;
 import io.marcus.application.usecase.CreatePaperOrderUseCase;
 import io.marcus.application.usecase.GetPaperSessionSummaryUseCase;
 import io.marcus.application.usecase.ListPaperExecutionLogsUseCase;
 import io.marcus.application.usecase.ListPaperSignalsUseCase;
 import io.marcus.application.usecase.PausePaperSessionUseCase;
 import io.marcus.application.usecase.ResumePaperSessionUseCase;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.PortfolioReadPort;
+import io.marcus.domain.port.UserProfileReadPort;
 import io.marcus.infrastructure.security.BotSignatureInterceptor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -76,7 +77,7 @@ class PaperControllerTest {
     @Test
     void shouldGetPaperSessionSummary() throws Exception {
         when(getPaperSessionSummaryUseCase.execute())
-                .thenReturn(new TerminalReadPort.PaperSessionSummarySnapshot("ps_1", "RUNNING", 10000, 120, 5000));
+                .thenReturn(new PortfolioReadPort.PaperSessionSummarySnapshot("ps_1", "RUNNING", 10000, 120, 5000));
 
         mockMvc.perform(get("/api/v1/paper/session"))
                 .andExpect(status().isOk())
@@ -85,9 +86,9 @@ class PaperControllerTest {
 
     @Test
     void shouldGetPaperLogs() throws Exception {
-        TerminalReadPort.PaperExecutionLogPageSnapshot page = new TerminalReadPort.PaperExecutionLogPageSnapshot(
-                List.of(new TerminalReadPort.PaperExecutionLogItemSnapshot(LocalDateTime.of(2026, 4, 1, 10, 0), "INFO", "Paper execution event #1")),
-                new TerminalReadPort.CursorPaginationMetaSnapshot(null, "paper-cursor-50", 50, true)
+        PortfolioReadPort.PaperExecutionLogPageSnapshot page = new PortfolioReadPort.PaperExecutionLogPageSnapshot(
+                List.of(new PortfolioReadPort.PaperExecutionLogItemSnapshot(LocalDateTime.of(2026, 4, 1, 10, 0), "INFO", "Paper execution event #1")),
+                new PortfolioReadPort.CursorPaginationMetaSnapshot(null, "paper-cursor-50", 50, true)
         );
         when(listPaperExecutionLogsUseCase.execute(null, 50)).thenReturn(page);
 
@@ -100,7 +101,7 @@ class PaperControllerTest {
     @Test
     void shouldGetPaperSignals() throws Exception {
         when(listPaperSignalsUseCase.execute("ALL", 50)).thenReturn(List.of(
-                new TerminalReadPort.PaperSignalSnapshot("sig_1", "bot_1", "BTCUSDT", "BUY", 0.7, "ACTIVE", LocalDateTime.now())
+                new PortfolioReadPort.PaperSignalSnapshot("sig_1", "bot_1", "BTCUSDT", "BUY", 0.7, "ACTIVE", LocalDateTime.now())
         ));
 
         mockMvc.perform(get("/api/v1/paper/signals"))
@@ -111,7 +112,7 @@ class PaperControllerTest {
     @Test
     void shouldCreatePaperOrder() throws Exception {
         when(createPaperOrderUseCase.execute("BTCUSDT", "LIMIT", "BUY", 0.5, 64500.5))
-                .thenReturn(new TerminalReadPort.PaperOrderSnapshot("ord_1", "ACCEPTED", 64500.5));
+                .thenReturn(new PortfolioReadPort.PaperOrderSnapshot("ord_1", "ACCEPTED", 64500.5));
 
         mockMvc.perform(post("/api/v1/paper/orders")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -144,9 +145,9 @@ class PaperControllerTest {
     @Test
     void shouldPauseAndResumePaperSession() throws Exception {
         when(pausePaperSessionUseCase.execute())
-                .thenReturn(new TerminalReadPort.PaperSessionStateSnapshot("ps_1", "PAUSED"));
+                .thenReturn(new PortfolioReadPort.PaperSessionStateSnapshot("ps_1", "PAUSED"));
         when(resumePaperSessionUseCase.execute())
-                .thenReturn(new TerminalReadPort.PaperSessionStateSnapshot("ps_1", "RUNNING"));
+                .thenReturn(new PortfolioReadPort.PaperSessionStateSnapshot("ps_1", "RUNNING"));
 
         mockMvc.perform(post("/api/v1/paper/session/pause"))
                 .andExpect(status().isOk())

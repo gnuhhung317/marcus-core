@@ -5,3 +5,8 @@ target/*
 .brv/
 .idea/workspace.xml
 .understand-anything/
+**.txt
+**.log
+docs/*
+memories/*
+sample_bot/*

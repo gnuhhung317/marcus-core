@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Entity
@@ -46,4 +47,15 @@ public class BotEntity extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "exchange_id")
     private ExchangeEntity exchange;
+
+    @Column(precision = 18, scale = 8)
+    private BigDecimal price;
+
+    @Column(name = "risk_level")
+    private String riskLevel;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "bot_asset_pairs", joinColumns = @JoinColumn(name = "bot_entity_id"))
+    @Column(name = "asset_pair")
+    private List<String> assetPairs;
 }

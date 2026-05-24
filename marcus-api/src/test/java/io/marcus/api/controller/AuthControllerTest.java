@@ -1,6 +1,8 @@
 package io.marcus.api.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.marcus.application.dto.LoginRequest;
+import io.marcus.application.dto.RefreshTokenRequest;
 import io.marcus.application.dto.RegisterUserRequest;
 import io.marcus.application.dto.RegisterUserResponse;
 import io.marcus.application.usecase.AuthenticateUserUseCase;
@@ -75,5 +77,44 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.role").value("DEVELOPER"));
 
         verify(registerUserUseCase).execute(request);
+    }
+
+    @Test
+    void shouldFailRegisterWhenUsernameIsBlank() throws Exception {
+        RegisterUserRequest request = new RegisterUserRequest(
+                "",
+                null,
+                "secret-password",
+                "dev_user@example.com",
+                Role.DEVELOPER
+        );
+
+        mockMvc.perform(post("/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
+    void shouldFailLoginWhenUsernameOrPasswordIsBlank() throws Exception {
+        LoginRequest request = new LoginRequest("", "secret");
+
+        mockMvc.perform(post("/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
+    void shouldFailRefreshWhenTokenIsBlank() throws Exception {
+        RefreshTokenRequest request = new RefreshTokenRequest("");
+
+        mockMvc.perform(post("/auth/refresh")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
     }
 }

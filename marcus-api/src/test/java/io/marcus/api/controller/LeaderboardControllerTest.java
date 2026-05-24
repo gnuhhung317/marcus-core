@@ -5,7 +5,8 @@ import io.marcus.api.security.JwtAuthenticationFilter;
 import io.marcus.application.usecase.ListLeaderboardFeaturedUseCase;
 import io.marcus.application.usecase.ListLeaderboardSpotlightsUseCase;
 import io.marcus.application.usecase.ListLeaderboardStrategiesUseCase;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.BotDiscoveryReadPort;
+import io.marcus.domain.port.UserProfileReadPort;
 import io.marcus.infrastructure.security.BotSignatureInterceptor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -59,15 +60,15 @@ class LeaderboardControllerTest {
 
     @Test
     void shouldGetLeaderboardStrategies() throws Exception {
-        TerminalReadPort.LeaderboardStrategySnapshot item = new TerminalReadPort.LeaderboardStrategySnapshot(
+        BotDiscoveryReadPort.LeaderboardStrategySnapshot item = new BotDiscoveryReadPort.LeaderboardStrategySnapshot(
                 1, "stg_1", "Momentum 1", "Marcus Desk", 0.32, 2.1, 0.15
         );
-        TerminalReadPort.OffsetPaginationMetaSnapshot meta = new TerminalReadPort.OffsetPaginationMetaSnapshot(
+        UserProfileReadPort.OffsetPaginationMetaSnapshot meta = new UserProfileReadPort.OffsetPaginationMetaSnapshot(
                 0, 20, 1, 1, false
         );
 
         when(listLeaderboardStrategiesUseCase.execute("7D", "CRYPTO", "BTCUSDT", "sharpe", 0, 20))
-                .thenReturn(new TerminalReadPort.LeaderboardStrategiesPageSnapshot(List.of(item), meta));
+                .thenReturn(new BotDiscoveryReadPort.LeaderboardStrategiesPageSnapshot(List.of(item), meta));
 
         mockMvc.perform(get("/api/v1/leaderboard/strategies")
                         .param("timeframe", "7D")
@@ -84,8 +85,8 @@ class LeaderboardControllerTest {
     @Test
     void shouldGetLeaderboardFeatured() throws Exception {
         when(listLeaderboardFeaturedUseCase.execute())
-                .thenReturn(new TerminalReadPort.LeaderboardFeaturedSnapshot(List.of(
-                        new TerminalReadPort.LeaderboardFeaturedItemSnapshot("stg_1", "Apex", "TOP 1", 2.4)
+                .thenReturn(new BotDiscoveryReadPort.LeaderboardFeaturedSnapshot(List.of(
+                        new BotDiscoveryReadPort.LeaderboardFeaturedItemSnapshot("stg_1", "Apex", "TOP 1", 2.4)
                 )));
 
         mockMvc.perform(get("/api/v1/leaderboard/featured"))
@@ -97,7 +98,7 @@ class LeaderboardControllerTest {
     void shouldGetLeaderboardSpotlights() throws Exception {
         when(listLeaderboardSpotlightsUseCase.execute())
                 .thenReturn(List.of(
-                        new TerminalReadPort.StrategySpotlightSnapshot("stg_1", "Neutron", "CRYPTO", 0.03)
+                        new BotDiscoveryReadPort.StrategySpotlightSnapshot("stg_1", "Neutron", "CRYPTO", 0.03)
                 ));
 
         mockMvc.perform(get("/api/v1/leaderboard/spotlights"))

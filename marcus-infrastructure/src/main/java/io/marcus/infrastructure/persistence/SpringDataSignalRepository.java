@@ -22,6 +22,14 @@ public interface SpringDataSignalRepository extends JpaRepository<SignalEntity, 
      */
     List<SignalEntity> findByBotId(String botId);
 
+    @Query("SELECT s FROM SignalEntity s WHERE s.botId = :botId ORDER BY s.generatedTimestamp DESC NULLS LAST")
+    List<SignalEntity> findByBotIdOrderByGeneratedTimestampDesc(
+            @Param("botId") String botId,
+            Pageable pageable
+    );
+
+    List<SignalEntity> findByBotIdAndGeneratedTimestampIsNotNullOrderByGeneratedTimestampAsc(String botId);
+
     /**
      * Find signals for multiple bots with non-null timestamps, ordered for
      * time-series rendering. Replaces findAll() + filter by botIds + sort.

@@ -4,20 +4,24 @@ import io.marcus.application.dto.MarketingStatsResponse;
 import io.marcus.domain.repository.BotRepository;
 import io.marcus.domain.repository.UserRepository;
 import io.marcus.domain.repository.ExchangeRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/public/marketing")
-@RequiredArgsConstructor
+@RequestMapping({"/public/marketing", "/api/public/marketing", "/api/v1/public/marketing"})
 public class MarketingController {
 
     private final UserRepository userRepository;
     private final BotRepository botRepository;
     private final ExchangeRepository exchangeRepository;
+
+    public MarketingController(UserRepository userRepository, BotRepository botRepository, ExchangeRepository exchangeRepository) {
+        this.userRepository = userRepository;
+        this.botRepository = botRepository;
+        this.exchangeRepository = exchangeRepository;
+    }
 
     @GetMapping("/stats")
     public ResponseEntity<MarketingStatsResponse> getMarketingStats() {
@@ -32,12 +36,12 @@ public class MarketingController {
             verifiedDevelopers += 50;
         }
 
-        MarketingStatsResponse response = MarketingStatsResponse.builder()
-                .verifiedDevelopers(verifiedDevelopers)
-                .activeCloudExecutors(activeCloudExecutors)
-                .systemUptime(systemUptime)
-                .supportedExchanges(supportedExchanges)
-                .build();
+        MarketingStatsResponse response = new MarketingStatsResponse(
+                verifiedDevelopers,
+                activeCloudExecutors,
+                systemUptime,
+                supportedExchanges
+        );
 
         return ResponseEntity.ok(response);
     }

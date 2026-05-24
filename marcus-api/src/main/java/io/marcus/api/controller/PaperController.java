@@ -6,7 +6,7 @@ import io.marcus.application.usecase.ListPaperSignalsUseCase;
 import io.marcus.application.usecase.ListPaperExecutionLogsUseCase;
 import io.marcus.application.usecase.PausePaperSessionUseCase;
 import io.marcus.application.usecase.ResumePaperSessionUseCase;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.PortfolioReadPort;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -36,12 +36,12 @@ public class PaperController {
     private final ResumePaperSessionUseCase resumePaperSessionUseCase;
 
     @GetMapping("/session")
-    public ResponseEntity<TerminalReadPort.PaperSessionSummarySnapshot> getPaperSessionSummary() {
+    public ResponseEntity<PortfolioReadPort.PaperSessionSummarySnapshot> getPaperSessionSummary() {
         return ResponseEntity.ok(getPaperSessionSummaryUseCase.execute());
     }
 
     @GetMapping("/signals")
-    public ResponseEntity<List<TerminalReadPort.PaperSignalSnapshot>> listPaperSignals(
+    public ResponseEntity<List<PortfolioReadPort.PaperSignalSnapshot>> listPaperSignals(
             @RequestParam(required = false, defaultValue = "ALL") String status,
             @RequestParam(required = false, defaultValue = "50") int limit
     ) {
@@ -49,7 +49,7 @@ public class PaperController {
     }
 
     @GetMapping("/logs")
-    public ResponseEntity<TerminalReadPort.PaperExecutionLogPageSnapshot> listPaperLogs(
+    public ResponseEntity<PortfolioReadPort.PaperExecutionLogPageSnapshot> listPaperLogs(
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false, defaultValue = "50") int limit
     ) {
@@ -57,10 +57,10 @@ public class PaperController {
     }
 
     @PostMapping("/orders")
-    public ResponseEntity<TerminalReadPort.PaperOrderSnapshot> createPaperOrder(
+    public ResponseEntity<PortfolioReadPort.PaperOrderSnapshot> createPaperOrder(
             @Valid @RequestBody CreatePaperOrderRequest request
     ) {
-        TerminalReadPort.PaperOrderSnapshot result = createPaperOrderUseCase.execute(
+        PortfolioReadPort.PaperOrderSnapshot result = createPaperOrderUseCase.execute(
                 request.assetPair(),
                 request.orderType(),
                 request.side(),
@@ -71,12 +71,12 @@ public class PaperController {
     }
 
     @PostMapping("/session/pause")
-    public ResponseEntity<TerminalReadPort.PaperSessionStateSnapshot> pauseSession() {
+    public ResponseEntity<PortfolioReadPort.PaperSessionStateSnapshot> pauseSession() {
         return ResponseEntity.ok(pausePaperSessionUseCase.execute());
     }
 
     @PostMapping("/session/resume")
-    public ResponseEntity<TerminalReadPort.PaperSessionStateSnapshot> resumeSession() {
+    public ResponseEntity<PortfolioReadPort.PaperSessionStateSnapshot> resumeSession() {
         return ResponseEntity.ok(resumePaperSessionUseCase.execute());
     }
 

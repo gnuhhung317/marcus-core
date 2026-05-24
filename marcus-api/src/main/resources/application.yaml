@@ -31,7 +31,7 @@ spring:
   data:
     redis:
       url: ${SPRING_REDIS_URL:redis://redis:6379}
-      host: 200.200.201.4
+      host: 171.244.195.150
       port: 6379
 
     producer:
@@ -41,7 +41,7 @@ spring:
         spring.json.add.type.headers: false
 
     listener:
-      ack-mode: record   # xử lý từng message
+      ack-mode: record # xử lý từng message
 
 marcus:
   messaging:

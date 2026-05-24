@@ -4,7 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.marcus.api.websocket.executor.AuditPushEventHandler;
 import io.marcus.api.websocket.executor.ExecutorEventEventHandler;
+import io.marcus.domain.port.ExecutorOnlineStatusPort;
 import io.marcus.domain.port.UserSubscriptionPersistencePort;
+import io.marcus.domain.repository.SignalRepository;
+import io.marcus.domain.vo.SignalStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
@@ -25,6 +28,10 @@ import java.util.Map;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+import io.marcus.domain.port.RawEventPersistencePort;
+import io.marcus.domain.model.RawEvent;
+import java.util.UUID;
+
 @Component
 @Slf4j
 @RequiredArgsConstructor
@@ -36,6 +43,9 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
     private final ObjectMapper objectMapper;
     private final ExecutorSessionRegistry sessionRegistry;
     private final UserSubscriptionPersistencePort userSubscriptionPersistencePort;
+    private final SignalRepository signalRepository;
+    private final ExecutorOnlineStatusPort executorOnlineStatusPort;
+    private final RawEventPersistencePort rawEventPersistencePort;
     @Lazy
     private final ExecutorEventEventHandler executorEventEventHandler;
     @Lazy
@@ -44,6 +54,10 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         sessionRegistry.unregister(session);
+        String wsToken = (String) session.getAttributes().get(ExecutorHandshakeInterceptor.WS_TOKEN_ATTRIBUTE);
+        if (wsToken != null) {
+            executorOnlineStatusPort.markOffline(wsToken);
+        }
     }
 
     @Override
@@ -58,7 +72,48 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
             }
 
             if ("heartbeat".equals(frameType)) {
+                String wsToken = (String) session.getAttributes().get(ExecutorHandshakeInterceptor.WS_TOKEN_ATTRIBUTE);
+                if (wsToken != null) {
+                    executorOnlineStatusPort.markOnline(wsToken, 30);
+                }
+
+                String botId = (String) session.getAttributes().get("botId");
+                if (botId == null || botId.isBlank()) {
+                    botId = root.path("botId").asText(root.path("bot_id").asText(""));
+                }
+
+                if (botId != null && !botId.isBlank()) {
+                    try {
+                        String eventId = UUID.randomUUID().toString();
+                        RawEvent rawEvent = new RawEvent();
+                        rawEvent.setEventId(eventId);
+                        rawEvent.setBotId(botId);
+                        rawEvent.setIdempotencyKey("hb-key-" + eventId);
+                        rawEvent.setCorrelationId("hb-corr-" + eventId);
+                        rawEvent.setType("heartbeat");
+
+                        Map<String, Object> payloadMap = new HashMap<>();
+                        payloadMap.put("timestamp", root.path("timestamp").asText(Instant.now().toString()));
+                        rawEvent.setPayload(payloadMap);
+                        rawEvent.setReceivedAt(Instant.now());
+                        rawEvent.setSourceConnId(session.getId());
+                        rawEvent.setProcessed(true);
+                        rawEvent.setProcessedAt(Instant.now());
+
+                        rawEventPersistencePort.save(rawEvent);
+                    } catch (Exception e) {
+                        log.error("[WebSocket] Failed to persist heartbeat raw event for botId={}: {}", botId, e.getMessage(), e);
+                    }
+                } else {
+                    log.warn("[WebSocket] Received heartbeat with missing botId from session={}", session.getId());
+                }
+
                 sendFrame(session, buildAckFrame("heartbeat", "ok", null));
+                return;
+            }
+
+            if ("subscribe".equals(frameType)) {
+                handleSubscribe(session, root);
                 return;
             }
 
@@ -69,6 +124,11 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
 
             if ("audit-push".equals(frameType)) {
                 auditPushEventHandler.handleAuditPush(session, root);
+                return;
+            }
+
+            if ("signal_ack".equals(frameType)) {
+                handleSignalAck(session, root);
                 return;
             }
 
@@ -129,7 +189,39 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
         session.getAttributes().put(ExecutorHandshakeInterceptor.USER_ID_ATTRIBUTE, subscription.get().getUserId());
         session.getAttributes().put("botId", botId);
         userSubscriptionPersistencePort.markExecutorConnected(subscription.get().getUserSubscriptionId(), true);
+        executorOnlineStatusPort.markOnline(wsToken, 30);
         sendFrame(session, buildAckFrame("handshake", "ok", botId));
+    }
+
+    private void handleSubscribe(WebSocketSession session, JsonNode root) throws IOException {
+        JsonNode payload = root.path("payload");
+        String botId = payload.path("botId").asText(payload.path("bot_id").asText(""));
+        String wsToken = (String) session.getAttributes().get(ExecutorHandshakeInterceptor.WS_TOKEN_ATTRIBUTE);
+
+        if (botId.isBlank() || wsToken == null || wsToken.isBlank()) {
+            sendFrame(session, buildErrorFrame("invalid_subscribe", "botId and ws_token are required"));
+            session.close(CloseStatus.BAD_DATA);
+            return;
+        }
+
+        var subscription = userSubscriptionPersistencePort.findActiveByBotIdAndWsToken(botId, wsToken);
+        if (subscription.isEmpty()) {
+            sendFrame(session, buildErrorFrame("unauthorized", "No active subscription matches the websocket token"));
+            session.close(CloseStatus.NOT_ACCEPTABLE);
+            return;
+        }
+
+        sessionRegistry.register(
+                wsToken,
+                botId,
+                subscription.get().getUserSubscriptionId(),
+                session
+        );
+        session.getAttributes().put(ExecutorHandshakeInterceptor.USER_ID_ATTRIBUTE, subscription.get().getUserId());
+        session.getAttributes().put("botId", botId);
+        userSubscriptionPersistencePort.markExecutorConnected(subscription.get().getUserSubscriptionId(), true);
+        executorOnlineStatusPort.markOnline(wsToken, 30);
+        sendFrame(session, buildAckFrame("subscribe", "ok", botId));
     }
 
     private Map<String, Object> buildAckFrame(String ackType, String status, String botId) {
@@ -183,6 +275,24 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
             return Base64.getEncoder().encodeToString(rawHmac);
         } catch (Exception ex) {
             throw new IOException("Failed to sign handshake", ex);
+        }
+    }
+
+    private void handleSignalAck(WebSocketSession session, JsonNode root) {
+        JsonNode payload = root.path("payload");
+        String signalId = payload.path("signal_id").asText(payload.path("signalId").asText(""));
+        String botId = (String) session.getAttributes().get("botId");
+
+        if (signalId.isBlank()) {
+            log.warn("[WebSocket] Received signal_ack with empty signalId from botId={}", botId);
+            return;
+        }
+
+        log.info("[WebSocket] Received delivery ACK for signalId={} from botId={}", signalId, botId);
+        try {
+            signalRepository.updateStatus(signalId, SignalStatus.ACKNOWLEDGED);
+        } catch (Exception e) {
+            log.error("[WebSocket] Failed to update signal status for signalId={}: {}", signalId, e.getMessage());
         }
     }
 }

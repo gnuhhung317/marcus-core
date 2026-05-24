@@ -29,7 +29,7 @@ public class JpaUserSubscriptionPersistenceAdapter implements UserSubscriptionPe
     @Override
     public Optional<UserSubscription> findActiveByUserIdAndBotId(String userId, String botId) {
         return springDataUserSubscriptionRepository
-                .findFirstByUserIdAndBotIdAndStatusOrderByCreatedAtDesc(userId, botId, SubscriptionStatus.ACTIVE)
+                .findByUserIdAndBotIdAndStatus(userId, botId, SubscriptionStatus.ACTIVE)
                 .map(userSubscriptionMapper::toDomain);
     }
 

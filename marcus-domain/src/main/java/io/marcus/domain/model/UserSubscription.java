@@ -11,7 +11,6 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
-
 public class UserSubscription extends BaseModel {
 
     private String userSubscriptionId;
@@ -24,3 +23,4 @@ public class UserSubscription extends BaseModel {
     private LocalDateTime endDate;
     private boolean executorConnected;
 }
+

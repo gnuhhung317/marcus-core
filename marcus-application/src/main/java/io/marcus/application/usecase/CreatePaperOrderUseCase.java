@@ -1,7 +1,7 @@
 package io.marcus.application.usecase;
 
 import io.marcus.application.exception.UnauthenticatedException;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.PortfolioReadPort;
 import io.marcus.domain.service.IdentityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,9 +17,9 @@ public class CreatePaperOrderUseCase {
     private static final Set<String> SUPPORTED_SIDES = Set.of("BUY", "SELL");
 
     private final IdentityService identityService;
-    private final TerminalReadPort terminalReadPort;
+    private final PortfolioReadPort portfolioReadPort;
 
-    public TerminalReadPort.PaperOrderSnapshot execute(
+    public PortfolioReadPort.PaperOrderSnapshot execute(
             String assetPair,
             String orderType,
             String side,
@@ -53,13 +53,13 @@ public class CreatePaperOrderUseCase {
             throw new IllegalArgumentException("limitPrice must be provided and greater than 0 for LIMIT orders");
         }
 
-        TerminalReadPort.PaperOrderCreateSnapshot request = new TerminalReadPort.PaperOrderCreateSnapshot(
+        PortfolioReadPort.PaperOrderCreateSnapshot request = new PortfolioReadPort.PaperOrderCreateSnapshot(
                 assetPair.trim().toUpperCase(Locale.ROOT),
                 normalizedOrderType,
                 normalizedSide,
                 quantity,
                 limitPrice
         );
-        return terminalReadPort.createPaperOrder(userId, request);
+        return portfolioReadPort.createPaperOrder(userId, request);
     }
 }

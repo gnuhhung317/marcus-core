@@ -1,16 +1,15 @@
 package io.marcus.application.usecase;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.marcus.application.dto.CaptureSignalRequest;
 import io.marcus.domain.model.RawEvent;
-import io.marcus.domain.model.Signal;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
  * Processes persisted RawEvent objects and routes them to domain use cases.
- * Currently supports `ingest` messages which are mapped to `Signal` and
- * forwarded to `CaptureSignalUseCase`.
+ * Forwarding to `CaptureSignalUseCase`.
  */
 @Service
 @RequiredArgsConstructor
@@ -28,19 +27,36 @@ public class ProcessRawEventUseCase {
         String type = rawEvent.getType();
         if ("ingest".equalsIgnoreCase(type)) {
             try {
-                // Map payload to Signal domain model
-                Signal signal = objectMapper.convertValue(rawEvent.getPayload(), Signal.class);
-                // Ensure botId from envelope is preserved
-                if (signal.getBotId() == null || signal.getBotId().isBlank()) {
-                    signal.setBotId(rawEvent.getBotId());
+                // Map payload to CaptureSignalRequest DTO
+                CaptureSignalRequest request = objectMapper.convertValue(rawEvent.getPayload(), CaptureSignalRequest.class);
+
+                // Ensure botId and signalId are populated
+                String botId = (request.botId() == null || request.botId().isBlank()) ? rawEvent.getBotId() : request.botId();
+                String signalId = (request.signalId() == null || request.signalId().isBlank()) ? rawEvent.getEventId() : request.signalId();
+
+                if (!botId.equals(request.botId()) || !signalId.equals(request.signalId())) {
+                    request = new CaptureSignalRequest(
+                            signalId,
+                            botId,
+                            request.symbol(),
+                            request.action(),
+                            request.marketType(),
+                            request.orderType(),
+                            request.entry(),
+                            request.stopLoss(),
+                            request.takeProfit(),
+                            request.amount(),
+                            request.leverage(),
+                            request.marginMode(),
+                            request.reduceOnly(),
+                            request.status(),
+                            request.generatedTimestamp(),
+                            request.timeframe(),
+                            request.metadata()
+                    );
                 }
 
-                // Ensure signalId exists: use eventId as fallback
-                if (signal.getSignalId() == null || signal.getSignalId().isBlank()) {
-                    signal.setSignalId(rawEvent.getEventId());
-                }
-
-                captureSignalUseCase.execute(signal);
+                captureSignalUseCase.execute(request);
             } catch (Exception e) {
                 log.error("Failed to process ingest rawEvent {}: {}", rawEvent.getEventId(), e.getMessage(), e);
             }

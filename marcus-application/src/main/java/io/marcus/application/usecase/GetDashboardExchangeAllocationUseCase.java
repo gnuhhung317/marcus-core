@@ -1,7 +1,7 @@
 package io.marcus.application.usecase;
 
 import io.marcus.application.exception.UnauthenticatedException;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.MarketDataReadPort;
 import io.marcus.domain.service.IdentityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,11 +13,11 @@ import java.util.List;
 public class GetDashboardExchangeAllocationUseCase {
 
     private final IdentityService identityService;
-    private final TerminalReadPort terminalReadPort;
+    private final MarketDataReadPort marketDataReadPort;
 
-    public List<TerminalReadPort.ExchangeAllocationSnapshot> execute() {
+    public List<MarketDataReadPort.ExchangeAllocationSnapshot> execute() {
         String userId = identityService.getCurrentUserId()
                 .orElseThrow(() -> new UnauthenticatedException("No authenticated user found"));
-        return terminalReadPort.listExchangeAllocation(userId);
+        return marketDataReadPort.listExchangeAllocation(userId);
     }
 }

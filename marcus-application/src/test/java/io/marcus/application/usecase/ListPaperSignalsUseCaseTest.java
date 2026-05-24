@@ -1,7 +1,7 @@
 package io.marcus.application.usecase;
 
 import io.marcus.application.exception.UnauthenticatedException;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.PortfolioReadPort;
 import io.marcus.domain.service.IdentityService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,24 +24,24 @@ class ListPaperSignalsUseCaseTest {
     private IdentityService identityService;
 
     @Mock
-    private TerminalReadPort terminalReadPort;
+    private PortfolioReadPort portfolioReadPort;
 
     private ListPaperSignalsUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new ListPaperSignalsUseCase(identityService, terminalReadPort);
+        useCase = new ListPaperSignalsUseCase(identityService, portfolioReadPort);
     }
 
     @Test
     void shouldRequireAuthenticatedUserAndNormalizeInputs() {
-        List<TerminalReadPort.PaperSignalSnapshot> expected = List.of(
-                new TerminalReadPort.PaperSignalSnapshot("sig_1", "bot_1", "BTCUSDT", "BUY", 0.7, "ACTIVE", LocalDateTime.now())
+        List<PortfolioReadPort.PaperSignalSnapshot> expected = List.of(
+                new PortfolioReadPort.PaperSignalSnapshot("sig_1", "bot_1", "BTCUSDT", "BUY", 0.7, "ACTIVE", LocalDateTime.now())
         );
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("usr_1"));
-        when(terminalReadPort.listPaperSignals("ACTIVE", 200)).thenReturn(expected);
+        when(portfolioReadPort.listPaperSignals("ACTIVE", 200)).thenReturn(expected);
 
-        List<TerminalReadPort.PaperSignalSnapshot> result = useCase.execute(" active ", 999);
+        List<PortfolioReadPort.PaperSignalSnapshot> result = useCase.execute(" active ", 999);
 
         assertThat(result).containsExactlyElementsOf(expected);
     }

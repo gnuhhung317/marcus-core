@@ -6,7 +6,10 @@ import io.marcus.application.exception.UnauthenticatedException;
 import io.marcus.application.usecase.GetDashboardEquitySeriesUseCase;
 import io.marcus.application.usecase.GetDashboardExchangeAllocationUseCase;
 import io.marcus.application.usecase.GetDashboardOverviewUseCase;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.application.usecase.GetPortfolioDecisionsUseCase;
+import io.marcus.application.usecase.GetPortfolioOverviewUseCase;
+import io.marcus.domain.port.MarketDataReadPort;
+import io.marcus.domain.port.PortfolioReadPort;
 import io.marcus.infrastructure.security.BotSignatureInterceptor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -47,6 +50,12 @@ class DashboardControllerTest {
     private GetDashboardExchangeAllocationUseCase getDashboardExchangeAllocationUseCase;
 
     @MockBean
+    private GetPortfolioOverviewUseCase getPortfolioOverviewUseCase;
+
+    @MockBean
+    private GetPortfolioDecisionsUseCase getPortfolioDecisionsUseCase;
+
+    @MockBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @MockBean
@@ -62,7 +71,7 @@ class DashboardControllerTest {
     @Test
     void shouldGetDashboardOverview() throws Exception {
         when(getDashboardOverviewUseCase.execute())
-                .thenReturn(new TerminalReadPort.DashboardOverviewSnapshot(12500.25, 132.4, 0.61, 3));
+                .thenReturn(new MarketDataReadPort.DashboardOverviewSnapshot(12500.25, 132.4, 0.61, 3));
 
         mockMvc.perform(get("/api/v1/dashboard/overview"))
                 .andExpect(status().isOk())
@@ -74,8 +83,8 @@ class DashboardControllerTest {
     void shouldGetDashboardEquitySeries() throws Exception {
         when(getDashboardEquitySeriesUseCase.execute("1M"))
                 .thenReturn(List.of(
-                        new TerminalReadPort.TimeSeriesPointSnapshot(LocalDateTime.of(2026, 4, 1, 10, 0), 100.5),
-                        new TerminalReadPort.TimeSeriesPointSnapshot(LocalDateTime.of(2026, 4, 2, 10, 0), 101.5)
+                        new PortfolioReadPort.TimeSeriesPointSnapshot(LocalDateTime.of(2026, 4, 1, 10, 0), 100.5),
+                        new PortfolioReadPort.TimeSeriesPointSnapshot(LocalDateTime.of(2026, 4, 2, 10, 0), 101.5)
                 ));
 
         mockMvc.perform(get("/api/v1/dashboard/equity-series").param("range", "1M"))
@@ -86,7 +95,7 @@ class DashboardControllerTest {
     @Test
     void shouldGetDashboardExchangeAllocation() throws Exception {
         when(getDashboardExchangeAllocationUseCase.execute())
-                .thenReturn(List.of(new TerminalReadPort.ExchangeAllocationSnapshot("BINANCE", 0.42)));
+                .thenReturn(List.of(new MarketDataReadPort.ExchangeAllocationSnapshot("BINANCE", 0.42)));
 
         mockMvc.perform(get("/api/v1/dashboard/exchange-allocation"))
                 .andExpect(status().isOk())

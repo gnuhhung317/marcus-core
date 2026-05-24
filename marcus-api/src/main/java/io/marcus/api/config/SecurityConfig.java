@@ -1,6 +1,8 @@
 package io.marcus.api.config;
 
 import io.marcus.api.security.JwtAuthenticationFilter;
+import io.marcus.api.security.CustomAuthenticationEntryPoint;
+import io.marcus.api.security.CustomAccessDeniedHandler;
 import io.marcus.domain.vo.Role;
 import io.marcus.infrastructure.security.filter.RequestCachingFilter;
 import org.springframework.context.annotation.Bean;
@@ -21,9 +23,17 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
+    private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityConfig(
+            JwtAuthenticationFilter jwtAuthenticationFilter,
+            CustomAuthenticationEntryPoint customAuthenticationEntryPoint,
+            CustomAccessDeniedHandler customAccessDeniedHandler
+    ) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.customAuthenticationEntryPoint = customAuthenticationEntryPoint;
+        this.customAccessDeniedHandler = customAccessDeniedHandler;
     }
 
     @Bean
@@ -51,6 +61,10 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint(customAuthenticationEntryPoint)
+                        .accessDeniedHandler(customAccessDeniedHandler)
+                )
                 .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/register", "/auth/login", "/auth/refresh", "/api/v1/auth/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/signal/**", "/signals/**", "/api/signals/**", "/api/v1/signals").permitAll()
@@ -66,12 +80,16 @@ public class SecurityConfig {
                         "/academy/metrics", "/api/academy/metrics", "/api/v1/academy/metrics",
                         "/content/blog/posts", "/api/content/blog/posts", "/api/v1/content/blog/posts",
                         "/content/research/reports", "/api/content/research/reports", "/api/v1/content/research/reports",
-                        "/content/research/reports/library", "/api/content/research/reports/library", "/api/v1/content/research/reports/library"
+                        "/content/research/reports/library", "/api/content/research/reports/library", "/api/v1/content/research/reports/library",
+                        "/public/marketing/**", "/api/public/marketing/**", "/api/v1/public/marketing/**"
                 ).permitAll()
                 .requestMatchers(HttpMethod.GET, "/bots/my-bots", "/api/bots/my-bots", "/api/v1/bots/my-bots").hasRole(Role.DEVELOPER.name())
+                .requestMatchers(HttpMethod.GET, "/bots/*/integration-health", "/api/bots/*/integration-health", "/api/v1/bots/*/integration-health").hasRole(Role.DEVELOPER.name())
+                .requestMatchers(HttpMethod.GET, "/bots/*/credentials", "/api/bots/*/credentials", "/api/v1/bots/*/credentials").hasRole(Role.DEVELOPER.name())
                 .requestMatchers(HttpMethod.POST, "/bots", "/api/bots", "/api/v1/bots", "/bots/register", "/api/bots/register", "/api/v1/bots/register").hasRole(Role.DEVELOPER.name())
                 .requestMatchers(HttpMethod.GET, "/subscriptions", "/subscriptions/my-subscriptions", "/api/subscriptions", "/api/subscriptions/my-subscriptions", "/api/v1/subscriptions", "/api/v1/subscriptions/my-subscriptions").hasRole(Role.USER.name())
                 .requestMatchers(HttpMethod.POST, "/subscriptions/**", "/api/subscriptions/**", "/api/v1/subscriptions/**").hasRole(Role.USER.name())
+                .requestMatchers(HttpMethod.GET, "/subscriptions/*/delivery-summary", "/api/subscriptions/*/delivery-summary", "/api/v1/subscriptions/*/delivery-summary").hasRole(Role.DEVELOPER.name())
                 .anyRequest().authenticated())
                 .addFilterBefore(requestCachingFilter, SecurityContextHolderFilter.class)
                 .addFilterAfter(jwtAuthenticationFilter, SecurityContextHolderFilter.class)

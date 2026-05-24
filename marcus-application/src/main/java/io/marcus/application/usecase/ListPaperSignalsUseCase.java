@@ -1,7 +1,7 @@
 package io.marcus.application.usecase;
 
 import io.marcus.application.exception.UnauthenticatedException;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.PortfolioReadPort;
 import io.marcus.domain.service.IdentityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,9 +17,9 @@ public class ListPaperSignalsUseCase {
     private static final Set<String> SUPPORTED_STATUSES = Set.of("ACTIVE", "EXECUTED", "EXPIRED", "ALL");
 
     private final IdentityService identityService;
-    private final TerminalReadPort terminalReadPort;
+    private final PortfolioReadPort portfolioReadPort;
 
-    public List<TerminalReadPort.PaperSignalSnapshot> execute(String status, int limit) {
+    public List<PortfolioReadPort.PaperSignalSnapshot> execute(String status, int limit) {
         identityService.getCurrentUserId()
                 .orElseThrow(() -> new UnauthenticatedException("No authenticated user found"));
 
@@ -30,6 +30,6 @@ public class ListPaperSignalsUseCase {
         if (!SUPPORTED_STATUSES.contains(normalizedStatus)) {
             throw new IllegalArgumentException("Unsupported status: " + status);
         }
-        return terminalReadPort.listPaperSignals(normalizedStatus, normalizedLimit);
+        return portfolioReadPort.listPaperSignals(normalizedStatus, normalizedLimit);
     }
 }

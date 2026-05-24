@@ -6,6 +6,7 @@ import io.marcus.application.dto.UpsertBotSubscriberRequest;
 import io.marcus.application.dto.UpsertUserSessionRequest;
 import io.marcus.domain.model.Bot;
 import io.marcus.domain.model.Signal;
+import io.marcus.domain.vo.SignalStatus;
 import io.marcus.domain.port.BotSubscriberRoutingPort;
 import io.marcus.domain.port.SignalPublisherPort;
 import io.marcus.domain.port.SignalServerDispatchPort;
@@ -53,15 +54,14 @@ class CaptureSignalRoutingFlowIntegrationTest {
         upsertUserSessionUseCase = new UpsertUserSessionUseCase(userSessionRoutingPort);
         removeUserSessionUseCase = new RemoveUserSessionUseCase(userSessionRoutingPort);
 
-        ResolveBotRoutingTargetsUseCase resolveBotRoutingTargetsUseCase
-                = new ResolveBotRoutingTargetsUseCase(botSubscriberRoutingPort, userSessionRoutingPort);
+        ResolveBotRoutingTargetsUseCase resolveBotRoutingTargetsUseCase = new ResolveBotRoutingTargetsUseCase(
+                botSubscriberRoutingPort, userSessionRoutingPort);
         captureSignalUseCase = new CaptureSignalUseCase(
                 inMemorySignalRepository,
                 inMemoryBotRepository,
                 resolveBotRoutingTargetsUseCase,
                 inMemorySignalPublisherPort,
-                inMemorySignalServerDispatchPort
-        );
+                inMemorySignalServerDispatchPort);
     }
 
     @Test
@@ -76,15 +76,31 @@ class CaptureSignalRoutingFlowIntegrationTest {
         upsertUserSessionUseCase.execute(new UpsertUserSessionRequest("user-2", "session-2", "ws-b"));
         upsertUserSessionUseCase.execute(new UpsertUserSessionRequest("user-2", "session-3", "ws-b"));
 
-        Signal signal = Signal.builder()
-                .signalId("signal-1")
-                .botId("bot-1")
-                .build();
-        captureSignalUseCase.execute(signal);
+        io.marcus.application.dto.CaptureSignalRequest signalRequest = new io.marcus.application.dto.CaptureSignalRequest(
+                "signal-1",
+                "bot-1",
+                "BTCUSDT",
+                io.marcus.domain.vo.SignalAction.OPEN_LONG,
+                null,
+                null,
+                new java.math.BigDecimal("50000"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+        captureSignalUseCase.execute(signalRequest);
 
         assertThat(inMemorySignalRepository.savedSignals)
-                .hasSize(1)
-                .containsExactly(signal);
+                .hasSize(1);
+        assertThat(inMemorySignalRepository.savedSignals.get(0).getSignalId())
+                .isEqualTo("signal-1");
         assertThat(inMemorySignalServerDispatchPort.dispatches)
                 .hasSize(1);
         assertThat(inMemorySignalServerDispatchPort.dispatches.get(0).serverIds())
@@ -102,18 +118,56 @@ class CaptureSignalRoutingFlowIntegrationTest {
         upsertUserSessionUseCase.execute(new UpsertUserSessionRequest("user-1", "session-1", "ws-a"));
         upsertUserSessionUseCase.execute(new UpsertUserSessionRequest("user-2", "session-2", "ws-b"));
 
-        Signal firstSignal = Signal.builder().signalId("signal-1").botId("bot-1").build();
+        io.marcus.application.dto.CaptureSignalRequest firstSignal = new io.marcus.application.dto.CaptureSignalRequest(
+                "signal-1",
+                "bot-1",
+                "BTCUSDT",
+                io.marcus.domain.vo.SignalAction.OPEN_LONG,
+                null,
+                null,
+                new java.math.BigDecimal("50000"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
         captureSignalUseCase.execute(firstSignal);
 
         removeBotSubscriberUseCase.execute(new RemoveBotSubscriberRequest("bot-1", "user-2"));
         removeUserSessionUseCase.execute(new RemoveUserSessionRequest("user-1", "session-1"));
 
-        Signal secondSignal = Signal.builder().signalId("signal-2").botId("bot-1").build();
+        io.marcus.application.dto.CaptureSignalRequest secondSignal = new io.marcus.application.dto.CaptureSignalRequest(
+                "signal-2",
+                "bot-1",
+                "BTCUSDT",
+                io.marcus.domain.vo.SignalAction.OPEN_LONG,
+                null,
+                null,
+                new java.math.BigDecimal("50000"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
         captureSignalUseCase.execute(secondSignal);
 
         assertThat(inMemorySignalRepository.savedSignals)
-                .hasSize(2)
-                .containsExactly(firstSignal, secondSignal);
+                .hasSize(2);
+        assertThat(inMemorySignalRepository.savedSignals)
+                .extracting(Signal::getSignalId)
+                .containsExactly("signal-1", "signal-2");
         assertThat(inMemorySignalServerDispatchPort.dispatches)
                 .hasSize(1);
         assertThat(inMemorySignalServerDispatchPort.dispatches.get(0).signalId())
@@ -237,6 +291,26 @@ class CaptureSignalRoutingFlowIntegrationTest {
         public boolean existsBySignalId(String signalId) {
             return savedSignals.stream()
                     .anyMatch(signal -> signal.getSignalId().equals(signalId));
+        }
+
+        @Override
+        public void updateStatus(String signalId, SignalStatus status) {
+
+        }
+
+        @Override
+        public Optional<Signal> findBySignalId(String signalId) {
+            return savedSignals.stream()
+                    .filter(signal -> signal.getSignalId().equals(signalId))
+                    .findFirst();
+        }
+
+        @Override
+        public List<Signal> findByBotId(String botId, int limit) {
+            return savedSignals.stream()
+                    .filter(signal -> signal.getBotId().equals(botId))
+                    .limit(limit)
+                    .toList();
         }
     }
 

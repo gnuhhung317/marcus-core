@@ -1,7 +1,7 @@
 package io.marcus.application.usecase;
 
 import io.marcus.application.exception.UnauthenticatedException;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.PortfolioReadPort;
 import io.marcus.domain.service.IdentityService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,22 +23,22 @@ class CreatePaperOrderUseCaseTest {
     private IdentityService identityService;
 
     @Mock
-    private TerminalReadPort terminalReadPort;
+    private PortfolioReadPort portfolioReadPort;
 
     private CreatePaperOrderUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new CreatePaperOrderUseCase(identityService, terminalReadPort);
+        useCase = new CreatePaperOrderUseCase(identityService, portfolioReadPort);
     }
 
     @Test
     void shouldCreateLimitOrderWhenPayloadValid() {
-        TerminalReadPort.PaperOrderSnapshot expected = new TerminalReadPort.PaperOrderSnapshot("ord_1", "ACCEPTED", 64500.5);
+        PortfolioReadPort.PaperOrderSnapshot expected = new PortfolioReadPort.PaperOrderSnapshot("ord_1", "ACCEPTED", 64500.5);
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("usr_1"));
-        when(terminalReadPort.createPaperOrder(any(), any())).thenReturn(expected);
+        when(portfolioReadPort.createPaperOrder(any(), any())).thenReturn(expected);
 
-        TerminalReadPort.PaperOrderSnapshot result = useCase.execute("BTCUSDT", "LIMIT", "BUY", 0.5, 64500.5);
+        PortfolioReadPort.PaperOrderSnapshot result = useCase.execute("BTCUSDT", "LIMIT", "BUY", 0.5, 64500.5);
 
         assertThat(result).isEqualTo(expected);
     }

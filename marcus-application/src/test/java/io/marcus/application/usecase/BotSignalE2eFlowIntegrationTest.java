@@ -6,6 +6,7 @@ import io.marcus.application.dto.UpsertUserSessionRequest;
 import io.marcus.domain.model.Bot;
 import io.marcus.domain.model.Signal;
 import io.marcus.domain.vo.SignalAction;
+import io.marcus.domain.vo.SignalStatus;
 import io.marcus.domain.port.BotSubscriberRoutingPort;
 import io.marcus.domain.port.SignalPublisherPort;
 import io.marcus.domain.port.SignalServerDispatchPort;
@@ -70,15 +71,14 @@ class BotSignalE2eFlowIntegrationTest {
         removeBotSubscriberUseCase = new RemoveBotSubscriberUseCase(botSubscriberRoutingPort);
         upsertUserSessionUseCase = new UpsertUserSessionUseCase(userSessionRoutingPort);
 
-        ResolveBotRoutingTargetsUseCase resolveBotRoutingTargetsUseCase
-                = new ResolveBotRoutingTargetsUseCase(botSubscriberRoutingPort, userSessionRoutingPort);
+        ResolveBotRoutingTargetsUseCase resolveBotRoutingTargetsUseCase = new ResolveBotRoutingTargetsUseCase(
+                botSubscriberRoutingPort, userSessionRoutingPort);
         captureSignalUseCase = new CaptureSignalUseCase(
                 inMemorySignalRepository,
                 inMemoryBotRepository,
                 resolveBotRoutingTargetsUseCase,
                 inMemorySignalPublisherPort,
-                inMemorySignalServerDispatchPort
-        );
+                inMemorySignalServerDispatchPort);
 
         // Register test bot
         inMemoryBotRepository.registerBot(BOT_ID);
@@ -94,20 +94,35 @@ class BotSignalE2eFlowIntegrationTest {
         upsertUserSessionUseCase.execute(new UpsertUserSessionRequest(USER_ID, WS_SESSION_ID, WS_TOKEN));
 
         // Step 3: Bot generates and sends signal to backend
-        Signal signal = Signal.builder()
-                .signalId("signal_momentum_001")
-                .botId(BOT_ID)
-                .symbol("BTC/USDT")
-                .action(SignalAction.OPEN_LONG)
-                .build();
+        io.marcus.application.dto.CaptureSignalRequest request = new io.marcus.application.dto.CaptureSignalRequest(
+                "signal_momentum_001",
+                BOT_ID,
+                "BTC/USDT",
+                SignalAction.OPEN_LONG,
+                null,
+                null,
+                new java.math.BigDecimal("50000"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
 
-        // Step 4: Backend captures signal and dispatches to subscribed users' websockets
-        captureSignalUseCase.execute(signal);
+        // Step 4: Backend captures signal and dispatches to subscribed users'
+        // websockets
+        captureSignalUseCase.execute(request);
 
         // Assertions: Verify signal was published
         assertThat(inMemorySignalRepository.savedSignals)
-                .hasSize(1)
-                .containsExactly(signal);
+                .hasSize(1);
+        assertThat(inMemorySignalRepository.savedSignals.get(0).getSignalId())
+                .isEqualTo("signal_momentum_001");
 
         // Assertions: Verify signal was dispatched to subscribed websocket channel
         assertThat(inMemorySignalServerDispatchPort.dispatches)
@@ -127,27 +142,55 @@ class BotSignalE2eFlowIntegrationTest {
         upsertUserSessionUseCase.execute(new UpsertUserSessionRequest(USER_ID, WS_SESSION_ID, WS_TOKEN));
 
         // Send first signal
-        Signal signal1 = Signal.builder()
-                .signalId("signal_momentum_001")
-                .botId(BOT_ID)
-                .symbol("BTC/USDT")
-                .action(SignalAction.OPEN_LONG)
-                .build();
-        captureSignalUseCase.execute(signal1);
+        io.marcus.application.dto.CaptureSignalRequest request1 = new io.marcus.application.dto.CaptureSignalRequest(
+                "signal_momentum_001",
+                BOT_ID,
+                "BTC/USDT",
+                SignalAction.OPEN_LONG,
+                null,
+                null,
+                new java.math.BigDecimal("50000"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+        captureSignalUseCase.execute(request1);
 
         // Send second signal
-        Signal signal2 = Signal.builder()
-                .signalId("signal_momentum_002")
-                .botId(BOT_ID)
-                .symbol("BTC/USDT")
-                .action(SignalAction.CLOSE_LONG)
-                .build();
-        captureSignalUseCase.execute(signal2);
+        io.marcus.application.dto.CaptureSignalRequest request2 = new io.marcus.application.dto.CaptureSignalRequest(
+                "signal_momentum_002",
+                BOT_ID,
+                "BTC/USDT",
+                SignalAction.CLOSE_LONG,
+                null,
+                null,
+                new java.math.BigDecimal("50000"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+        captureSignalUseCase.execute(request2);
 
         // Verify both signals were published and dispatched
         assertThat(inMemorySignalRepository.savedSignals)
-                .hasSize(2)
-                .containsExactly(signal1, signal2);
+                .hasSize(2);
+        assertThat(inMemorySignalRepository.savedSignals)
+                .extracting(Signal::getSignalId)
+                .containsExactly("signal_momentum_001", "signal_momentum_002");
 
         assertThat(inMemorySignalServerDispatchPort.dispatches)
                 .hasSize(2)
@@ -162,25 +205,51 @@ class BotSignalE2eFlowIntegrationTest {
         upsertBotSubscriberUseCase.execute(new UpsertBotSubscriberRequest(BOT_ID, USER_ID));
         upsertUserSessionUseCase.execute(new UpsertUserSessionRequest(USER_ID, WS_SESSION_ID, WS_TOKEN));
 
-        Signal firstSignal = Signal.builder()
-                .signalId("signal_momentum_001")
-                .botId(BOT_ID)
-                .symbol("BTC/USDT")
-                .action(SignalAction.OPEN_LONG)
-                .build();
-        captureSignalUseCase.execute(firstSignal);
+        io.marcus.application.dto.CaptureSignalRequest firstRequest = new io.marcus.application.dto.CaptureSignalRequest(
+                "signal_momentum_001",
+                BOT_ID,
+                "BTC/USDT",
+                SignalAction.OPEN_LONG,
+                null,
+                null,
+                new java.math.BigDecimal("50000"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+        captureSignalUseCase.execute(firstRequest);
 
         // Unsubscribe
         removeBotSubscriberUseCase.execute(new RemoveBotSubscriberRequest(BOT_ID, USER_ID));
 
         // Send second signal after unsubscribe
-        Signal secondSignal = Signal.builder()
-                .signalId("signal_momentum_002")
-                .botId(BOT_ID)
-                .symbol("BTC/USDT")
-                .action(SignalAction.CLOSE_LONG)
-                .build();
-        captureSignalUseCase.execute(secondSignal);
+        io.marcus.application.dto.CaptureSignalRequest secondRequest = new io.marcus.application.dto.CaptureSignalRequest(
+                "signal_momentum_002",
+                BOT_ID,
+                "BTC/USDT",
+                SignalAction.CLOSE_LONG,
+                null,
+                null,
+                new java.math.BigDecimal("50000"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+        captureSignalUseCase.execute(secondRequest);
 
         // Verify only first signal was dispatched
         assertThat(inMemorySignalServerDispatchPort.dispatches)
@@ -207,13 +276,26 @@ class BotSignalE2eFlowIntegrationTest {
         upsertUserSessionUseCase.execute(new UpsertUserSessionRequest(otherUserId, "session_other", "ws_other_token"));
 
         // Signal from BOT_ID is captured
-        Signal signal = Signal.builder()
-                .signalId("signal_momentum_001")
-                .botId(BOT_ID)
-                .symbol("BTC/USDT")
-                .action(SignalAction.OPEN_LONG)
-                .build();
-        captureSignalUseCase.execute(signal);
+        io.marcus.application.dto.CaptureSignalRequest request = new io.marcus.application.dto.CaptureSignalRequest(
+                "signal_momentum_001",
+                BOT_ID,
+                "BTC/USDT",
+                SignalAction.OPEN_LONG,
+                null,
+                null,
+                new java.math.BigDecimal("50000"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+        captureSignalUseCase.execute(request);
 
         // Verify signal dispatched only to USER_ID's websocket
         assertThat(inMemorySignalServerDispatchPort.dispatches)
@@ -222,7 +304,8 @@ class BotSignalE2eFlowIntegrationTest {
                 .containsExactly(new LinkedHashSet<>(List.of(WS_TOKEN)));
     }
 
-    // ============ In-Memory Adapters (reuse pattern from CaptureSignalRoutingFlowIntegrationTest) ============
+    // ============ In-Memory Adapters (reuse pattern from
+    // CaptureSignalRoutingFlowIntegrationTest) ============
     private static final class InMemoryBotRepository implements BotRepository {
 
         private final Set<String> botIds = new HashSet<>();
@@ -340,6 +423,26 @@ class BotSignalE2eFlowIntegrationTest {
         public boolean existsBySignalId(String signalId) {
             return savedSignals.stream()
                     .anyMatch(signal -> signal.getSignalId().equals(signalId));
+        }
+
+        @Override
+        public void updateStatus(String signalId, io.marcus.domain.vo.SignalStatus status) {
+
+        }
+
+        @Override
+        public java.util.Optional<Signal> findBySignalId(String signalId) {
+            return savedSignals.stream()
+                    .filter(signal -> signal.getSignalId().equals(signalId))
+                    .findFirst();
+        }
+
+        @Override
+        public java.util.List<Signal> findByBotId(String botId, int limit) {
+            return savedSignals.stream()
+                    .filter(signal -> signal.getBotId().equals(botId))
+                    .limit(limit)
+                    .toList();
         }
     }
 

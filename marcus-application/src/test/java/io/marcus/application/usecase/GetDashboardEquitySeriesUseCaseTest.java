@@ -1,7 +1,7 @@
 package io.marcus.application.usecase;
 
 import io.marcus.application.exception.UnauthenticatedException;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.PortfolioReadPort;
 import io.marcus.domain.service.IdentityService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,25 +24,25 @@ class GetDashboardEquitySeriesUseCaseTest {
     private IdentityService identityService;
 
     @Mock
-    private TerminalReadPort terminalReadPort;
+    private PortfolioReadPort portfolioReadPort;
 
     private GetDashboardEquitySeriesUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new GetDashboardEquitySeriesUseCase(identityService, terminalReadPort);
+        useCase = new GetDashboardEquitySeriesUseCase(identityService, portfolioReadPort);
     }
 
     @Test
     void shouldReturnEquitySeriesForCurrentUser() {
-        List<TerminalReadPort.TimeSeriesPointSnapshot> points = List.of(
-                new TerminalReadPort.TimeSeriesPointSnapshot(LocalDateTime.of(2026, 4, 1, 10, 0), 100.0)
+        List<PortfolioReadPort.TimeSeriesPointSnapshot> points = List.of(
+                new PortfolioReadPort.TimeSeriesPointSnapshot(LocalDateTime.of(2026, 4, 1, 10, 0), 100.0)
         );
 
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("usr_1"));
-        when(terminalReadPort.listDashboardEquitySeries("usr_1", "1M")).thenReturn(points);
+        when(portfolioReadPort.listDashboardEquitySeries("usr_1", "1M")).thenReturn(points);
 
-        List<TerminalReadPort.TimeSeriesPointSnapshot> result = useCase.execute("1M");
+        List<PortfolioReadPort.TimeSeriesPointSnapshot> result = useCase.execute("1M");
 
         assertThat(result).containsExactlyElementsOf(points);
     }

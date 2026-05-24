@@ -82,4 +82,24 @@ public interface SpringDataRawEventRepository extends JpaRepository<RawEventEnti
      */
     @Query("SELECT MAX(r.sequenceNo) FROM RawEventEntity r WHERE r.botId = :botId")
     Optional<Long> getMaxSequenceForBot(@Param("botId") String botId);
+
+    /**
+     * Find raw events globally ordered by received timestamp descending.
+     * Supports pagination via limit and offset.
+     */
+    @Query(value = "SELECT * FROM raw_events "
+            + "ORDER BY received_at DESC, sequence_no DESC "
+            + "OFFSET :offset LIMIT :limit", nativeQuery = true)
+    List<RawEventEntity> findSystemExecutionLogs(
+            @Param("limit") int limit,
+            @Param("offset") int offset
+    );
+
+    /**
+     * Find the most recent heartbeat raw event for a bot.
+     */
+    @Query(value = "SELECT * FROM raw_events "
+            + "WHERE bot_id = :botId AND type = 'heartbeat' "
+            + "ORDER BY received_at DESC LIMIT 1", nativeQuery = true)
+    Optional<RawEventEntity> findLatestHeartbeatForBot(@Param("botId") String botId);
 }

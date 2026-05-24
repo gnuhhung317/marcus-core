@@ -30,7 +30,7 @@ public class EventHistoryController {
 
     /**
      * Query event history for a signal.
-     * 
+     *
      * @param signalId the signal ID to query
      * @param fromSequence starting sequence number (inclusive, default 0)
      * @param limit max number of events to return (default 50, max 500)
@@ -42,7 +42,7 @@ public class EventHistoryController {
             @RequestParam(defaultValue = "0") int fromSequence,
             @RequestParam(defaultValue = "50") int limit
     ) {
-        log.info("Event history query for signalId={}, fromSequence={}, limit={}", 
+        log.info("Event history query for signalId={}, fromSequence={}, limit={}",
                 signalId, fromSequence, limit);
 
         // Validate parameters
@@ -88,24 +88,24 @@ public class EventHistoryController {
                     toSequence
             );
 
-            log.debug("Retrieved {} events for signal: {}, range [{}, {}]", 
+            log.debug("Retrieved {} events for signal: {}, range [{}, {}]",
                     events.size(), signalId, fromSequence, toSequence);
 
             // Map to response DTOs
             List<EventHistoryResponse.EventInfo> eventInfos = events.stream()
                     .map(event -> EventHistoryResponse.EventInfo.builder()
-                            .eventId(event.getEventId())
-                            .signalId(event.getSignalId())
-                            .sequence(event.getSequence())
-                            .eventType(event.getEventType().getEventTypeCode())
-                            .sentAt(event.getSentAt())
-                            .exchangeTime(event.getExchangeTime())
-                            .payload(event.getPayload())
-                            .createdAt(event.getCreatedAt())
-                            .build())
+                    .eventId(event.getEventId())
+                    .signalId(event.getSignalId())
+                    .sequence(event.getSequence())
+                    .eventType(event.getEventType().getEventTypeCode())
+                    .sentAt(event.getSentAt())
+                    .exchangeTime(event.getExchangeTime())
+                    .payload(event.getPayload())
+                    .createdAt(event.getCreatedAt())
+                    .build())
                     .collect(Collectors.toList());
 
-            // Check if there are more events
+            // Check if the requested sequence window has remaining events after it.
             boolean hasMore = (toSequence + 1) < totalCount;
 
             EventHistoryResponse response = EventHistoryResponse.builder()

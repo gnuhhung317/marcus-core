@@ -8,6 +8,7 @@ import io.marcus.application.dto.RegisterUserResponse;
 import io.marcus.application.usecase.AuthenticateUserUseCase;
 import io.marcus.application.usecase.RefreshAccessTokenUseCase;
 import io.marcus.application.usecase.RegisterUserUseCase;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,17 +31,17 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public RegisterUserResponse register(@RequestBody RegisterUserRequest registerUserRequest) {
+    public RegisterUserResponse register(@Valid @RequestBody RegisterUserRequest registerUserRequest) {
         return registerUserUseCase.execute(registerUserRequest);
     }
 
     @PostMapping("/login")
-    public LoginResponse login(@RequestBody LoginRequest loginRequest) {
+    public LoginResponse login(@Valid @RequestBody LoginRequest loginRequest) {
         return authenticateUserUseCase.execute(loginRequest);
     }
 
     @PostMapping("/refresh")
-    public LoginResponse refresh(@RequestBody RefreshTokenRequest refreshTokenRequest) {
+    public LoginResponse refresh(@Valid @RequestBody RefreshTokenRequest refreshTokenRequest) {
         return refreshAccessTokenUseCase.execute(refreshTokenRequest);
     }
 }

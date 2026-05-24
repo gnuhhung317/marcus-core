@@ -1,6 +1,6 @@
 package io.marcus.application.usecase;
 
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.BotDiscoveryReadPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,23 +16,23 @@ import static org.mockito.Mockito.when;
 class ListLeaderboardSpotlightsUseCaseTest {
 
     @Mock
-    private TerminalReadPort terminalReadPort;
+    private BotDiscoveryReadPort botDiscoveryReadPort;
 
     private ListLeaderboardSpotlightsUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new ListLeaderboardSpotlightsUseCase(terminalReadPort);
+        useCase = new ListLeaderboardSpotlightsUseCase(botDiscoveryReadPort);
     }
 
     @Test
     void shouldReturnSpotlights() {
-        List<TerminalReadPort.StrategySpotlightSnapshot> spotlights = List.of(
-                new TerminalReadPort.StrategySpotlightSnapshot("stg_1", "Neutron", "CRYPTO", 0.03)
+        List<BotDiscoveryReadPort.StrategySpotlightSnapshot> spotlights = List.of(
+                new BotDiscoveryReadPort.StrategySpotlightSnapshot("stg_1", "Neutron", "CRYPTO", 0.03)
         );
-        when(terminalReadPort.listLeaderboardSpotlights()).thenReturn(spotlights);
+        when(botDiscoveryReadPort.listLeaderboardSpotlights()).thenReturn(spotlights);
 
-        List<TerminalReadPort.StrategySpotlightSnapshot> result = useCase.execute();
+        List<BotDiscoveryReadPort.StrategySpotlightSnapshot> result = useCase.execute();
 
         assertThat(result).containsExactlyElementsOf(spotlights);
     }

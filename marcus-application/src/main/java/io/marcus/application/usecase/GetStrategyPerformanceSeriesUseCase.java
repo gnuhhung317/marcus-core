@@ -1,6 +1,7 @@
 package io.marcus.application.usecase;
 
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.BotDiscoveryReadPort;
+import io.marcus.domain.port.PortfolioReadPort.TimeSeriesPointSnapshot;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -14,9 +15,9 @@ public class GetStrategyPerformanceSeriesUseCase {
 
     private static final Set<String> SUPPORTED_RANGES = Set.of("1D", "1W", "1M", "YTD", "ALL");
 
-    private final TerminalReadPort terminalReadPort;
+    private final BotDiscoveryReadPort botDiscoveryReadPort;
 
-    public List<TerminalReadPort.TimeSeriesPointSnapshot> execute(String strategyId, String range) {
+    public List<TimeSeriesPointSnapshot> execute(String strategyId, String range) {
         if (strategyId == null || strategyId.isBlank()) {
             throw new IllegalArgumentException("Strategy id is required");
         }
@@ -29,6 +30,6 @@ public class GetStrategyPerformanceSeriesUseCase {
             throw new IllegalArgumentException("Unsupported range: " + range);
         }
 
-        return terminalReadPort.listStrategyPerformanceSeries(strategyId.trim(), normalizedRange);
+        return botDiscoveryReadPort.listStrategyPerformanceSeries(strategyId.trim(), normalizedRange);
     }
 }

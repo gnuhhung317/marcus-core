@@ -1,7 +1,7 @@
 package io.marcus.application.usecase;
 
-import io.marcus.application.exception.ResourceConflictException;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.exception.ResourceConflictException;
+import io.marcus.domain.port.PortfolioReadPort;
 import io.marcus.domain.service.IdentityService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,24 +22,24 @@ class ResumePaperSessionUseCaseTest {
     private IdentityService identityService;
 
     @Mock
-    private TerminalReadPort terminalReadPort;
+    private PortfolioReadPort portfolioReadPort;
 
     private ResumePaperSessionUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new ResumePaperSessionUseCase(identityService, terminalReadPort);
+        useCase = new ResumePaperSessionUseCase(identityService, portfolioReadPort);
     }
 
     @Test
     void shouldResumeSessionWhenPaused() {
-        TerminalReadPort.PaperSessionStateSnapshot expected = new TerminalReadPort.PaperSessionStateSnapshot("ps_1", "RUNNING");
+        PortfolioReadPort.PaperSessionStateSnapshot expected = new PortfolioReadPort.PaperSessionStateSnapshot("ps_1", "RUNNING");
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("usr_1"));
-        when(terminalReadPort.getPaperSessionSummary("usr_1"))
-                .thenReturn(new TerminalReadPort.PaperSessionSummarySnapshot("ps_1", "PAUSED", 10000, 20, 4000));
-        when(terminalReadPort.resumePaperSession("usr_1")).thenReturn(expected);
+        when(portfolioReadPort.getPaperSessionSummary("usr_1"))
+                .thenReturn(new PortfolioReadPort.PaperSessionSummarySnapshot("ps_1", "PAUSED", 10000, 20, 4000));
+        when(portfolioReadPort.resumePaperSession("usr_1")).thenReturn(expected);
 
-        TerminalReadPort.PaperSessionStateSnapshot result = useCase.execute();
+        PortfolioReadPort.PaperSessionStateSnapshot result = useCase.execute();
 
         assertThat(result).isEqualTo(expected);
     }
@@ -47,8 +47,8 @@ class ResumePaperSessionUseCaseTest {
     @Test
     void shouldThrowConflictWhenAlreadyRunning() {
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("usr_1"));
-        when(terminalReadPort.getPaperSessionSummary("usr_1"))
-                .thenReturn(new TerminalReadPort.PaperSessionSummarySnapshot("ps_1", "RUNNING", 10000, 20, 4000));
+        when(portfolioReadPort.getPaperSessionSummary("usr_1"))
+                .thenReturn(new PortfolioReadPort.PaperSessionSummarySnapshot("ps_1", "RUNNING", 10000, 20, 4000));
 
         assertThatThrownBy(() -> useCase.execute())
                 .isInstanceOf(ResourceConflictException.class)

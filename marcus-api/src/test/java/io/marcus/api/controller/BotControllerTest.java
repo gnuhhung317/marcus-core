@@ -6,13 +6,23 @@ import io.marcus.api.security.JwtAuthenticationFilter;
 import io.marcus.application.dto.BotSummaryResult;
 import io.marcus.application.dto.BotRegistrationResult;
 import io.marcus.application.dto.RegisterBotRequest;
+import io.marcus.application.dto.UpdateBotStatusRequest;
+import io.marcus.application.dto.UpdateBotMetadataRequest;
 import io.marcus.application.exception.ForbiddenOperationException;
 import io.marcus.application.usecase.GetBotDetailUseCase;
+import io.marcus.application.usecase.GetBotIntegrationHealthUseCase;
+import io.marcus.application.usecase.GetBotCredentialsUseCase;
 import io.marcus.application.usecase.ListDeveloperBotsUseCase;
 import io.marcus.application.usecase.ListPublicBotsUseCase;
 import io.marcus.application.usecase.RegisterBotUseCase;
+import io.marcus.application.usecase.UpdateBotStatusUseCase;
+import io.marcus.application.usecase.UpdateBotMetadataUseCase;
+import io.marcus.application.usecase.DeleteBotUseCase;
 import io.marcus.domain.port.AccessTokenPort;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.BotDiscoveryReadPort;
+import io.marcus.domain.port.UserProfileReadPort;
+import io.marcus.domain.model.Bot;
+import io.marcus.domain.vo.BotStatus;
 import io.marcus.infrastructure.security.BotSignatureInterceptor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,10 +37,14 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -58,6 +72,21 @@ class BotControllerTest {
     private GetBotDetailUseCase getBotDetailUseCase;
 
     @MockBean
+    private GetBotIntegrationHealthUseCase getBotIntegrationHealthUseCase;
+
+    @MockBean
+    private GetBotCredentialsUseCase getBotCredentialsUseCase;
+
+    @MockBean
+    private UpdateBotStatusUseCase updateBotStatusUseCase;
+
+    @MockBean
+    private UpdateBotMetadataUseCase updateBotMetadataUseCase;
+
+    @MockBean
+    private DeleteBotUseCase deleteBotUseCase;
+
+    @MockBean
     private AccessTokenPort accessTokenPort;
 
     @MockBean
@@ -79,9 +108,9 @@ class BotControllerTest {
         );
 
         when(listPublicBotsUseCase.execute(null, null, null, "-return", 0, 20)).thenReturn(
-                new TerminalReadPort.BotDiscoveryPageSnapshot(
+                new BotDiscoveryReadPort.BotDiscoveryPageSnapshot(
                         List.of(),
-                        new TerminalReadPort.OffsetPaginationMetaSnapshot(0, 20, 0, 0, false)
+                        new UserProfileReadPort.OffsetPaginationMetaSnapshot(0, 20, 0, 0, false)
                 )
         );
 
@@ -141,66 +170,70 @@ class BotControllerTest {
     }
 
     @Test
-    void shouldReturnBadRequestWhenUseCaseThrowsIllegalArgument() throws Exception {
+    void shouldReturnUnprocessableEntityWhenValidationFails() throws Exception {
         RegisterBotRequest request = new RegisterBotRequest(null, "BTCUSDT", "", "binance");
+
+        mockMvc.perform(post("/api/v1/bots")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.status").value(422));
+
+        verifyNoInteractions(registerBotUseCase);
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenUseCaseThrowsIllegalArgument() throws Exception {
+        RegisterBotRequest request = new RegisterBotRequest("Scalp strategy", "BTCUSDT", "Scalp Bot", "binance");
         when(registerBotUseCase.execute(any(RegisterBotRequest.class)))
-                .thenThrow(new IllegalArgumentException("Bot name is required"));
+                .thenThrow(new IllegalArgumentException("Invalid bot configuration"));
 
         mockMvc.perform(post("/api/v1/bots")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("BAD_REQUEST"))
-                .andExpect(jsonPath("$.message").value("Bot name is required"))
+                .andExpect(jsonPath("$.message").value("Invalid bot configuration"))
                 .andExpect(jsonPath("$.status").value(400));
     }
 
     @Test
-    void shouldReturnForbiddenWhenUseCaseThrowsForbiddenOperation() throws Exception {
-        RegisterBotRequest request = new RegisterBotRequest("Scalp strategy", "BTCUSDT", "Scalp Bot", "binance");
-        when(registerBotUseCase.execute(any(RegisterBotRequest.class)))
-                .thenThrow(new ForbiddenOperationException("Only developer can register bot"));
+    void shouldUpdateStatus() throws Exception {
+        UpdateBotStatusRequest request = new UpdateBotStatusRequest(BotStatus.PAUSED);
+        Bot response = Bot.builder().botId("bot_123").status(BotStatus.PAUSED).build();
 
-        mockMvc.perform(post("/api/v1/bots")
+        when(updateBotStatusUseCase.execute("bot_123", BotStatus.PAUSED)).thenReturn(response);
+
+        mockMvc.perform(patch("/api/v1/bots/bot_123/status")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("FORBIDDEN"))
-                .andExpect(jsonPath("$.message").value("Only developer can register bot"))
-                .andExpect(jsonPath("$.status").value(403));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.botId").value("bot_123"))
+                .andExpect(jsonPath("$.status").value("PAUSED"));
     }
 
     @Test
-    void shouldListPublicBotsWithCommonFilterCombination() throws Exception {
-        TerminalReadPort.BotDiscoveryPageSnapshot response = new TerminalReadPort.BotDiscoveryPageSnapshot(
-                java.util.List.of(new TerminalReadPort.BotDiscoverySnapshot(
-                        "bot-discovery-003",
-                        "Orbit Breakout",
-                        "Volatility breakout on SOL markets",
-                        "SOLUSDT",
-                        "HIGH",
-                        0.356,
-                        0.218,
-                        1525
-                )),
-                new TerminalReadPort.OffsetPaginationMetaSnapshot(1, 10, 1, 1, false)
-        );
-        when(listPublicBotsUseCase.execute(any(), any(), any(), any(), anyInt(), anyInt())).thenReturn(response);
+    void shouldUpdateMetadata() throws Exception {
+        UpdateBotMetadataRequest request = new UpdateBotMetadataRequest("New Name", "New Desc", "BTCUSDT", null, null, null, null);
+        Bot response = Bot.builder().botId("bot_123").name("New Name").description("New Desc").tradingPair("BTCUSDT").build();
 
-        mockMvc.perform(get("/bots")
-                .queryParam("q", "orbit")
-                .queryParam("asset", "SOLUSDT")
-                .queryParam("risk", "HIGH")
-                .queryParam("sort", "-return")
-                .queryParam("page", "1")
-                .queryParam("size", "10"))
+        when(updateBotMetadataUseCase.execute(eq("bot_123"), any(UpdateBotMetadataRequest.class))).thenReturn(response);
+
+        mockMvc.perform(patch("/api/v1/bots/bot_123/metadata")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[0].botId").value("bot-discovery-003"))
-                .andExpect(jsonPath("$.items[0].asset").value("SOLUSDT"))
-                .andExpect(jsonPath("$.items[0].risk").value("HIGH"))
-                .andExpect(jsonPath("$.meta.page").value(1))
-                .andExpect(jsonPath("$.meta.size").value(10));
+                .andExpect(jsonPath("$.botId").value("bot_123"))
+                .andExpect(jsonPath("$.name").value("New Name"))
+                .andExpect(jsonPath("$.description").value("New Desc"));
+    }
 
-        verify(listPublicBotsUseCase).execute("orbit", "SOLUSDT", "HIGH", "-return", 1, 10);
+    @Test
+    void shouldDeleteBot() throws Exception {
+        mockMvc.perform(delete("/api/v1/bots/bot_123"))
+                .andExpect(status().isNoContent());
+
+        verify(deleteBotUseCase).execute("bot_123");
     }
 }

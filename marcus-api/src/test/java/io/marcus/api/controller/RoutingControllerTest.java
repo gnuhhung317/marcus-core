@@ -81,7 +81,7 @@ class RoutingControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenUpsertUserSessionUseCaseThrowsIllegalArgument() throws Exception {
-        UpsertUserSessionRequest request = new UpsertUserSessionRequest("", "session-1", "server-a");
+        UpsertUserSessionRequest request = new UpsertUserSessionRequest("user-1", "session-1", "server-a");
         doThrow(new IllegalArgumentException("User id is required"))
                 .when(upsertUserSessionUseCase)
                                 .execute(any(UpsertUserSessionRequest.class));
@@ -109,7 +109,7 @@ class RoutingControllerTest {
 
     @Test
     void shouldReturnBadRequestWhenUpsertBotSubscriberUseCaseThrowsIllegalArgument() throws Exception {
-        UpsertBotSubscriberRequest request = new UpsertBotSubscriberRequest("", "user-1");
+        UpsertBotSubscriberRequest request = new UpsertBotSubscriberRequest("bot-1", "user-1");
         doThrow(new IllegalArgumentException("Bot id is required"))
                 .when(upsertBotSubscriberUseCase)
                                 .execute(any(UpsertBotSubscriberRequest.class));

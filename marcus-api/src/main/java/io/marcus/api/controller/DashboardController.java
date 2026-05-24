@@ -5,7 +5,8 @@ import io.marcus.application.usecase.GetDashboardEquitySeriesUseCase;
 import io.marcus.application.usecase.GetDashboardOverviewUseCase;
 import io.marcus.application.usecase.GetPortfolioDecisionsUseCase;
 import io.marcus.application.usecase.GetPortfolioOverviewUseCase;
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.MarketDataReadPort;
+import io.marcus.domain.port.PortfolioReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,19 +28,19 @@ public class DashboardController {
     private final GetPortfolioDecisionsUseCase getPortfolioDecisionsUseCase;
 
     @GetMapping("/overview")
-    public ResponseEntity<TerminalReadPort.DashboardOverviewSnapshot> getOverview() {
+    public ResponseEntity<MarketDataReadPort.DashboardOverviewSnapshot> getOverview() {
         return ResponseEntity.ok(getDashboardOverviewUseCase.execute());
     }
 
     @GetMapping("/equity-series")
-    public ResponseEntity<List<TerminalReadPort.TimeSeriesPointSnapshot>> getEquitySeries(
+    public ResponseEntity<List<PortfolioReadPort.TimeSeriesPointSnapshot>> getEquitySeries(
             @RequestParam String range
     ) {
         return ResponseEntity.ok(getDashboardEquitySeriesUseCase.execute(range));
     }
 
     @GetMapping("/exchange-allocation")
-    public ResponseEntity<List<TerminalReadPort.ExchangeAllocationSnapshot>> getExchangeAllocation() {
+    public ResponseEntity<List<MarketDataReadPort.ExchangeAllocationSnapshot>> getExchangeAllocation() {
         return ResponseEntity.ok(getDashboardExchangeAllocationUseCase.execute());
     }
 
@@ -52,7 +53,7 @@ public class DashboardController {
      * @return portfolio overview snapshot with aggregated metrics
      */
     @GetMapping("/portfolio/overview")
-    public ResponseEntity<TerminalReadPort.PortfolioOverviewSnapshot> getPortfolioOverview() {
+    public ResponseEntity<PortfolioReadPort.PortfolioOverviewSnapshot> getPortfolioOverview() {
         return ResponseEntity.ok(getPortfolioOverviewUseCase.execute());
     }
 
@@ -68,16 +69,16 @@ public class DashboardController {
     public ResponseEntity<PortfolioDecisionsResponse> getPortfolioDecisions(
             @RequestParam(required = false, defaultValue = "ALL") String status
     ) {
-        List<TerminalReadPort.SubscriptionDecisionSnapshot> decisions = getPortfolioDecisionsUseCase.execute(status);
+        List<PortfolioReadPort.SubscriptionDecisionSnapshot> decisions = getPortfolioDecisionsUseCase.execute(status);
         PortfolioDecisionsResponse response = new PortfolioDecisionsResponse(
                 decisions,
                 new PortfolioDecisionsResponse.Summary(
                         decisions.size(),
                         (int) decisions.stream().filter(d -> "ACTIVE".equals(d.status())).count(),
                         (int) decisions.stream()
-                                .filter(d -> d.reason() == TerminalReadPort.DecisionReason.NEEDS_REVIEW).count(),
+                                .filter(d -> d.reason() == PortfolioReadPort.DecisionReason.NEEDS_REVIEW).count(),
                         (int) decisions.stream()
-                                .filter(d -> d.reason() == TerminalReadPort.DecisionReason.HIGH_RISK).count()
+                                .filter(d -> d.reason() == PortfolioReadPort.DecisionReason.HIGH_RISK).count()
                 )
         );
         return ResponseEntity.ok(response);
@@ -88,7 +89,7 @@ public class DashboardController {
      * with aggregation summary.
      */
     record PortfolioDecisionsResponse(
-            List<TerminalReadPort.SubscriptionDecisionSnapshot> decisions,
+            List<PortfolioReadPort.SubscriptionDecisionSnapshot> decisions,
             Summary summary
             ) {
 

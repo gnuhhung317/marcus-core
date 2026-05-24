@@ -1,6 +1,6 @@
 package io.marcus.application.usecase;
 
-import io.marcus.domain.port.TerminalReadPort;
+import io.marcus.domain.port.BotDiscoveryReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -21,16 +21,16 @@ public class ListPublicBotsUseCase {
             "-subscribers"
     );
 
-    private final TerminalReadPort terminalReadPort;
+    private final BotDiscoveryReadPort botDiscoveryReadPort;
 
-    public TerminalReadPort.BotDiscoveryPageSnapshot execute(
+    public BotDiscoveryReadPort.BotDiscoveryPageSnapshot execute(
             String q,
             String asset,
             String risk,
             String sort,
             int page,
             int size
-    ) {
+            ) {
         int normalizedPage = Math.max(0, page);
         int normalizedSize = Math.max(1, Math.min(size, 100));
         String normalizedQuery = normalizeText(q);
@@ -38,7 +38,7 @@ public class ListPublicBotsUseCase {
         String normalizedRisk = normalizeRisk(risk);
         String normalizedSort = normalizeSort(sort);
 
-        return terminalReadPort.listPublicBots(
+        return botDiscoveryReadPort.listPublicBots(
                 normalizedQuery,
                 normalizedAsset,
                 normalizedRisk,
