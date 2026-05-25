@@ -19,6 +19,8 @@ public class JpaSignalRepositoryImpl implements SignalRepository {
     @Override
     public void save(Signal signal) {
         SignalEntity entity = signalMapper.toEntity(signal);
+        springDataSignalRepository.findBySignalId(signal.getSignalId())
+                .ifPresent(existing -> entity.setId(existing.getId()));
         springDataSignalRepository.save(entity);
     }
 

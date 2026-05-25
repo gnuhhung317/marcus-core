@@ -19,6 +19,8 @@ public class JpaUserPortfolioPersistenceAdapter implements UserPortfolioPersiste
     @Override
     public UserPortfolio save(UserPortfolio userPortfolio) {
         UserPortfolioEntity entity = userPortfolioMapper.toEntity(userPortfolio);
+        springDataUserPortfolioRepository.findByUserId(userPortfolio.getUserId())
+                .ifPresent(existing -> entity.setId(existing.getId()));
         UserPortfolioEntity savedEntity = springDataUserPortfolioRepository.save(entity);
         return userPortfolioMapper.toDomain(savedEntity);
     }

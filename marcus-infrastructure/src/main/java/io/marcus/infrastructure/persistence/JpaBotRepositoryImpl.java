@@ -35,6 +35,9 @@ public class JpaBotRepositoryImpl implements BotRepository {
     @Override
     public Bot save(Bot bot) {
         BotEntity entity = botMapper.toEntity(bot);
+        springDataBotRepository.findByBotId(bot.getBotId())
+                .ifPresent(existing -> entity.setId(existing.getId()));
+
         String lookupExchangeId = bot.getExchangeId() != null ? bot.getExchangeId().toLowerCase() : null;
         ExchangeEntity exchange = springDataExchangeRepository.findByExchangeId(lookupExchangeId)
                 .orElseThrow(() -> new IllegalArgumentException("Exchange not found: " + bot.getExchangeId()));
