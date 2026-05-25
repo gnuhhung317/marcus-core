@@ -107,6 +107,22 @@ class BotSignatureInterceptorTest {
         assertThat(redisKeyCaptor.getValue()).contains(uppercaseSignature.toLowerCase());
     }
 
+    @Test
+    void shouldRejectWhenTimestampSkewExceedsLimit() throws Exception {
+        String timestamp = String.valueOf(System.currentTimeMillis() - 61_000L);
+        String apiKey = "ak_test";
+        String signature = "ABCDEF123456";
+
+        HttpServletRequest request = createWrappedRequest(timestamp, apiKey, signature, "{\"signal\":\"BUY\"}");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        boolean allowed = interceptor.preHandle(request, response, createHandlerMethod());
+
+        assertThat(allowed).isFalse();
+        assertThat(response.getStatus()).isEqualTo(400);
+        verifyNoInteractions(redisTemplate, botSecretProvider, hmacSignatureValidator);
+    }
+
     private HttpServletRequest createWrappedRequest(String timestamp, String apiKey, String signature, String body)
             throws Exception {
         MockHttpServletRequest rawRequest = new MockHttpServletRequest();

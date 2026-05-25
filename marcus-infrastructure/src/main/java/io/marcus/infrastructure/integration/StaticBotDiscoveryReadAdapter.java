@@ -224,16 +224,24 @@ public class StaticBotDiscoveryReadAdapter implements BotDiscoveryReadPort {
             return SignalMetricsCalculator.calculate(List.of(), 1);
         }
 
-        List<SignalMetricsCalculator.SignalData> signalDataList = signals.stream()
+        List<SignalEntity> nonSimulatedSignals = signals.stream()
+                .filter(s -> s.getMetadata() == null || !Boolean.TRUE.equals(s.getMetadata().get("simulation")))
+                .toList();
+
+        if (nonSimulatedSignals.isEmpty()) {
+            return SignalMetricsCalculator.calculate(List.of(), 1);
+        }
+
+        List<SignalMetricsCalculator.SignalData> signalDataList = nonSimulatedSignals.stream()
                 .map(this::toSignalData)
                 .toList();
 
-        LocalDateTime firstSignalAt = signals.stream()
+        LocalDateTime firstSignalAt = nonSimulatedSignals.stream()
                 .map(SignalEntity::getGeneratedTimestamp)
                 .filter(timestamp -> timestamp != null)
                 .min(LocalDateTime::compareTo)
                 .orElse(LocalDateTime.now());
-        LocalDateTime lastSignalAt = signals.stream()
+        LocalDateTime lastSignalAt = nonSimulatedSignals.stream()
                 .map(SignalEntity::getGeneratedTimestamp)
                 .filter(timestamp -> timestamp != null)
                 .max(LocalDateTime::compareTo)

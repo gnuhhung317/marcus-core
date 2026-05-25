@@ -100,6 +100,10 @@ class CaptureSignalUseCaseTest {
         Signal savedSignal = signalCaptor.getValue();
         assertEquals("signal-1", savedSignal.getSignalId());
         assertEquals("bot-1", savedSignal.getBotId());
+                assertEquals(null, savedSignal.getMarketType());
+                assertEquals(null, savedSignal.getOrderType());
+                assertEquals(null, savedSignal.getLeverage());
+                assertEquals(null, savedSignal.getMarginMode());
 
         verify(signalPublisherPort).publish(savedSignal);
         verify(signalServerDispatchPort).dispatchToServers(savedSignal, Set.of("ws-1", "ws-2"));
@@ -338,5 +342,48 @@ class CaptureSignalUseCaseTest {
 
         verify(signalPublisherPort, never()).publish(any());
         verify(signalServerDispatchPort, never()).dispatchToServers(any(), any());
+    }
+
+    @Test
+    @DisplayName("Should preserve optional contract fields without applying defaults")
+    void shouldPreserveOptionalFieldsWithoutApplyingDefaults() {
+        CaptureSignalRequest request = new CaptureSignalRequest(
+                "signal-contract-1",
+                "bot-contract-1",
+                "ETHUSDT",
+                SignalAction.CLOSE_LONG,
+                null,
+                null,
+                new BigDecimal("1.25"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                LocalDateTime.parse("2026-05-24T10:15:30"),
+                null,
+                null
+        );
+
+        when(botRepository.findByBotId("bot-contract-1"))
+                .thenReturn(Optional.of(new Bot()));
+        when(signalRepository.existsBySignalId("signal-contract-1"))
+                .thenReturn(false);
+        when(resolveBotRoutingTargetsUseCase.execute(new ResolveBotRoutingTargetsRequest("bot-contract-1")))
+                .thenReturn(Set.of());
+
+        useCase.execute(request);
+
+        ArgumentCaptor<Signal> signalCaptor = ArgumentCaptor.forClass(Signal.class);
+        verify(signalRepository).save(signalCaptor.capture());
+        Signal savedSignal = signalCaptor.getValue();
+        assertEquals(null, savedSignal.getMarketType());
+        assertEquals(null, savedSignal.getOrderType());
+        assertEquals(null, savedSignal.getLeverage());
+        assertEquals(null, savedSignal.getMarginMode());
+        assertEquals(null, savedSignal.getStatus());
+        assertEquals(LocalDateTime.parse("2026-05-24T10:15:30"), savedSignal.getGeneratedTimestamp());
     }
 }

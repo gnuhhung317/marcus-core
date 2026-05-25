@@ -17,6 +17,8 @@ import io.marcus.application.usecase.DeleteBotUseCase;
 import io.marcus.domain.port.BotDiscoveryReadPort;
 import io.marcus.domain.port.PortfolioReadPort;
 import io.marcus.domain.model.Bot;
+import io.marcus.application.usecase.BotHeartbeatUseCase;
+import io.marcus.infrastructure.security.RequireBotSignature;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -27,6 +29,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -47,6 +50,7 @@ public class BotController {
     private final UpdateBotStatusUseCase updateBotStatusUseCase;
     private final UpdateBotMetadataUseCase updateBotMetadataUseCase;
     private final DeleteBotUseCase deleteBotUseCase;
+    private final BotHeartbeatUseCase botHeartbeatUseCase;
 
     @PostMapping({"", "/register"})
     public ResponseEntity<BotRegistrationResult> registerBot(@Valid @RequestBody RegisterBotRequest botRequest) {
@@ -108,5 +112,15 @@ public class BotController {
     public ResponseEntity<Void> deleteBot(@PathVariable String botId) {
         deleteBotUseCase.execute(botId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{botId}/heartbeat")
+    @RequireBotSignature
+    public ResponseEntity<Void> botHeartbeat(
+            @PathVariable String botId,
+            @RequestHeader("X-Bot-Api-Key") String apiKey
+    ) {
+        botHeartbeatUseCase.execute(botId, apiKey);
+        return ResponseEntity.ok().build();
     }
 }

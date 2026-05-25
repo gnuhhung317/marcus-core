@@ -55,6 +55,8 @@ marcus:
   security:
     master-key: coleemchangkhocchutnaocoleemchangquantamanhrasao
     salt: 944440b12311f820b2cf6acd2290b497
+    bot-signature:
+      max-skew-ms: 60000
     jwt:
       secret: marcus-super-secret-key-change-me-at-least-32-bytes
       access-token-expiration-seconds: 3600000

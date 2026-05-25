@@ -18,6 +18,7 @@ import io.marcus.application.usecase.RegisterBotUseCase;
 import io.marcus.application.usecase.UpdateBotStatusUseCase;
 import io.marcus.application.usecase.UpdateBotMetadataUseCase;
 import io.marcus.application.usecase.DeleteBotUseCase;
+import io.marcus.application.usecase.BotHeartbeatUseCase;
 import io.marcus.domain.port.AccessTokenPort;
 import io.marcus.domain.port.BotDiscoveryReadPort;
 import io.marcus.domain.port.UserProfileReadPort;
@@ -85,6 +86,9 @@ class BotControllerTest {
 
     @MockBean
     private DeleteBotUseCase deleteBotUseCase;
+
+    @MockBean
+    private BotHeartbeatUseCase botHeartbeatUseCase;
 
     @MockBean
     private AccessTokenPort accessTokenPort;
@@ -235,5 +239,14 @@ class BotControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(deleteBotUseCase).execute("bot_123");
+    }
+
+    @Test
+    void shouldRegisterHeartbeat() throws Exception {
+        mockMvc.perform(post("/api/v1/bots/bot_123/heartbeat")
+                .header("X-Bot-Api-Key", "ak_123"))
+                .andExpect(status().isOk());
+
+        verify(botHeartbeatUseCase).execute("bot_123", "ak_123");
     }
 }

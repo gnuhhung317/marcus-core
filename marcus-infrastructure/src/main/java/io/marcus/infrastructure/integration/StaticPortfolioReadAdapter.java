@@ -242,9 +242,9 @@ public class StaticPortfolioReadAdapter implements PortfolioReadPort {
             Instant receivedAt = latestHeartbeatOpt.get().getReceivedAt();
             Duration heartbeatAge = Duration.between(receivedAt, Instant.now());
             long ageSecs = heartbeatAge.getSeconds();
-            if (ageSecs <= 60) {
+            if (ageSecs <= 330) {
                 wsStatus = "UP";
-            } else if (ageSecs <= 300) {
+            } else if (ageSecs <= 900) {
                 wsStatus = "DEGRADED";
             } else {
                 wsStatus = "DOWN";
@@ -255,10 +255,10 @@ public class StaticPortfolioReadAdapter implements PortfolioReadPort {
         String message;
         if ("DOWN".equals(wsStatus)) {
             overall = "DOWN";
-            message = "No heartbeat received within 5 minutes. Executor is offline.";
+            message = "No heartbeat received within 15 minutes. Executor is offline.";
         } else if ("DEGRADED".equals(wsStatus)) {
             overall = "DEGRADED";
-            message = "WebSocket stream is degraded. Heartbeat latency is high.";
+            message = "Executor heartbeat latency is high.";
         } else {
             overall = "UP";
             message = "System is fully healthy and active.";

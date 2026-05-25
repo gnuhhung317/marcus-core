@@ -238,11 +238,11 @@ class StaticPortfolioReadAdapterTest {
         BotEntity bot = BotEntity.builder().botId(botId).build();
         when(springDataBotRepository.findByBotId(botId)).thenReturn(Optional.of(bot));
 
-        // Heartbeat is somewhat old (2 minutes / 120 seconds ago)
+        // Heartbeat is somewhat old (8.3 minutes / 500 seconds ago)
         RawEventEntity heartbeat = RawEventEntity.builder()
                 .botId(botId)
                 .type("heartbeat")
-                .receivedAt(Instant.now().minusSeconds(120))
+                .receivedAt(Instant.now().minusSeconds(500))
                 .build();
         when(springDataRawEventRepository.findLatestHeartbeatForBot(botId)).thenReturn(Optional.of(heartbeat));
         when(springDataSignalRepository.findByBotId(botId)).thenReturn(List.of());
@@ -251,7 +251,7 @@ class StaticPortfolioReadAdapterTest {
 
         assertNotNull(snapshot);
         assertEquals("DEGRADED", snapshot.overallStatus());
-        assertTrue(snapshot.message().contains("degraded"));
+        assertTrue(snapshot.message().contains("degraded") || snapshot.message().contains("latency"));
     }
 
     @Test
@@ -260,11 +260,11 @@ class StaticPortfolioReadAdapterTest {
         BotEntity bot = BotEntity.builder().botId(botId).build();
         when(springDataBotRepository.findByBotId(botId)).thenReturn(Optional.of(bot));
 
-        // Heartbeat is very old (10 minutes / 600 seconds ago)
+        // Heartbeat is very old (16.6 minutes / 1000 seconds ago)
         RawEventEntity heartbeat = RawEventEntity.builder()
                 .botId(botId)
                 .type("heartbeat")
-                .receivedAt(Instant.now().minusSeconds(600))
+                .receivedAt(Instant.now().minusSeconds(1000))
                 .build();
         when(springDataRawEventRepository.findLatestHeartbeatForBot(botId)).thenReturn(Optional.of(heartbeat));
         when(springDataSignalRepository.findByBotId(botId)).thenReturn(List.of());
