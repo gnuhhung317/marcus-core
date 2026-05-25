@@ -142,7 +142,7 @@ public class JwtAccessTokenAdapter implements AccessTokenPort, RefreshTokenPort 
                 redisTemplate.opsForValue().set(usedRefreshKey, userId, Duration.ofSeconds(usedTtl));
             }
 
-            Role role = Role.valueOf(roleValue);
+            Role role = normalizeRole(roleValue);
             return Optional.of(new AuthenticatedUser(userId, username, role));
         } catch (JwtException | IllegalArgumentException ex) {
             return Optional.empty();
@@ -170,7 +170,7 @@ public class JwtAccessTokenAdapter implements AccessTokenPort, RefreshTokenPort 
                 return Optional.empty();
             }
 
-            Role role = Role.valueOf(roleValue);
+            Role role = normalizeRole(roleValue);
             return Optional.of(new AuthenticatedUser(userId, username, role));
         } catch (JwtException | IllegalArgumentException ex) {
             return Optional.empty();
@@ -198,5 +198,13 @@ public class JwtAccessTokenAdapter implements AccessTokenPort, RefreshTokenPort 
     private long secondsUntilExpiry(Date expiresAt) {
         long seconds = (expiresAt.toInstant().toEpochMilli() - System.currentTimeMillis()) / 1000;
         return Math.max(seconds, 0);
+    }
+
+    private Role normalizeRole(String roleValue) {
+        if ("USER".equals(roleValue)) {
+            return Role.TRADER;
+        }
+
+        return Role.valueOf(roleValue);
     }
 }

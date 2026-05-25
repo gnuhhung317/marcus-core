@@ -30,7 +30,7 @@ public class StaticUserProfileReadAdapter implements UserProfileReadPort {
                 user.getUserId(),
                 user.getUsername(),
                 user.getEmail(),
-                user.getRole() != null ? user.getRole().name() : "USER"
+                user.getRole() != null ? user.getRole().name() : "TRADER"
         );
     }
 
@@ -69,7 +69,7 @@ public class StaticUserProfileReadAdapter implements UserProfileReadPort {
                 savedUser.getUserId(),
                 savedUser.getUsername(),
                 savedUser.getEmail(),
-                savedUser.getRole() != null ? savedUser.getRole().name() : "USER"
+                savedUser.getRole() != null ? savedUser.getRole().name() : "TRADER"
         );
     }
 }

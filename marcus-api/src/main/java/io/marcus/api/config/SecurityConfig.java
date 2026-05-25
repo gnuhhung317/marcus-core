@@ -62,8 +62,8 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exceptions -> exceptions
-                        .authenticationEntryPoint(customAuthenticationEntryPoint)
-                        .accessDeniedHandler(customAccessDeniedHandler)
+                .authenticationEntryPoint(customAuthenticationEntryPoint)
+                .accessDeniedHandler(customAccessDeniedHandler)
                 )
                 .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/register", "/auth/login", "/auth/refresh", "/api/v1/auth/**").permitAll()
@@ -87,8 +87,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/bots/*/integration-health", "/api/bots/*/integration-health", "/api/v1/bots/*/integration-health").hasRole(Role.DEVELOPER.name())
                 .requestMatchers(HttpMethod.GET, "/bots/*/credentials", "/api/bots/*/credentials", "/api/v1/bots/*/credentials").hasRole(Role.DEVELOPER.name())
                 .requestMatchers(HttpMethod.POST, "/bots", "/api/bots", "/api/v1/bots", "/bots/register", "/api/bots/register", "/api/v1/bots/register").hasRole(Role.DEVELOPER.name())
-                .requestMatchers(HttpMethod.GET, "/subscriptions", "/subscriptions/my-subscriptions", "/api/subscriptions", "/api/subscriptions/my-subscriptions", "/api/v1/subscriptions", "/api/v1/subscriptions/my-subscriptions").hasRole(Role.USER.name())
-                .requestMatchers(HttpMethod.POST, "/subscriptions/**", "/api/subscriptions/**", "/api/v1/subscriptions/**").hasRole(Role.USER.name())
+                .requestMatchers(HttpMethod.GET, "/subscriptions", "/subscriptions/my-subscriptions", "/api/subscriptions", "/api/subscriptions/my-subscriptions", "/api/v1/subscriptions", "/api/v1/subscriptions/my-subscriptions").hasRole(Role.TRADER.name())
+                .requestMatchers(HttpMethod.POST, "/subscriptions/**", "/api/subscriptions/**", "/api/v1/subscriptions/**").hasRole(Role.TRADER.name())
                 .requestMatchers(HttpMethod.GET, "/subscriptions/*/delivery-summary", "/api/subscriptions/*/delivery-summary", "/api/v1/subscriptions/*/delivery-summary").hasRole(Role.DEVELOPER.name())
                 .anyRequest().authenticated())
                 .addFilterBefore(requestCachingFilter, SecurityContextHolderFilter.class)

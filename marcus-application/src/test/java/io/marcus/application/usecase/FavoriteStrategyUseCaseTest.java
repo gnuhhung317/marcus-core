@@ -37,7 +37,7 @@ class FavoriteStrategyUseCaseTest {
     @Test
     void shouldFavoriteStrategyForTraderUser() {
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("user-1"));
-        when(userRepository.existsByIdAndRole("user-1", Role.USER)).thenReturn(true);
+        when(userRepository.existsByIdAndRole("user-1", Role.TRADER)).thenReturn(true);
         BotDiscoveryReadPort.FavoriteStrategySnapshot snapshot = new BotDiscoveryReadPort.FavoriteStrategySnapshot("strat-1", true);
         when(botDiscoveryReadPort.favoriteStrategy("user-1", "strat-1")).thenReturn(snapshot);
 
@@ -50,7 +50,7 @@ class FavoriteStrategyUseCaseTest {
     @Test
     void shouldRejectNonTraderUsers() {
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("user-1"));
-        when(userRepository.existsByIdAndRole("user-1", Role.USER)).thenReturn(false);
+        when(userRepository.existsByIdAndRole("user-1", Role.TRADER)).thenReturn(false);
 
         assertThrows(ForbiddenOperationException.class, () -> favoriteStrategyUseCase.execute("strat-1"));
 
@@ -60,7 +60,7 @@ class FavoriteStrategyUseCaseTest {
     @Test
     void shouldRejectBlankStrategyId() {
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("user-1"));
-        when(userRepository.existsByIdAndRole("user-1", Role.USER)).thenReturn(true);
+        when(userRepository.existsByIdAndRole("user-1", Role.TRADER)).thenReturn(true);
 
         assertThrows(IllegalArgumentException.class, () -> favoriteStrategyUseCase.execute("   "));
 
