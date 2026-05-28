@@ -6,6 +6,7 @@ import io.marcus.application.exception.UnauthenticatedException;
 import io.marcus.domain.model.Bot;
 import io.marcus.domain.repository.BotRepository;
 import io.marcus.domain.service.IdentityService;
+import io.marcus.domain.vo.BotStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,10 @@ public class UpdateBotMetadataUseCase {
 
         Bot bot = botRepository.findByBotId(botId)
                 .orElseThrow(() -> new IllegalArgumentException("Bot not found with id: " + botId));
+
+        if (bot.getStatus() == BotStatus.DELETED) {
+            throw new IllegalStateException("Cannot modify metadata of a deleted bot");
+        }
 
         if (!currentUserId.equals(bot.getDeveloperId())) {
             throw new ForbiddenOperationException("Only the developer of the bot can modify its metadata");

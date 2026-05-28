@@ -68,6 +68,7 @@ public class JpaBotRepositoryImpl implements BotRepository {
     public List<Bot> findAllByDeveloperId(String developerId) {
         return springDataBotRepository.findByDeveloperId(developerId)
                 .stream()
+                .filter(bot -> bot.getStatus() != BotStatus.DELETED)
                 .map(botMapper::toDomain)
                 .toList();
     }

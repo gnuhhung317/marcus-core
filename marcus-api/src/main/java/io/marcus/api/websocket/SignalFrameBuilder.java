@@ -74,7 +74,10 @@ public class SignalFrameBuilder {
         payload.put("reduce_only",           signal.getReduceOnly());  // null = executor derives from action
         payload.put("status",                signal.getStatus() != null ? signal.getStatus().name() : null);
         payload.put("timeframe",             signal.getTimeframe());
-        payload.put("cancel_after_timestamp", calculateExpiryEpoch(signal.getTimeframe(), signal.getMetadata()));
+        // Backwards-compatible top-level cancel timestamp
+        payload.put("cancel_after_timestamp", calculateExpiryEpoch(signal.getTimeframe(), signal.getMetadata(), signal.getPolicies()));
+        // New top-level structured policies object (optional)
+        payload.put("policies", signal.getPolicies());
         payload.put("generated_timestamp",   signal.getGeneratedTimestamp() != null
                 ? signal.getGeneratedTimestamp().toString() : null);
         payload.put("metadata",              signal.getMetadata());
@@ -116,8 +119,21 @@ public class SignalFrameBuilder {
      *   <li>Default fallback: {@value DEFAULT_EXPIRY_SECONDS} seconds.</li>
      * </ol>
      */
-    long calculateExpiryEpoch(String timeframe, Map<String, Object> metadata) {
+    long calculateExpiryEpoch(String timeframe, Map<String, Object> metadata, Map<String, Object> policies) {
         long nowEpoch = java.time.Instant.now().getEpochSecond();
+
+        // 0. If explicit policies object includes an absolute cancel timestamp, trust it.
+        if (policies != null && policies.containsKey("cancelOrderAfter")) {
+            try {
+                Object val = policies.get("cancelOrderAfter");
+                long ts = Long.parseLong(val.toString());
+                if (ts > 0) {
+                    return ts;
+                }
+            } catch (NumberFormatException ignored) {
+                log.warn("[SignalFrameBuilder] Invalid cancelOrderAfter in policies, falling back");
+            }
+        }
 
         // 1. Explicit override from bot metadata
         if (metadata != null && metadata.containsKey("cancel_after_seconds")) {

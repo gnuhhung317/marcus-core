@@ -5,6 +5,7 @@ import io.marcus.domain.port.PortfolioReadPort.TimeSeriesPointSnapshot;
 import io.marcus.domain.port.UserProfileReadPort.OffsetPaginationMetaSnapshot;
 import io.marcus.domain.service.SignalMetricsCalculator;
 import io.marcus.domain.vo.SubscriptionStatus;
+import io.marcus.domain.vo.BotStatus;
 import io.marcus.infrastructure.persistence.SpringDataBotRepository;
 import io.marcus.infrastructure.persistence.SpringDataSignalRepository;
 import io.marcus.infrastructure.persistence.SpringDataUserSubscriptionRepository;
@@ -38,6 +39,7 @@ public class StaticBotDiscoveryReadAdapter implements BotDiscoveryReadPort {
         }
 
         BotEntity bot = springDataBotRepository.findByBotIdWithExchange(botId)
+                .filter(b -> b.getStatus() != BotStatus.DELETED)
                 .orElseThrow(() -> new IllegalArgumentException("Bot not found with id: " + botId));
 
         List<SignalEntity> signals = springDataSignalRepository.findByBotIdAndGeneratedTimestampIsNotNullOrderByGeneratedTimestampAsc(botId);
@@ -78,6 +80,9 @@ public class StaticBotDiscoveryReadAdapter implements BotDiscoveryReadPort {
         
         List<BotDiscoverySnapshot> items = bots.stream()
                 .filter(bot -> {
+                    if (bot.getStatus() == BotStatus.DELETED) {
+                        return false;
+                    }
                     if (q != null && !q.isBlank()) {
                         String term = q.toLowerCase(Locale.ROOT);
                         boolean nameMatch = bot.getName() != null && bot.getName().toLowerCase(Locale.ROOT).contains(term);

@@ -151,16 +151,19 @@ class JpaBotRepositoryImplTest {
     }
 
     @Test
-    void shouldFindAllByDeveloperId() {
-        BotEntity entity = BotEntity.builder().botId("bot_1").developerId("dev_1").build();
-        Bot domain = Bot.builder().botId("bot_1").developerId("dev_1").build();
+    void shouldFindAllByDeveloperIdExcludingDeleted() {
+        BotEntity activeEntity = BotEntity.builder().botId("bot_1").developerId("dev_1").status(BotStatus.ACTIVE).build();
+        BotEntity deletedEntity = BotEntity.builder().botId("bot_2").developerId("dev_1").status(BotStatus.DELETED).build();
+        Bot activeDomain = Bot.builder().botId("bot_1").developerId("dev_1").status(BotStatus.ACTIVE).build();
 
-        when(springDataBotRepository.findByDeveloperId("dev_1")).thenReturn(List.of(entity));
-        when(botMapper.toDomain(entity)).thenReturn(domain);
+        when(springDataBotRepository.findByDeveloperId("dev_1")).thenReturn(List.of(activeEntity, deletedEntity));
+        when(botMapper.toDomain(activeEntity)).thenReturn(activeDomain);
 
         List<Bot> actual = repository.findAllByDeveloperId("dev_1");
 
-        assertThat(actual).containsExactly(domain);
+        assertThat(actual).containsExactly(activeDomain);
         verify(springDataBotRepository).findByDeveloperId("dev_1");
+        verify(botMapper).toDomain(activeEntity);
+        verify(botMapper, never()).toDomain(deletedEntity);
     }
 }

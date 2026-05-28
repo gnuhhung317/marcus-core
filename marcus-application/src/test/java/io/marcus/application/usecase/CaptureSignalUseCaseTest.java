@@ -383,7 +383,7 @@ class CaptureSignalUseCaseTest {
         assertEquals(null, savedSignal.getOrderType());
         assertEquals(null, savedSignal.getLeverage());
         assertEquals(null, savedSignal.getMarginMode());
-        assertEquals(null, savedSignal.getStatus());
+        assertEquals(SignalStatus.RECEIVED, savedSignal.getStatus());
         assertEquals(LocalDateTime.parse("2026-05-24T10:15:30"), savedSignal.getGeneratedTimestamp());
     }
 }

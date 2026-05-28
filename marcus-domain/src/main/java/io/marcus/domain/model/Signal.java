@@ -115,6 +115,9 @@ public class Signal extends BaseModel {
     /** Arbitrary key-value metadata for extensibility. */
     private Map<String, Object> metadata;
 
+    /** Structured execution policies forwarded to executors (e.g. sizing, deadlines). */
+    private Map<String, Object> policies;
+
     public boolean simulated() {
         if (metadata == null) {
             return false;

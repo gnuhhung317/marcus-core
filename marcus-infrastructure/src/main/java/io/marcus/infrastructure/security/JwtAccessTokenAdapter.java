@@ -1,5 +1,18 @@
 package io.marcus.infrastructure.security;
 
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Date;
+import java.util.Optional;
+import java.util.UUID;
+
+import javax.crypto.SecretKey;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Component;
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -9,17 +22,6 @@ import io.marcus.domain.port.RefreshTokenPort;
 import io.marcus.domain.vo.AuthenticatedUser;
 import io.marcus.domain.vo.Role;
 import jakarta.annotation.PostConstruct;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.stereotype.Component;
-
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Date;
-import java.util.Optional;
-import java.util.UUID;
 
 @Component
 public class JwtAccessTokenAdapter implements AccessTokenPort, RefreshTokenPort {
@@ -201,10 +203,6 @@ public class JwtAccessTokenAdapter implements AccessTokenPort, RefreshTokenPort 
     }
 
     private Role normalizeRole(String roleValue) {
-        if ("USER".equals(roleValue)) {
-            return Role.TRADER;
-        }
-
-        return Role.valueOf(roleValue);
+        return Role.fromValue(roleValue);
     }
 }
