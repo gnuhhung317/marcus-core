@@ -20,8 +20,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ListMySubscriptionsUseCase {
 
-    private static final String EXECUTOR_INSTRUCTION =
-            "Copy WS_TOKEN and paste it into WS_TOKEN in the Local Executor .env file before starting the executor.";
+    private static final String EXECUTOR_INSTRUCTION
+            = "Copy WS_TOKEN and paste it into WS_TOKEN in the Local Executor .env file before starting the executor.";
 
     private final IdentityService identityService;
     private final UserRepository userRepository;
@@ -32,7 +32,7 @@ public class ListMySubscriptionsUseCase {
         String currentUserId = identityService.getCurrentUserId()
                 .orElseThrow(() -> new UnauthenticatedException("No authenticated user found"));
 
-        if (!userRepository.existsByIdAndRole(currentUserId, Role.USER)) {
+        if (!userRepository.existsByIdAndRole(currentUserId, Role.TRADER)) {
             throw new ForbiddenOperationException("Only trader can view subscriptions");
         }
 

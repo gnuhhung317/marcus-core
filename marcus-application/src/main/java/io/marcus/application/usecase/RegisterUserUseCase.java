@@ -60,7 +60,7 @@ public class RegisterUserUseCase {
 
     private Role resolveRequestedRole(Role requestedRole) {
         if (requestedRole == null) {
-            return Role.USER;
+            return Role.TRADER;
         }
 
         if (requestedRole == Role.ADMIN) {

@@ -21,7 +21,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
@@ -55,10 +55,12 @@ marcus:
   security:
     master-key: coleemchangkhocchutnaocoleemchangquantamanhrasao
     salt: 944440b12311f820b2cf6acd2290b497
+    bot-signature:
+      max-skew-ms: 60000
     jwt:
       secret: marcus-super-secret-key-change-me-at-least-32-bytes
-      access-token-expiration-seconds: 3600
-      refresh-token-expiration-seconds: 604800
+      access-token-expiration-seconds: 3600000
+      refresh-token-expiration-seconds: 60480000
 
   server:
     port: 8080

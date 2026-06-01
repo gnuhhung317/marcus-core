@@ -5,6 +5,7 @@ import io.marcus.domain.port.PortfolioReadPort.TimeSeriesPointSnapshot;
 import io.marcus.domain.port.UserProfileReadPort.OffsetPaginationMetaSnapshot;
 import io.marcus.domain.service.SignalMetricsCalculator;
 import io.marcus.domain.vo.SubscriptionStatus;
+import io.marcus.domain.vo.BotStatus;
 import io.marcus.infrastructure.persistence.SpringDataBotRepository;
 import io.marcus.infrastructure.persistence.SpringDataSignalRepository;
 import io.marcus.infrastructure.persistence.SpringDataUserSubscriptionRepository;
@@ -38,6 +39,7 @@ public class StaticBotDiscoveryReadAdapter implements BotDiscoveryReadPort {
         }
 
         BotEntity bot = springDataBotRepository.findByBotIdWithExchange(botId)
+                .filter(b -> b.getStatus() != BotStatus.DELETED)
                 .orElseThrow(() -> new IllegalArgumentException("Bot not found with id: " + botId));
 
         List<SignalEntity> signals = springDataSignalRepository.findByBotIdAndGeneratedTimestampIsNotNullOrderByGeneratedTimestampAsc(botId);
@@ -78,6 +80,9 @@ public class StaticBotDiscoveryReadAdapter implements BotDiscoveryReadPort {
         
         List<BotDiscoverySnapshot> items = bots.stream()
                 .filter(bot -> {
+                    if (bot.getStatus() == BotStatus.DELETED) {
+                        return false;
+                    }
                     if (q != null && !q.isBlank()) {
                         String term = q.toLowerCase(Locale.ROOT);
                         boolean nameMatch = bot.getName() != null && bot.getName().toLowerCase(Locale.ROOT).contains(term);
@@ -92,10 +97,7 @@ public class StaticBotDiscoveryReadAdapter implements BotDiscoveryReadPort {
                     return true;
                 })
                 .map(bot -> {
-                    List<SignalEntity> signals = springDataSignalRepository.findByBotIdAndGeneratedTimestampIsNotNullOrderByGeneratedTimestampAsc(bot.getBotId())
-                            .stream()
-                            .filter(s -> !isSimulated(s))
-                            .toList();
+                    List<SignalEntity> signals = springDataSignalRepository.findByBotIdAndGeneratedTimestampIsNotNullOrderByGeneratedTimestampAsc(bot.getBotId());
                     SignalMetricsCalculator.MetricsResult metrics = calculateMetrics(signals);
                     long subscribers = springDataUserSubscriptionRepository.findByBotIdAndStatusOrderByCreatedAtDesc(bot.getBotId(), SubscriptionStatus.ACTIVE).size();
                     return new BotDiscoverySnapshot(
@@ -227,16 +229,24 @@ public class StaticBotDiscoveryReadAdapter implements BotDiscoveryReadPort {
             return SignalMetricsCalculator.calculate(List.of(), 1);
         }
 
-        List<SignalMetricsCalculator.SignalData> signalDataList = signals.stream()
+        List<SignalEntity> nonSimulatedSignals = signals.stream()
+                .filter(s -> s.getMetadata() == null || !Boolean.TRUE.equals(s.getMetadata().get("simulation")))
+                .toList();
+
+        if (nonSimulatedSignals.isEmpty()) {
+            return SignalMetricsCalculator.calculate(List.of(), 1);
+        }
+
+        List<SignalMetricsCalculator.SignalData> signalDataList = nonSimulatedSignals.stream()
                 .map(this::toSignalData)
                 .toList();
 
-        LocalDateTime firstSignalAt = signals.stream()
+        LocalDateTime firstSignalAt = nonSimulatedSignals.stream()
                 .map(SignalEntity::getGeneratedTimestamp)
                 .filter(timestamp -> timestamp != null)
                 .min(LocalDateTime::compareTo)
                 .orElse(LocalDateTime.now());
-        LocalDateTime lastSignalAt = signals.stream()
+        LocalDateTime lastSignalAt = nonSimulatedSignals.stream()
                 .map(SignalEntity::getGeneratedTimestamp)
                 .filter(timestamp -> timestamp != null)
                 .max(LocalDateTime::compareTo)
@@ -244,19 +254,5 @@ public class StaticBotDiscoveryReadAdapter implements BotDiscoveryReadPort {
 
         long ageDays = Math.max(1L, ChronoUnit.DAYS.between(firstSignalAt, lastSignalAt) + 1L);
         return SignalMetricsCalculator.calculate(signalDataList, ageDays);
-    }
-
-    private boolean isSimulated(SignalEntity signal) {
-        if (signal == null || signal.getMetadata() == null) {
-            return false;
-        }
-        Object simulationVal = signal.getMetadata().get("simulation");
-        if (simulationVal instanceof Boolean) {
-            return (Boolean) simulationVal;
-        }
-        if (simulationVal instanceof String) {
-            return Boolean.parseBoolean((String) simulationVal);
-        }
-        return false;
     }
 }

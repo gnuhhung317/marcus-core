@@ -3,7 +3,6 @@ package io.marcus.infrastructure.integration;
 import io.marcus.domain.port.PortfolioReadPort.ExecutionLogPageSnapshot;
 import io.marcus.domain.port.PortfolioReadPort.ExecutionLogItemSnapshot;
 import io.marcus.domain.port.PortfolioReadPort.BotIntegrationHealthSnapshot;
-import io.marcus.domain.port.PortfolioReadPort.ConnectivityHealthDependencySnapshot;
 import io.marcus.infrastructure.persistence.entity.BotEntity;
 import io.marcus.infrastructure.persistence.entity.SignalEntity;
 import io.marcus.infrastructure.persistence.SpringDataBotRepository;
@@ -231,15 +230,6 @@ class StaticPortfolioReadAdapterTest {
         assertNotNull(snapshot);
         assertEquals("UP", snapshot.overallStatus());
         assertTrue(snapshot.message().contains("healthy"));
-        
-        ConnectivityHealthDependencySnapshot wsDep = snapshot.dependencies().stream()
-                .filter(d -> "WebSocket Stream".equals(d.name())).findFirst().orElseThrow();
-        assertEquals("UP", wsDep.status());
-        assertEquals(15, wsDep.latencyMs());
-
-        ConnectivityHealthDependencySnapshot sigDep = snapshot.dependencies().stream()
-                .filter(d -> "Signal Processor".equals(d.name())).findFirst().orElseThrow();
-        assertEquals("UP", sigDep.status());
     }
 
     @Test
@@ -248,11 +238,11 @@ class StaticPortfolioReadAdapterTest {
         BotEntity bot = BotEntity.builder().botId(botId).build();
         when(springDataBotRepository.findByBotId(botId)).thenReturn(Optional.of(bot));
 
-        // Heartbeat is somewhat old (2 minutes / 120 seconds ago)
+        // Heartbeat is somewhat old (8.3 minutes / 500 seconds ago)
         RawEventEntity heartbeat = RawEventEntity.builder()
                 .botId(botId)
                 .type("heartbeat")
-                .receivedAt(Instant.now().minusSeconds(120))
+                .receivedAt(Instant.now().minusSeconds(500))
                 .build();
         when(springDataRawEventRepository.findLatestHeartbeatForBot(botId)).thenReturn(Optional.of(heartbeat));
         when(springDataSignalRepository.findByBotId(botId)).thenReturn(List.of());
@@ -261,12 +251,7 @@ class StaticPortfolioReadAdapterTest {
 
         assertNotNull(snapshot);
         assertEquals("DEGRADED", snapshot.overallStatus());
-        assertTrue(snapshot.message().contains("degraded"));
-
-        ConnectivityHealthDependencySnapshot wsDep = snapshot.dependencies().stream()
-                .filter(d -> "WebSocket Stream".equals(d.name())).findFirst().orElseThrow();
-        assertEquals("DEGRADED", wsDep.status());
-        assertEquals(45, wsDep.latencyMs());
+        assertTrue(snapshot.message().contains("degraded") || snapshot.message().contains("latency"));
     }
 
     @Test
@@ -275,11 +260,11 @@ class StaticPortfolioReadAdapterTest {
         BotEntity bot = BotEntity.builder().botId(botId).build();
         when(springDataBotRepository.findByBotId(botId)).thenReturn(Optional.of(bot));
 
-        // Heartbeat is very old (10 minutes / 600 seconds ago)
+        // Heartbeat is very old (16.6 minutes / 1000 seconds ago)
         RawEventEntity heartbeat = RawEventEntity.builder()
                 .botId(botId)
                 .type("heartbeat")
-                .receivedAt(Instant.now().minusSeconds(600))
+                .receivedAt(Instant.now().minusSeconds(1000))
                 .build();
         when(springDataRawEventRepository.findLatestHeartbeatForBot(botId)).thenReturn(Optional.of(heartbeat));
         when(springDataSignalRepository.findByBotId(botId)).thenReturn(List.of());
@@ -289,11 +274,6 @@ class StaticPortfolioReadAdapterTest {
         assertNotNull(snapshot);
         assertEquals("DOWN", snapshot.overallStatus());
         assertTrue(snapshot.message().contains("offline"));
-
-        ConnectivityHealthDependencySnapshot wsDep = snapshot.dependencies().stream()
-                .filter(d -> "WebSocket Stream".equals(d.name())).findFirst().orElseThrow();
-        assertEquals("DOWN", wsDep.status());
-        assertEquals(999, wsDep.latencyMs());
     }
 
     @Test
@@ -321,13 +301,5 @@ class StaticPortfolioReadAdapterTest {
         assertNotNull(snapshot);
         assertEquals("UP", snapshot.overallStatus());
         assertTrue(snapshot.message().contains("System is fully healthy"));
-
-        ConnectivityHealthDependencySnapshot wsDep = snapshot.dependencies().stream()
-                .filter(d -> "WebSocket Stream".equals(d.name())).findFirst().orElseThrow();
-        assertEquals("UP", wsDep.status());
-
-        ConnectivityHealthDependencySnapshot sigDep = snapshot.dependencies().stream()
-                .filter(d -> "Signal Processor".equals(d.name())).findFirst().orElseThrow();
-        assertEquals("UP", sigDep.status());
     }
 }

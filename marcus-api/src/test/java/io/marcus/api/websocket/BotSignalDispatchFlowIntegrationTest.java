@@ -407,7 +407,7 @@ class BotSignalDispatchFlowIntegrationTest {
 
         @Override
         public boolean existsByIdAndRole(String id, Role role) {
-            return userId.equals(id) && role == Role.USER;
+            return userId.equals(id) && role == Role.TRADER;
         }
 
         @Override
@@ -436,8 +436,8 @@ class BotSignalDispatchFlowIntegrationTest {
         public Optional<UserSubscription> findActiveByUserIdAndBotId(String userId, String botId) {
             return subscriptionsById.values().stream()
                     .filter(subscription -> subscription.getStatus() == SubscriptionStatus.ACTIVE
-                            && userId.equals(subscription.getUserId())
-                            && botId.equals(subscription.getBotId()))
+                    && userId.equals(subscription.getUserId())
+                    && botId.equals(subscription.getBotId()))
                     .findFirst();
         }
 
@@ -445,7 +445,7 @@ class BotSignalDispatchFlowIntegrationTest {
         public List<UserSubscription> findActiveByUserId(String userId) {
             return subscriptionsById.values().stream()
                     .filter(subscription -> subscription.getStatus() == SubscriptionStatus.ACTIVE
-                            && userId.equals(subscription.getUserId()))
+                    && userId.equals(subscription.getUserId()))
                     .toList();
         }
 
@@ -458,7 +458,7 @@ class BotSignalDispatchFlowIntegrationTest {
 
             return subscriptionsById.values().stream()
                     .filter(subscription -> subscription.getStatus() == SubscriptionStatus.ACTIVE
-                            && userId.equals(subscription.getUserId()))
+                    && userId.equals(subscription.getUserId()))
                     .map(UserSubscription::getWsToken)
                     .filter(wsToken -> wsToken != null && !wsToken.isBlank())
                     .findFirst();
@@ -479,7 +479,7 @@ class BotSignalDispatchFlowIntegrationTest {
         public List<UserSubscription> findActiveByBotId(String botId) {
             return subscriptionsById.values().stream()
                     .filter(subscription -> subscription.getStatus() == SubscriptionStatus.ACTIVE
-                            && botId.equals(subscription.getBotId()))
+                    && botId.equals(subscription.getBotId()))
                     .toList();
         }
 
@@ -487,8 +487,8 @@ class BotSignalDispatchFlowIntegrationTest {
         public Optional<UserSubscription> findActiveByBotIdAndWsToken(String botId, String wsToken) {
             return subscriptionsById.values().stream()
                     .filter(subscription -> subscription.getStatus() == SubscriptionStatus.ACTIVE
-                            && botId.equals(subscription.getBotId())
-                            && wsToken.equals(subscription.getWsToken()))
+                    && botId.equals(subscription.getBotId())
+                    && wsToken.equals(subscription.getWsToken()))
                     .findFirst();
         }
 

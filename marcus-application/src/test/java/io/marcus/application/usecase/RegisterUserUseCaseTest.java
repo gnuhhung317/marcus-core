@@ -78,8 +78,8 @@ class RegisterUserUseCaseTest {
 
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRegistrationPort).save(userCaptor.capture());
-        assertEquals(Role.USER, userCaptor.getValue().getRole());
-        assertEquals("USER", response.role());
+        assertEquals(Role.TRADER, userCaptor.getValue().getRole());
+        assertEquals("TRADER", response.role());
     }
 
     @Test
@@ -89,7 +89,7 @@ class RegisterUserUseCaseTest {
                 null,
                 "secret-password",
                 "user01@example.com",
-                Role.USER
+                Role.TRADER
         );
         when(userUniquenessPort.existsByUsername("user01")).thenReturn(true);
 

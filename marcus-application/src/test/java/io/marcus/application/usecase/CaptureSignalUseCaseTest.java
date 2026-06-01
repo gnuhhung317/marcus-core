@@ -101,6 +101,10 @@ class CaptureSignalUseCaseTest {
         Signal savedSignal = signalCaptor.getValue();
         assertEquals("signal-1", savedSignal.getSignalId());
         assertEquals("bot-1", savedSignal.getBotId());
+        assertEquals(null, savedSignal.getMarketType());
+        assertEquals(null, savedSignal.getOrderType());
+        assertEquals(null, savedSignal.getLeverage());
+        assertEquals(null, savedSignal.getMarginMode());
 
         verify(signalPublisherPort).publish(savedSignal);
         verify(signalServerDispatchPort).dispatchToServers(savedSignal, Set.of("ws-1", "ws-2"));

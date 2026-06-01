@@ -73,7 +73,7 @@ class SubscribeBotUseCaseTest {
                 .build();
 
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("usr_1"));
-        when(userRepository.existsByIdAndRole("usr_1", Role.USER)).thenReturn(true);
+        when(userRepository.existsByIdAndRole("usr_1", Role.TRADER)).thenReturn(true);
         when(botRepository.findByBotId("bot_1")).thenReturn(Optional.of(activeBot));
         when(userSubscriptionPersistencePort.findActiveByUserIdAndBotId("usr_1", "bot_1")).thenReturn(Optional.empty());
         when(userSubscriptionPersistencePort.findAnyActiveWsTokenByUserId("usr_1")).thenReturn(Optional.of("ws_abc"));
@@ -99,7 +99,7 @@ class SubscribeBotUseCaseTest {
                 .build();
 
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("usr_1"));
-        when(userRepository.existsByIdAndRole("usr_1", Role.USER)).thenReturn(true);
+        when(userRepository.existsByIdAndRole("usr_1", Role.TRADER)).thenReturn(true);
         when(botRepository.findByBotId("bot_1")).thenReturn(Optional.of(activeBot));
         when(userSubscriptionPersistencePort.findActiveByUserIdAndBotId("usr_1", "bot_1"))
                 .thenReturn(Optional.of(existingSubscription));
@@ -115,7 +115,7 @@ class SubscribeBotUseCaseTest {
         Bot inactiveBot = Bot.builder().botId("bot_1").status(BotStatus.PAUSED).build();
 
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("usr_1"));
-        when(userRepository.existsByIdAndRole("usr_1", Role.USER)).thenReturn(true);
+        when(userRepository.existsByIdAndRole("usr_1", Role.TRADER)).thenReturn(true);
         when(botRepository.findByBotId("bot_1")).thenReturn(Optional.of(inactiveBot));
 
         assertThatThrownBy(() -> useCase.execute("bot_1"))
@@ -126,7 +126,7 @@ class SubscribeBotUseCaseTest {
     @Test
     void shouldThrowWhenBotNotFound() {
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("usr_1"));
-        when(userRepository.existsByIdAndRole("usr_1", Role.USER)).thenReturn(true);
+        when(userRepository.existsByIdAndRole("usr_1", Role.TRADER)).thenReturn(true);
         when(botRepository.findByBotId("bot_1")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> useCase.execute("bot_1"))
@@ -146,7 +146,7 @@ class SubscribeBotUseCaseTest {
     @Test
     void shouldThrowWhenCurrentUserIsNotTrader() {
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("usr_1"));
-        when(userRepository.existsByIdAndRole("usr_1", Role.USER)).thenReturn(false);
+        when(userRepository.existsByIdAndRole("usr_1", Role.TRADER)).thenReturn(false);
 
         assertThatThrownBy(() -> useCase.execute("bot_1"))
                 .isInstanceOf(ForbiddenOperationException.class)

@@ -35,7 +35,7 @@ class UpdateCurrentUserProfileUseCaseTest {
     @Test
     void shouldUpdateProfileForCurrentUser() {
         UpdateUserProfileRequest request = new UpdateUserProfileRequest("trader_2", "trader2@marcus.local");
-        UserProfileReadPort.UserProfileSnapshot response = new UserProfileReadPort.UserProfileSnapshot("usr_1", "trader_2", "trader2@marcus.local", "USER");
+        UserProfileReadPort.UserProfileSnapshot response = new UserProfileReadPort.UserProfileSnapshot("usr_1", "trader_2", "trader2@marcus.local", "TRADER");
 
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("usr_1"));
         when(userProfileReadPort.updateCurrentUserProfile(

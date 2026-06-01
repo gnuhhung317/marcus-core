@@ -5,6 +5,7 @@ import io.marcus.infrastructure.security.filter.RequestCachingFilter;
 import io.marcus.infrastructure.security.wrapper.MultiReadHttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
@@ -23,7 +24,9 @@ public class BotSignatureInterceptor implements HandlerInterceptor {
     private static final String HEADER_API_KEY = "X-Bot-Api-Key";
     private static final String HEADER_SIGNATURE = "X-Signature";
     private static final int IDEMPOTENCY_WINDOW_SECONDS = 60;
-    private static final long MAX_TIMESTAMP_SKEW_MILLIS = 60_000L;
+
+    @Value("${marcus.security.bot-signature.max-skew-ms:60000}")
+    private long maxTimestampSkewMillis = 60000;
 
     private final StringRedisTemplate redisTemplate;
     private final HmacSignatureValidator hmacSignatureValidator;
@@ -46,11 +49,17 @@ public class BotSignatureInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        HandlerMethod handlerMethod = (HandlerMethod) handler;
+        if (!handlerMethod.hasMethodAnnotation(RequireBotSignature.class)) {
+            return true;
+        }
+
         String timestampHeader = request.getHeader(HEADER_TIMESTAMP);
         String apiKey = request.getHeader(HEADER_API_KEY);
         String signatureHeader = request.getHeader(HEADER_SIGNATURE);
 
         if (timestampHeader == null || apiKey == null || signatureHeader == null) {
+            log.warn("[BotSignatureReject] reason=missing_header, path={}", request.getRequestURI());
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return false;
         }
@@ -60,6 +69,7 @@ public class BotSignatureInterceptor implements HandlerInterceptor {
         String normalizedSignature = signatureHeader.trim().toLowerCase(Locale.ROOT);
 
         if (timestampHeader.isEmpty() || apiKey.isEmpty() || normalizedSignature.isEmpty()) {
+            log.warn("[BotSignatureReject] reason=missing_header, path={}", request.getRequestURI());
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return false;
         }
@@ -68,12 +78,15 @@ public class BotSignatureInterceptor implements HandlerInterceptor {
         try {
             timestamp = Long.parseLong(timestampHeader);
         } catch (NumberFormatException ex) {
+            log.warn("[BotSignatureReject] reason=invalid_timestamp, timestampHeader={}, path={}", timestampHeader, request.getRequestURI());
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return false;
         }
 
         long now = System.currentTimeMillis();
-        if (Math.abs(now - timestamp) > MAX_TIMESTAMP_SKEW_MILLIS * 10) { //FIXME:temporary bypass
+        long skewMillis = Math.abs(now - timestamp);
+        if (skewMillis > maxTimestampSkewMillis) {
+            log.warn("[BotSignatureReject] reason=skew, apiKey={}, skewMillis={}, maxSkewMillis={}, path={}", apiKey, skewMillis, maxTimestampSkewMillis, request.getRequestURI());
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return false;
         }
@@ -89,7 +102,7 @@ public class BotSignatureInterceptor implements HandlerInterceptor {
         }
 
         if (Boolean.FALSE.equals(isUnique)) {
-            log.warn("Idempotency Violation! Signature: {}", normalizedSignature);
+            log.warn("[BotSignatureReject] reason=duplicate_signature, apiKey={}, signature={}, path={}", apiKey, normalizedSignature, request.getRequestURI());
             response.setStatus(HttpServletResponse.SC_CONFLICT);
             return false;
         }
@@ -111,7 +124,7 @@ public class BotSignatureInterceptor implements HandlerInterceptor {
         try {
             botSecret = botSecretProvider.getEncryptedSecret(apiKey);
         } catch (Exception ex) {
-            log.warn("Bot secret not found for API Key: {}", apiKey);
+            log.warn("[BotSignatureReject] reason=unknown_api_key, apiKey={}, path={}", apiKey, request.getRequestURI());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return false;
         }
@@ -119,7 +132,7 @@ public class BotSignatureInterceptor implements HandlerInterceptor {
         String signaturePayload = timestampHeader + "\n" + jsonBody;
         boolean isValid = hmacSignatureValidator.isValid(signaturePayload, botSecret, normalizedSignature);
         if (!isValid) {
-            log.warn("Invalid signature for API Key: {}", apiKey);
+            log.warn("[BotSignatureReject] reason=invalid_signature, apiKey={}, path={}", apiKey, request.getRequestURI());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return false;
         }
