@@ -34,11 +34,15 @@ public class UpdateBotStatusUseCase {
             throw new ForbiddenOperationException("Only the developer of the bot can modify its status");
         }
 
-        // Guard: cannot pause/delete if there are active subscribers
-        if (newStatus == BotStatus.PAUSED || newStatus == BotStatus.DELETED) {
+        if (bot.getStatus() == BotStatus.DELETED && newStatus != BotStatus.DELETED) {
+            throw new IllegalStateException("Deleted bot cannot be reactivated or modified");
+        }
+
+        // Guard: cannot delete if there are active subscribers. Pausing is allowed.
+        if (newStatus == BotStatus.DELETED) {
             List<UserSubscription> activeSubs = userSubscriptionPersistencePort.findActiveByBotId(botId);
             if (!activeSubs.isEmpty()) {
-                throw new IllegalStateException("Cannot pause/delete bot with active subscriptions (" + activeSubs.size() + " active)");
+                throw new IllegalStateException("Cannot delete bot with active subscriptions (" + activeSubs.size() + " active)");
             }
         }
 

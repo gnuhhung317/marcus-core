@@ -321,7 +321,9 @@ class BotSignalE2eFlowIntegrationTest {
 
         @Override
         public Optional<Bot> findByBotId(String botId) {
-            return botIds.contains(botId) ? Optional.of(new Bot()) : Optional.empty();
+            return botIds.contains(botId)
+                    ? Optional.of(Bot.builder().status(io.marcus.domain.vo.BotStatus.ACTIVE).build())
+                    : Optional.empty();
         }
 
         @Override

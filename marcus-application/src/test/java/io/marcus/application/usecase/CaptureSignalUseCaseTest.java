@@ -8,6 +8,7 @@ import io.marcus.domain.port.SignalPublisherPort;
 import io.marcus.domain.port.SignalServerDispatchPort;
 import io.marcus.domain.repository.BotRepository;
 import io.marcus.domain.repository.SignalRepository;
+import io.marcus.domain.vo.BotStatus;
 import io.marcus.domain.vo.SignalAction;
 import io.marcus.domain.vo.SignalStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -87,7 +88,7 @@ class CaptureSignalUseCaseTest {
         );
 
         when(botRepository.findByBotId("bot-1"))
-                .thenReturn(Optional.of(new Bot()));
+                .thenReturn(Optional.of(Bot.builder().status(BotStatus.ACTIVE).build()));
         when(signalRepository.existsBySignalId("signal-1"))
                 .thenReturn(false);
         when(resolveBotRoutingTargetsUseCase.execute(new ResolveBotRoutingTargetsRequest("bot-1")))
@@ -129,7 +130,7 @@ class CaptureSignalUseCaseTest {
         );
 
         when(botRepository.findByBotId("bot-1"))
-                .thenReturn(Optional.of(new Bot()));
+                .thenReturn(Optional.of(Bot.builder().status(BotStatus.ACTIVE).build()));
         when(signalRepository.existsBySignalId("signal-1"))
                 .thenReturn(false);
         when(resolveBotRoutingTargetsUseCase.execute(new ResolveBotRoutingTargetsRequest("bot-1")))
@@ -177,7 +178,7 @@ class CaptureSignalUseCaseTest {
                 null
         );
         when(botRepository.findByBotId("bot-9"))
-                .thenReturn(Optional.of(new Bot()));
+                .thenReturn(Optional.of(Bot.builder().status(BotStatus.ACTIVE).build()));
         when(signalRepository.existsBySignalId("signal-1"))
                 .thenReturn(false);
         when(resolveBotRoutingTargetsUseCase.execute(new ResolveBotRoutingTargetsRequest("bot-9")))
@@ -248,7 +249,7 @@ class CaptureSignalUseCaseTest {
         );
 
         when(botRepository.findByBotId("bot-1"))
-                .thenReturn(Optional.of(new Bot()));
+                .thenReturn(Optional.of(Bot.builder().status(BotStatus.ACTIVE).build()));
         when(resolveBotRoutingTargetsUseCase.execute(new ResolveBotRoutingTargetsRequest("bot-1")))
                 .thenReturn(Set.of("ws-1", "ws-2"));
 
@@ -284,7 +285,7 @@ class CaptureSignalUseCaseTest {
         );
 
         when(botRepository.findByBotId("bot-1"))
-                .thenReturn(Optional.of(new Bot()));
+                .thenReturn(Optional.of(Bot.builder().status(BotStatus.ACTIVE).build()));
         when(signalRepository.existsBySignalId("signal-1"))
                 .thenReturn(true);
 
@@ -324,7 +325,7 @@ class CaptureSignalUseCaseTest {
         );
 
         when(botRepository.findByBotId("bot-1"))
-                .thenReturn(Optional.of(new Bot()));
+                .thenReturn(Optional.of(Bot.builder().status(BotStatus.ACTIVE).build()));
         when(signalRepository.existsBySignalId("signal-sim-1"))
                 .thenReturn(false);
 
@@ -338,5 +339,39 @@ class CaptureSignalUseCaseTest {
 
         verify(signalPublisherPort, never()).publish(any());
         verify(signalServerDispatchPort, never()).dispatchToServers(any(), any());
+    }
+
+    @Test
+    @DisplayName("Should reject signal when bot is paused")
+    void shouldRejectSignalWhenBotIsPaused() {
+        CaptureSignalRequest request = new CaptureSignalRequest(
+                "signal-1",
+                "bot-1",
+                "BTCUSDT",
+                SignalAction.OPEN_LONG,
+                null,
+                null,
+                new BigDecimal("50000"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+        when(botRepository.findByBotId("bot-1"))
+                .thenReturn(Optional.of(Bot.builder().status(BotStatus.PAUSED).build()));
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> useCase.execute(request));
+
+        assertEquals("Only active bot can publish signals", exception.getMessage());
+        verify(signalRepository, never()).save(any());
+        verify(signalPublisherPort, never()).publish(any());
+        verifyNoInteractions(resolveBotRoutingTargetsUseCase, signalServerDispatchPort);
     }
 }

@@ -4,7 +4,9 @@ import io.marcus.application.dto.CaptureSignalRequest;
 import io.marcus.application.dto.ResolveBotRoutingTargetsRequest;
 import io.marcus.domain.exception.BotNotFoundException;
 import io.marcus.domain.exception.DuplicateSignalException;
+import io.marcus.domain.model.Bot;
 import io.marcus.domain.model.Signal;
+import io.marcus.domain.vo.BotStatus;
 import io.marcus.domain.vo.MarginMode;
 import io.marcus.domain.vo.MarketType;
 import io.marcus.domain.vo.OrderType;
@@ -36,9 +38,12 @@ public class CaptureSignalUseCase {
             throw new IllegalArgumentException("Signal request is required");
         }
 
-        // --- Guard: bot must exist ---
-        if (!botRepository.findByBotId(request.botId()).isPresent()) {
-            throw new BotNotFoundException("Bot not found: " + request.botId());
+        // --- Guard: bot must exist and accept live signals ---
+        Bot bot = botRepository.findByBotId(request.botId())
+                .orElseThrow(() -> new BotNotFoundException("Bot not found: " + request.botId()));
+
+        if (bot.getStatus() != BotStatus.ACTIVE) {
+            throw new IllegalStateException("Only active bot can publish signals");
         }
 
         // --- Guard: idempotency — reject duplicate signalId ---

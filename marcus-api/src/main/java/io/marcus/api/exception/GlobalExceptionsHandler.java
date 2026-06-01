@@ -46,6 +46,11 @@ public class GlobalExceptionsHandler {
         return buildErrorResponse(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), request);
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex, HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), request);
+    }
+
     @ExceptionHandler(UnauthenticatedException.class)
     public ResponseEntity<ErrorResponse> handleUnauthenticated(UnauthenticatedException ex, HttpServletRequest request) {
         return buildErrorResponse(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", ex.getMessage(), request);

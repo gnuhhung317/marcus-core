@@ -71,6 +71,15 @@ class GlobalExceptionsHandlerTest {
     }
 
     @Test
+    void shouldReturnConflictPayloadForIllegalState() throws Exception {
+        mockMvc.perform(get("/api/v1/test-errors/illegal-state"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONFLICT"))
+                .andExpect(jsonPath("$.message").value("Lifecycle transition is not allowed"))
+                .andExpect(jsonPath("$.traceId").isNotEmpty());
+    }
+
+    @Test
     void shouldReturnUnauthorizedPayload() throws Exception {
         mockMvc.perform(get("/api/v1/test-errors/unauthorized"))
                 .andExpect(status().isUnauthorized())
@@ -141,6 +150,11 @@ class GlobalExceptionsHandlerTest {
         @GetMapping("/conflict")
         String conflict() {
             throw new ResourceConflictException("Resource already exists");
+        }
+
+        @GetMapping("/illegal-state")
+        String illegalState() {
+            throw new IllegalStateException("Lifecycle transition is not allowed");
         }
 
         @GetMapping("/unauthorized")

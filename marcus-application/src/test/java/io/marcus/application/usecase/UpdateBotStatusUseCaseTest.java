@@ -14,7 +14,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -47,13 +46,13 @@ class UpdateBotStatusUseCaseTest {
 
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("dev_1"));
         when(botRepository.findByBotId("bot_1")).thenReturn(Optional.of(bot));
-        when(userSubscriptionPersistencePort.findActiveByBotId("bot_1")).thenReturn(Collections.emptyList());
         when(botRepository.save(any(Bot.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Bot updated = useCase.execute("bot_1", BotStatus.PAUSED);
 
         assertThat(updated.getStatus()).isEqualTo(BotStatus.PAUSED);
         verify(botRepository).save(bot);
+        verifyNoInteractions(userSubscriptionPersistencePort);
     }
 
     @Test
@@ -95,7 +94,22 @@ class UpdateBotStatusUseCaseTest {
     }
 
     @Test
-    void shouldThrowWhenStatusIsPausedAndHasSubscribers() {
+    void shouldPauseBotWhenStatusIsPausedAndHasSubscribers() {
+        Bot bot = Bot.builder().botId("bot_1").developerId("dev_1").status(BotStatus.ACTIVE).build();
+
+        when(identityService.getCurrentUserId()).thenReturn(Optional.of("dev_1"));
+        when(botRepository.findByBotId("bot_1")).thenReturn(Optional.of(bot));
+        when(botRepository.save(any(Bot.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Bot updated = useCase.execute("bot_1", BotStatus.PAUSED);
+
+        assertThat(updated.getStatus()).isEqualTo(BotStatus.PAUSED);
+        verify(botRepository).save(bot);
+        verifyNoInteractions(userSubscriptionPersistencePort);
+    }
+
+    @Test
+    void shouldThrowWhenStatusIsDeletedAndHasSubscribers() {
         Bot bot = Bot.builder().botId("bot_1").developerId("dev_1").status(BotStatus.ACTIVE).build();
         UserSubscription sub = UserSubscription.builder().botId("bot_1").build();
 
@@ -103,10 +117,40 @@ class UpdateBotStatusUseCaseTest {
         when(botRepository.findByBotId("bot_1")).thenReturn(Optional.of(bot));
         when(userSubscriptionPersistencePort.findActiveByBotId("bot_1")).thenReturn(List.of(sub));
 
-        assertThatThrownBy(() -> useCase.execute("bot_1", BotStatus.PAUSED))
+        assertThatThrownBy(() -> useCase.execute("bot_1", BotStatus.DELETED))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Cannot pause/delete bot with active subscriptions");
+                .hasMessageContaining("Cannot delete bot with active subscriptions");
 
         verify(botRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldReturnPausedWhenStoppingAlreadyPausedBot() {
+        Bot bot = Bot.builder().botId("bot_1").developerId("dev_1").status(BotStatus.PAUSED).build();
+
+        when(identityService.getCurrentUserId()).thenReturn(Optional.of("dev_1"));
+        when(botRepository.findByBotId("bot_1")).thenReturn(Optional.of(bot));
+        when(botRepository.save(any(Bot.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Bot updated = useCase.execute("bot_1", BotStatus.PAUSED);
+
+        assertThat(updated.getStatus()).isEqualTo(BotStatus.PAUSED);
+        verify(botRepository).save(bot);
+        verifyNoInteractions(userSubscriptionPersistencePort);
+    }
+
+    @Test
+    void shouldThrowWhenDeletedBotIsModified() {
+        Bot bot = Bot.builder().botId("bot_1").developerId("dev_1").status(BotStatus.DELETED).build();
+
+        when(identityService.getCurrentUserId()).thenReturn(Optional.of("dev_1"));
+        when(botRepository.findByBotId("bot_1")).thenReturn(Optional.of(bot));
+
+        assertThatThrownBy(() -> useCase.execute("bot_1", BotStatus.PAUSED))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Deleted bot cannot be reactivated or modified");
+
+        verify(botRepository, never()).save(any());
+        verifyNoInteractions(userSubscriptionPersistencePort);
     }
 }
