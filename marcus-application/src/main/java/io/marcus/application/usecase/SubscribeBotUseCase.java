@@ -40,7 +40,7 @@ public class SubscribeBotUseCase {
         String currentUserId = identityService.getCurrentUserId()
                 .orElseThrow(() -> new UnauthenticatedException("No authenticated user found"));
 
-        if (!userRepository.existsByIdAndRole(currentUserId, Role.USER)) {
+        if (!userRepository.existsByIdAndRole(currentUserId, Role.TRADER)) {
             throw new ForbiddenOperationException("Only trader can subscribe bot");
         }
 

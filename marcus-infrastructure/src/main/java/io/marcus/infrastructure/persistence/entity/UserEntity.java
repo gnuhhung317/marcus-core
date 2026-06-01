@@ -1,6 +1,7 @@
 package io.marcus.infrastructure.persistence.entity;
 
 import io.marcus.domain.vo.Role;
+import io.marcus.infrastructure.persistence.converter.RoleAttributeConverter;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -30,7 +31,7 @@ public class UserEntity extends BaseEntity {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = RoleAttributeConverter.class)
     @Column(nullable = false)
     private Role role;
 }

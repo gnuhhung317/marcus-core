@@ -66,7 +66,7 @@ class UserProfileControllerTest {
     @Test
     void shouldGetCurrentUserProfile() throws Exception {
         when(getCurrentUserProfileUseCase.execute())
-                .thenReturn(new UserProfileReadPort.UserProfileSnapshot("usr_1", "trader_1", "trader@marcus.local", "USER"));
+                .thenReturn(new UserProfileReadPort.UserProfileSnapshot("usr_1", "trader_1", "trader@marcus.local", "TRADER"));
 
         mockMvc.perform(get("/api/v1/users/me"))
                 .andExpect(status().isOk())
@@ -77,7 +77,7 @@ class UserProfileControllerTest {
     void shouldUpdateCurrentUserProfile() throws Exception {
         UpdateUserProfileRequest request = new UpdateUserProfileRequest("trader_2", "trader2@marcus.local");
         when(updateCurrentUserProfileUseCase.execute(any(UpdateUserProfileRequest.class)))
-                .thenReturn(new UserProfileReadPort.UserProfileSnapshot("usr_1", "trader_2", "trader2@marcus.local", "USER"));
+                .thenReturn(new UserProfileReadPort.UserProfileSnapshot("usr_1", "trader_2", "trader2@marcus.local", "TRADER"));
 
         mockMvc.perform(put("/api/v1/users/me")
                 .contentType(MediaType.APPLICATION_JSON)

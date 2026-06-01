@@ -1,5 +1,8 @@
 package io.marcus.infrastructure.persistence.entity;
 
+import io.marcus.domain.vo.MarginMode;
+import io.marcus.domain.vo.MarketType;
+import io.marcus.domain.vo.OrderType;
 import io.marcus.domain.vo.SignalAction;
 import io.marcus.domain.vo.SignalStatus;
 import jakarta.persistence.*;
@@ -38,6 +41,14 @@ public class SignalEntity extends BaseEntity {
     @Column(nullable = false)
     private SignalAction action;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private MarketType marketType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private OrderType orderType;
+
     @Column(precision = 18, scale = 8)
     private BigDecimal entry;
 
@@ -47,16 +58,32 @@ public class SignalEntity extends BaseEntity {
     @Column(name = "take_profit", precision = 18, scale = 8)
     private BigDecimal takeProfit;
 
+    @Column(precision = 18, scale = 8)
+    private BigDecimal amount;
+
+    private Integer leverage;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "margin_mode")
+    private MarginMode marginMode;
+
+    @Column(name = "reduce_only")
+    private Boolean reduceOnly;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private SignalStatus status;
 
     private LocalDateTime generatedTimestamp;
-    
+
     @Column(length = 10)
     private String timeframe;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private Map<String, Object> metadata;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
+    private Map<String, Object> policies;
 }

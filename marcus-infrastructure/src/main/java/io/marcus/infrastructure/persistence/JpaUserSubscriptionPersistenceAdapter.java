@@ -22,6 +22,8 @@ public class JpaUserSubscriptionPersistenceAdapter implements UserSubscriptionPe
     @Override
     public UserSubscription save(UserSubscription subscription) {
         UserSubscriptionEntity entity = userSubscriptionMapper.toEntity(subscription);
+        springDataUserSubscriptionRepository.findFirstByUserSubscriptionId(subscription.getUserSubscriptionId())
+                .ifPresent(existing -> entity.setId(existing.getId()));
         UserSubscriptionEntity savedEntity = springDataUserSubscriptionRepository.save(entity);
         return userSubscriptionMapper.toDomain(savedEntity);
     }

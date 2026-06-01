@@ -1,5 +1,18 @@
 package io.marcus.infrastructure.security;
 
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Date;
+import java.util.Optional;
+import java.util.UUID;
+
+import javax.crypto.SecretKey;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Component;
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -9,17 +22,6 @@ import io.marcus.domain.port.RefreshTokenPort;
 import io.marcus.domain.vo.AuthenticatedUser;
 import io.marcus.domain.vo.Role;
 import jakarta.annotation.PostConstruct;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.stereotype.Component;
-
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Date;
-import java.util.Optional;
-import java.util.UUID;
 
 @Component
 public class JwtAccessTokenAdapter implements AccessTokenPort, RefreshTokenPort {
@@ -142,7 +144,7 @@ public class JwtAccessTokenAdapter implements AccessTokenPort, RefreshTokenPort 
                 redisTemplate.opsForValue().set(usedRefreshKey, userId, Duration.ofSeconds(usedTtl));
             }
 
-            Role role = Role.valueOf(roleValue);
+            Role role = normalizeRole(roleValue);
             return Optional.of(new AuthenticatedUser(userId, username, role));
         } catch (JwtException | IllegalArgumentException ex) {
             return Optional.empty();
@@ -170,7 +172,7 @@ public class JwtAccessTokenAdapter implements AccessTokenPort, RefreshTokenPort 
                 return Optional.empty();
             }
 
-            Role role = Role.valueOf(roleValue);
+            Role role = normalizeRole(roleValue);
             return Optional.of(new AuthenticatedUser(userId, username, role));
         } catch (JwtException | IllegalArgumentException ex) {
             return Optional.empty();
@@ -198,5 +200,9 @@ public class JwtAccessTokenAdapter implements AccessTokenPort, RefreshTokenPort 
     private long secondsUntilExpiry(Date expiresAt) {
         long seconds = (expiresAt.toInstant().toEpochMilli() - System.currentTimeMillis()) / 1000;
         return Math.max(seconds, 0);
+    }
+
+    private Role normalizeRole(String roleValue) {
+        return Role.fromValue(roleValue);
     }
 }

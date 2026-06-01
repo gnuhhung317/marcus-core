@@ -64,6 +64,30 @@ class JpaBotRepositoryImplTest {
     }
 
     @Test
+    void shouldUpdateBotCopyingIdWhenBotAlreadyExists() {
+        Bot bot = Bot.builder().botId("bot_1").exchangeId("binance").build();
+        BotEntity mappedEntity = BotEntity.builder().botId("bot_1").build();
+        BotEntity existingEntity = BotEntity.builder().id("uuid-1234").botId("bot_1").build();
+        ExchangeEntity exchange = ExchangeEntity.builder().exchangeId("binance").build();
+        BotEntity savedEntity = BotEntity.builder().id("uuid-1234").botId("bot_1").exchange(exchange).build();
+        Bot expected = Bot.builder().botId("bot_1").exchangeId("binance").build();
+
+        when(botMapper.toEntity(bot)).thenReturn(mappedEntity);
+        when(springDataBotRepository.findByBotId("bot_1")).thenReturn(Optional.of(existingEntity));
+        when(springDataExchangeRepository.findByExchangeId("binance")).thenReturn(Optional.of(exchange));
+        when(springDataBotRepository.save(mappedEntity)).thenReturn(savedEntity);
+        when(botMapper.toDomain(savedEntity)).thenReturn(expected);
+
+        Bot actual = repository.save(bot);
+
+        assertThat(actual).isEqualTo(expected);
+        ArgumentCaptor<BotEntity> entityCaptor = ArgumentCaptor.forClass(BotEntity.class);
+        verify(springDataBotRepository).save(entityCaptor.capture());
+        assertThat(entityCaptor.getValue().getId()).isEqualTo("uuid-1234");
+        assertThat(entityCaptor.getValue().getExchange()).isEqualTo(exchange);
+    }
+
+    @Test
     void shouldThrowWhenSavingBotWithUnknownExchange() {
         Bot bot = Bot.builder().botId("bot_1").exchangeId("unknown").build();
         BotEntity mappedEntity = BotEntity.builder().botId("bot_1").build();
@@ -127,16 +151,19 @@ class JpaBotRepositoryImplTest {
     }
 
     @Test
-    void shouldFindAllByDeveloperId() {
-        BotEntity entity = BotEntity.builder().botId("bot_1").developerId("dev_1").build();
-        Bot domain = Bot.builder().botId("bot_1").developerId("dev_1").build();
+    void shouldFindAllByDeveloperIdExcludingDeleted() {
+        BotEntity activeEntity = BotEntity.builder().botId("bot_1").developerId("dev_1").status(BotStatus.ACTIVE).build();
+        BotEntity deletedEntity = BotEntity.builder().botId("bot_2").developerId("dev_1").status(BotStatus.DELETED).build();
+        Bot activeDomain = Bot.builder().botId("bot_1").developerId("dev_1").status(BotStatus.ACTIVE).build();
 
-        when(springDataBotRepository.findByDeveloperId("dev_1")).thenReturn(List.of(entity));
-        when(botMapper.toDomain(entity)).thenReturn(domain);
+        when(springDataBotRepository.findByDeveloperId("dev_1")).thenReturn(List.of(activeEntity, deletedEntity));
+        when(botMapper.toDomain(activeEntity)).thenReturn(activeDomain);
 
         List<Bot> actual = repository.findAllByDeveloperId("dev_1");
 
-        assertThat(actual).containsExactly(domain);
+        assertThat(actual).containsExactly(activeDomain);
         verify(springDataBotRepository).findByDeveloperId("dev_1");
+        verify(botMapper).toDomain(activeEntity);
+        verify(botMapper, never()).toDomain(deletedEntity);
     }
 }
