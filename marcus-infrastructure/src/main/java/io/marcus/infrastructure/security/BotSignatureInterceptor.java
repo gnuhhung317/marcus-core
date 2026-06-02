@@ -114,6 +114,9 @@ public class BotSignatureInterceptor implements HandlerInterceptor {
         if (jsonBody == null && request instanceof MultiReadHttpServletRequestWrapper multiReadRequest) {
             jsonBody = multiReadRequest.getBody();
         }
+        if (jsonBody == null && "GET".equalsIgnoreCase(request.getMethod())) {
+            jsonBody = "{}";
+        }
         if (jsonBody == null) {
             log.error("Can not read request body");
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);

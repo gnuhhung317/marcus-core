@@ -100,6 +100,9 @@ public class SecurityConfig {
                         "/public/marketing/**", "/api/public/marketing/**", "/api/v1/public/marketing/**"
                 ).permitAll()
                 .requestMatchers(HttpMethod.GET, "/bots/my-bots", "/api/bots/my-bots", "/api/v1/bots/my-bots").hasRole(Role.DEVELOPER.name())
+                .requestMatchers(HttpMethod.GET, "/bots/*/analytics/**", "/api/bots/*/analytics/**", "/api/v1/bots/*/analytics/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/bots/*/telemetry/latest", "/api/bots/*/telemetry/latest", "/api/v1/bots/*/telemetry/latest").permitAll()
+                .requestMatchers(HttpMethod.POST, "/bots/*/telemetry", "/api/bots/*/telemetry", "/api/v1/bots/*/telemetry").permitAll()
                 .requestMatchers(HttpMethod.GET, "/bots/*/integration-health", "/api/bots/*/integration-health", "/api/v1/bots/*/integration-health").hasRole(Role.DEVELOPER.name())
                 .requestMatchers(HttpMethod.GET, "/bots/*/credentials", "/api/bots/*/credentials", "/api/v1/bots/*/credentials").hasRole(Role.DEVELOPER.name())
                 .requestMatchers(HttpMethod.POST, "/bots", "/api/bots", "/api/v1/bots", "/bots/register", "/api/bots/register", "/api/v1/bots/register").hasRole(Role.DEVELOPER.name())

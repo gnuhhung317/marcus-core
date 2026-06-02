@@ -3,6 +3,8 @@ package io.marcus.api.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.marcus.api.exception.GlobalExceptionsHandler;
 import io.marcus.api.security.JwtAuthenticationFilter;
+import io.marcus.application.dto.BotAnalyticsDtos;
+import io.marcus.application.dto.BotTelemetryRequest;
 import io.marcus.application.dto.BotSummaryResult;
 import io.marcus.application.dto.BotRegistrationResult;
 import io.marcus.application.dto.RegisterBotRequest;
@@ -12,9 +14,12 @@ import io.marcus.application.exception.ForbiddenOperationException;
 import io.marcus.application.usecase.GetBotDetailUseCase;
 import io.marcus.application.usecase.GetBotIntegrationHealthUseCase;
 import io.marcus.application.usecase.GetBotCredentialsUseCase;
+import io.marcus.application.usecase.GetBotAnalyticsUseCase;
+import io.marcus.application.usecase.GetLatestBotTelemetryUseCase;
 import io.marcus.application.usecase.ListDeveloperBotsUseCase;
 import io.marcus.application.usecase.ListPublicBotsUseCase;
 import io.marcus.application.usecase.RegisterBotUseCase;
+import io.marcus.application.usecase.SyncBotTelemetryUseCase;
 import io.marcus.application.usecase.UpdateBotStatusUseCase;
 import io.marcus.application.usecase.UpdateBotMetadataUseCase;
 import io.marcus.application.usecase.DeleteBotUseCase;
@@ -23,6 +28,7 @@ import io.marcus.domain.port.AccessTokenPort;
 import io.marcus.domain.port.BotDiscoveryReadPort;
 import io.marcus.domain.port.UserProfileReadPort;
 import io.marcus.domain.model.Bot;
+import io.marcus.domain.model.BotTelemetryPoint;
 import io.marcus.domain.vo.BotStatus;
 import io.marcus.infrastructure.security.BotSignatureInterceptor;
 import org.junit.jupiter.api.Test;
@@ -35,6 +41,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -77,6 +85,15 @@ class BotControllerTest {
 
     @MockBean
     private GetBotCredentialsUseCase getBotCredentialsUseCase;
+
+    @MockBean
+    private GetBotAnalyticsUseCase getBotAnalyticsUseCase;
+
+    @MockBean
+    private SyncBotTelemetryUseCase syncBotTelemetryUseCase;
+
+    @MockBean
+    private GetLatestBotTelemetryUseCase getLatestBotTelemetryUseCase;
 
     @MockBean
     private UpdateBotStatusUseCase updateBotStatusUseCase;
@@ -248,5 +265,67 @@ class BotControllerTest {
                 .andExpect(status().isOk());
 
         verify(botHeartbeatUseCase).execute("bot_123", "ak_123");
+    }
+
+    @Test
+    void shouldReturnBotAnalyticsMetrics() throws Exception {
+        BotAnalyticsDtos.MetricBlock block = new BotAnalyticsDtos.MetricBlock(0.2, -0.1, 1.5, 1.4, 2.0, 1.8, 45, null);
+        when(getBotAnalyticsUseCase.getMetrics("bot_123"))
+                .thenReturn(new BotAnalyticsDtos.GroupedMetricsResponse(block, block, block));
+
+        mockMvc.perform(get("/api/v1/bots/bot_123/analytics/metrics"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total.annualReturn").value(0.2))
+                .andExpect(jsonPath("$.outOfSample.sharpe").value(1.5));
+    }
+
+    @Test
+    void shouldReturnBotPerformanceSeries() throws Exception {
+        LocalDateTime split = LocalDateTime.of(2026, 1, 2, 0, 0);
+        when(getBotAnalyticsUseCase.getPerformanceSeries("bot_123", "ALL"))
+                .thenReturn(new BotAnalyticsDtos.PerformanceSeriesResponse(
+                        split,
+                        List.of(new BotAnalyticsDtos.PerformancePoint(split, 12.3, "OUT_OF_SAMPLE"))
+                ));
+
+        mockMvc.perform(get("/api/v1/bots/bot_123/analytics/performance-series"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.splitTimestamp").exists())
+                .andExpect(jsonPath("$.points[0].phase").value("OUT_OF_SAMPLE"));
+    }
+
+    @Test
+    void shouldSyncBotTelemetry() throws Exception {
+        BotTelemetryRequest request = new BotTelemetryRequest(
+                LocalDateTime.of(2026, 1, 2, 0, 0),
+                new BigDecimal("10100.50"),
+                new BigDecimal("100.50"),
+                new BigDecimal("25.00")
+        );
+        when(syncBotTelemetryUseCase.execute(eq("bot_123"), eq("ak_123"), any(BotTelemetryRequest.class)))
+                .thenReturn(new BotTelemetryPoint("bot_123", request.timestamp(), request.equity(), request.realizedPnl(), request.unrealizedPnl()));
+
+        mockMvc.perform(post("/api/v1/bots/bot_123/telemetry")
+                .header("X-Bot-Api-Key", "ak_123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.equity").value(10100.50));
+    }
+
+    @Test
+    void shouldReturnLatestBotTelemetry() throws Exception {
+        when(getLatestBotTelemetryUseCase.execute("bot_123", "ak_123"))
+                .thenReturn(new BotAnalyticsDtos.TelemetrySnapshot(
+                        LocalDateTime.of(2026, 1, 2, 0, 0),
+                        new BigDecimal("10100.50"),
+                        new BigDecimal("100.50"),
+                        new BigDecimal("25.00")
+                ));
+
+        mockMvc.perform(get("/api/v1/bots/bot_123/telemetry/latest")
+                .header("X-Bot-Api-Key", "ak_123"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.realizedPnl").value(100.50));
     }
 }
