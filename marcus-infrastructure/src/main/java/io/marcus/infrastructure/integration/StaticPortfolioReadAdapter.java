@@ -55,37 +55,6 @@ public class StaticPortfolioReadAdapter implements PortfolioReadPort {
     }
 
     @Override
-    public PaperSessionSummarySnapshot getPaperSessionSummary(String userId) {
-        throw new UnsupportedOperationException("getPaperSessionSummary is not implemented");
-    }
-
-    @Override
-    public List<PaperSignalSnapshot> listPaperSignals(String status, int limit) {
-        return List.of();
-    }
-
-    @Override
-    public PaperExecutionLogPageSnapshot listPaperExecutionLogs(String userId, String cursor, int limit) {
-        return new PaperExecutionLogPageSnapshot(List.of(),
-                new CursorPaginationMetaSnapshot(cursor, null, Math.max(1, limit), false));
-    }
-
-    @Override
-    public PaperOrderSnapshot createPaperOrder(String userId, PaperOrderCreateSnapshot request) {
-        throw new UnsupportedOperationException("createPaperOrder is not implemented");
-    }
-
-    @Override
-    public PaperSessionStateSnapshot pausePaperSession(String userId) {
-        throw new UnsupportedOperationException("pausePaperSession is not implemented");
-    }
-
-    @Override
-    public PaperSessionStateSnapshot resumePaperSession(String userId) {
-        throw new UnsupportedOperationException("resumePaperSession is not implemented");
-    }
-
-    @Override
     @Transactional(readOnly = true)
     public List<SignalItemSnapshot> listSignals(String status, int limit) {
         int normalizedLimit = Math.max(1, Math.min(limit, 200));
