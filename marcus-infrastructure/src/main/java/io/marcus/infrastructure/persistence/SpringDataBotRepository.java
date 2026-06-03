@@ -26,4 +26,10 @@ public interface SpringDataBotRepository extends JpaRepository<BotEntity, String
     long countByStatus(BotStatus status);
 
     List<BotEntity> findByDeveloperId(String developerId);
+
+    /**
+     * Find all bots that are not in the specified status. Used for leaderboard
+     * metrics calculation.
+     */
+    List<BotEntity> findByStatusNot(BotStatus status);
 }

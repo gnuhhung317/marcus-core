@@ -19,7 +19,9 @@ public interface BotDiscoveryReadPort {
             LocalDateTime createdAt,
             LocalDateTime updatedAt,
             BotPerformanceSnapshot performance
-    ) {}
+            ) {
+
+    }
 
     record BotPerformanceSnapshot(
             double annualReturn,
@@ -28,7 +30,9 @@ public interface BotDiscoveryReadPort {
             double winRate,
             double avgTradeReturn,
             double tradesPerDay
-    ) {}
+            ) {
+
+    }
 
     record BotDiscoverySnapshot(
             String botId,
@@ -39,17 +43,23 @@ public interface BotDiscoveryReadPort {
             double annualReturn,
             double maxDrawdown,
             int subscribers
-    ) {}
+            ) {
+
+    }
 
     record BotDiscoveryPageSnapshot(
             List<BotDiscoverySnapshot> items,
             OffsetPaginationMetaSnapshot meta
-    ) {}
+            ) {
+
+    }
 
     record FavoriteStrategySnapshot(
             String strategyId,
             boolean favorited
-    ) {}
+            ) {
+
+    }
 
     record StrategyDetailSnapshot(
             String strategyId,
@@ -57,7 +67,9 @@ public interface BotDiscoveryReadPort {
             String ownerName,
             String market,
             String status
-    ) {}
+            ) {
+
+    }
 
     record StrategyMetricsSnapshot(
             double annualReturn,
@@ -66,7 +78,9 @@ public interface BotDiscoveryReadPort {
             double sortino,
             double calmar,
             double profitFactor
-    ) {}
+            ) {
+
+    }
 
     record TradeLogSnapshot(
             LocalDateTime timestamp,
@@ -76,9 +90,13 @@ public interface BotDiscoveryReadPort {
             double entryPrice,
             double exitPrice,
             double netPnl
-    ) {}
+            ) {
 
-    record TradeLogPageSnapshot(List<TradeLogSnapshot> items, int page, int size, long totalElements) {}
+    }
+
+    record TradeLogPageSnapshot(List<TradeLogSnapshot> items, int page, int size, long totalElements) {
+
+    }
 
     record LeaderboardStrategySnapshot(
             int rank,
@@ -87,29 +105,40 @@ public interface BotDiscoveryReadPort {
             String creatorName,
             double cagr,
             double sharpe,
-            double maxDrawdown
-    ) {}
+            double maxDrawdown,
+            String dataSource // "DRY_RUN" or "HISTORICAL"
+            ) {
+
+    }
 
     record LeaderboardStrategiesPageSnapshot(
             List<LeaderboardStrategySnapshot> items,
             OffsetPaginationMetaSnapshot meta
-    ) {}
+            ) {
+
+    }
 
     record LeaderboardFeaturedItemSnapshot(
             String strategyId,
             String strategyName,
             String rankLabel,
             double sharpe
-    ) {}
+            ) {
 
-    record LeaderboardFeaturedSnapshot(List<LeaderboardFeaturedItemSnapshot> items) {}
+    }
+
+    record LeaderboardFeaturedSnapshot(List<LeaderboardFeaturedItemSnapshot> items) {
+
+    }
 
     record StrategySpotlightSnapshot(
             String strategyId,
             String strategyName,
             String market,
             double oneDayReturn
-    ) {}
+            ) {
+
+    }
 
     BotDetailSnapshot getBotDetail(String botId);
 
