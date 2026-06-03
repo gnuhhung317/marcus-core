@@ -54,6 +54,27 @@ The Backend and Local Executor communicate via a persistent WebSocket connection
     - **Downward**: Signals and system ACKs.
     - **Upward**: `execution_event` (Order status) and `audit-push` (Balance snapshots).
 
+## Bot Lifecycle Analytics
+
+The backend now stores bot history in three distinct flows:
+
+1. **Historical backtest**
+   - `POST /api/v1/bots/{botId}/backtest-results`
+   - Stores `equity_history` and `closed_trades` as a versioned historical run.
+   - Backed by `bot_backtest_runs`, `bot_historical_portfolios`, and `bot_historical_closed_trades`.
+   - `data_source = HISTORICAL`
+
+2. **Live dry-run / paper trading**
+   - `POST /api/v1/bots/{botId}/dry-run/sync`
+   - Stores live portfolio state, positions, and closed trades in the `bot_dry_run_*` tables.
+   - `data_source = OUT_OF_SAMPLE`
+
+3. **Operational telemetry**
+   - `POST /api/v1/bots/{botId}/telemetry`
+   - Stores non-PnL metrics in `bot_telemetry_points.metrics_json`.
+
+`GET /api/v1/bots/{botId}/analytics/metrics` and `GET /api/v1/bots/{botId}/analytics/performance-series` merge the latest historical run with live dry-run state, so the frontend can render one continuous curve from backtest to live.
+
 ---
 
 ## 🛠️ Tech Stack

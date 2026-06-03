@@ -27,6 +27,7 @@ public class JpaBotTelemetryAdapter implements BotTelemetryPort {
         entity.setEquity(point.equity());
         entity.setRealizedPnl(point.realizedPnl());
         entity.setUnrealizedPnl(point.unrealizedPnl());
+        entity.setMetricsJson(point.metricsJson());
         return toDomain(repository.save(entity));
     }
 
@@ -58,7 +59,8 @@ public class JpaBotTelemetryAdapter implements BotTelemetryPort {
                 entity.getTimestamp(),
                 entity.getEquity(),
                 entity.getRealizedPnl(),
-                entity.getUnrealizedPnl()
+                entity.getUnrealizedPnl(),
+                entity.getMetricsJson()
         );
     }
 }

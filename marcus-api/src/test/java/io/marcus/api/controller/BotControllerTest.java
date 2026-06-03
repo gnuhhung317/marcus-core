@@ -3,7 +3,10 @@ package io.marcus.api.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.marcus.api.exception.GlobalExceptionsHandler;
 import io.marcus.api.security.JwtAuthenticationFilter;
+import io.marcus.application.dto.BacktestUploadRequest;
+import io.marcus.application.dto.BacktestUploadResponse;
 import io.marcus.application.dto.BotAnalyticsDtos;
+import io.marcus.application.dto.BotDryRunSyncRequest;
 import io.marcus.application.dto.BotTelemetryRequest;
 import io.marcus.application.dto.BotSummaryResult;
 import io.marcus.application.dto.BotRegistrationResult;
@@ -15,11 +18,14 @@ import io.marcus.application.usecase.GetBotDetailUseCase;
 import io.marcus.application.usecase.GetBotIntegrationHealthUseCase;
 import io.marcus.application.usecase.GetBotCredentialsUseCase;
 import io.marcus.application.usecase.GetBotAnalyticsUseCase;
+import io.marcus.application.usecase.GetLatestBotDryRunUseCase;
 import io.marcus.application.usecase.GetLatestBotTelemetryUseCase;
 import io.marcus.application.usecase.ListDeveloperBotsUseCase;
 import io.marcus.application.usecase.ListPublicBotsUseCase;
 import io.marcus.application.usecase.RegisterBotUseCase;
+import io.marcus.application.usecase.SyncBotDryRunUseCase;
 import io.marcus.application.usecase.SyncBotTelemetryUseCase;
+import io.marcus.application.usecase.UploadBotBacktestResultUseCase;
 import io.marcus.application.usecase.UpdateBotStatusUseCase;
 import io.marcus.application.usecase.UpdateBotMetadataUseCase;
 import io.marcus.application.usecase.DeleteBotUseCase;
@@ -28,6 +34,10 @@ import io.marcus.domain.port.AccessTokenPort;
 import io.marcus.domain.port.BotDiscoveryReadPort;
 import io.marcus.domain.port.UserProfileReadPort;
 import io.marcus.domain.model.Bot;
+import io.marcus.domain.model.BotDryRunClosedTrade;
+import io.marcus.domain.model.BotDryRunPortfolioPoint;
+import io.marcus.domain.model.BotDryRunPosition;
+import io.marcus.domain.model.BotDryRunState;
 import io.marcus.domain.model.BotTelemetryPoint;
 import io.marcus.domain.vo.BotStatus;
 import io.marcus.infrastructure.security.BotSignatureInterceptor;
@@ -94,6 +104,15 @@ class BotControllerTest {
 
     @MockBean
     private GetLatestBotTelemetryUseCase getLatestBotTelemetryUseCase;
+
+    @MockBean
+    private SyncBotDryRunUseCase syncBotDryRunUseCase;
+
+    @MockBean
+    private GetLatestBotDryRunUseCase getLatestBotDryRunUseCase;
+
+    @MockBean
+    private UploadBotBacktestResultUseCase uploadBotBacktestResultUseCase;
 
     @MockBean
     private UpdateBotStatusUseCase updateBotStatusUseCase;
@@ -300,10 +319,11 @@ class BotControllerTest {
                 LocalDateTime.of(2026, 1, 2, 0, 0),
                 new BigDecimal("10100.50"),
                 new BigDecimal("100.50"),
-                new BigDecimal("25.00")
+                new BigDecimal("25.00"),
+                java.util.Map.of("latencyMs", 42)
         );
         when(syncBotTelemetryUseCase.execute(eq("bot_123"), eq("ak_123"), any(BotTelemetryRequest.class)))
-                .thenReturn(new BotTelemetryPoint("bot_123", request.timestamp(), request.equity(), request.realizedPnl(), request.unrealizedPnl()));
+                .thenReturn(new BotTelemetryPoint("bot_123", request.timestamp(), request.equity(), request.realizedPnl(), request.unrealizedPnl(), "{\"latencyMs\":42}"));
 
         mockMvc.perform(post("/api/v1/bots/bot_123/telemetry")
                 .header("X-Bot-Api-Key", "ak_123")
@@ -314,13 +334,121 @@ class BotControllerTest {
     }
 
     @Test
+    void shouldUploadBotBacktestResults() throws Exception {
+        LocalDateTime startedAt = LocalDateTime.of(2026, 1, 1, 0, 0);
+        LocalDateTime endedAt = LocalDateTime.of(2026, 1, 2, 0, 0);
+        BacktestUploadRequest request = new BacktestUploadRequest(
+                "baseline",
+                startedAt,
+                endedAt,
+                java.util.Map.of("total_return", 0.12),
+                List.of(new BacktestUploadRequest.EquityPoint(
+                        startedAt,
+                        new BigDecimal("10000"),
+                        new BigDecimal("10000"),
+                        BigDecimal.ZERO,
+                        BigDecimal.ZERO,
+                        BigDecimal.ZERO
+                )),
+                List.of()
+        );
+        when(uploadBotBacktestResultUseCase.execute(eq("bot_123"), eq("ak_123"), any(BacktestUploadRequest.class)))
+                .thenReturn(new BacktestUploadResponse("bt_1", "bot_123", "baseline", 1, 0, startedAt, endedAt));
+
+        mockMvc.perform(post("/api/v1/bots/bot_123/backtest-results")
+                .header("X-Bot-Api-Key", "ak_123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.runId").value("bt_1"))
+                .andExpect(jsonPath("$.equityPoints").value(1));
+    }
+
+    @Test
+    void shouldSyncBotDryRunState() throws Exception {
+        LocalDateTime snapshotAt = LocalDateTime.of(2026, 1, 2, 0, 0);
+        BotDryRunSyncRequest request = new BotDryRunSyncRequest(
+                new BotDryRunSyncRequest.Portfolio(
+                        snapshotAt,
+                        new BigDecimal("10000.00"),
+                        new BigDecimal("10100.50"),
+                        new BigDecimal("100.50"),
+                        new BigDecimal("25.00"),
+                        new BigDecimal("2.50")
+                ),
+                List.of(new BotDryRunSyncRequest.Position(
+                        "SPOT:BTCUSDT",
+                        "BTCUSDT",
+                        "SPOT",
+                        "LONG",
+                        new BigDecimal("0.1"),
+                        new BigDecimal("65000"),
+                        new BigDecimal("66200"),
+                        new BigDecimal("120"),
+                        snapshotAt.minusHours(1),
+                        "sig_123"
+                )),
+                List.of()
+        );
+        when(syncBotDryRunUseCase.execute(eq("bot_123"), eq("ak_123"), any(BotDryRunSyncRequest.class)))
+                .thenReturn(new BotDryRunState(
+                        new BotDryRunPortfolioPoint("bot_123", snapshotAt,
+                                new BigDecimal("10000.00"),
+                                new BigDecimal("10100.50"),
+                                new BigDecimal("100.50"),
+                                new BigDecimal("25.00"),
+                                new BigDecimal("2.50")),
+                        List.of(new BotDryRunPosition("bot_123", "SPOT:BTCUSDT", "BTCUSDT", "SPOT", "LONG",
+                                new BigDecimal("0.1"), new BigDecimal("65000"), new BigDecimal("66200"), new BigDecimal("120"),
+                                snapshotAt.minusHours(1), "sig_123", "OPEN")),
+                        List.of()
+                ));
+
+        mockMvc.perform(post("/api/v1/bots/bot_123/dry-run/sync")
+                .header("X-Bot-Api-Key", "ak_123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.portfolio.equity").value(10100.50))
+                .andExpect(jsonPath("$.positions[0].positionId").value("SPOT:BTCUSDT"));
+    }
+
+    @Test
+    void shouldReturnLatestBotDryRunState() throws Exception {
+        LocalDateTime snapshotAt = LocalDateTime.of(2026, 1, 2, 0, 0);
+        when(getLatestBotDryRunUseCase.execute("bot_123", "ak_123"))
+                .thenReturn(new BotDryRunState(
+                        new BotDryRunPortfolioPoint(
+                                "bot_123",
+                                snapshotAt,
+                                new BigDecimal("10000.00"),
+                                new BigDecimal("10100.50"),
+                                new BigDecimal("100.50"),
+                                new BigDecimal("25.00"),
+                                new BigDecimal("2.50")
+                        ),
+                        List.of(),
+                        List.of(new BotDryRunClosedTrade("bot_123", "trade_1", "BTCUSDT", "SPOT", "LONG",
+                                new BigDecimal("0.1"), new BigDecimal("65000"), new BigDecimal("66800"),
+                                new BigDecimal("180"), new BigDecimal("2.5"),
+                                snapshotAt.minusHours(1), snapshotAt, "sig_123", "sig_456"))
+                ));
+
+        mockMvc.perform(get("/api/v1/bots/bot_123/dry-run/latest")
+                .header("X-Bot-Api-Key", "ak_123"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.closedTrades[0].tradeId").value("trade_1"));
+    }
+
+    @Test
     void shouldReturnLatestBotTelemetry() throws Exception {
         when(getLatestBotTelemetryUseCase.execute("bot_123", "ak_123"))
                 .thenReturn(new BotAnalyticsDtos.TelemetrySnapshot(
                         LocalDateTime.of(2026, 1, 2, 0, 0),
                         new BigDecimal("10100.50"),
                         new BigDecimal("100.50"),
-                        new BigDecimal("25.00")
+                        new BigDecimal("25.00"),
+                        "{\"latencyMs\":42}"
                 ));
 
         mockMvc.perform(get("/api/v1/bots/bot_123/telemetry/latest")

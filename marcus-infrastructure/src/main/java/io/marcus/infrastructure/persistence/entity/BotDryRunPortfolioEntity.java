@@ -18,10 +18,10 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(
-        name = "bot_telemetry_points",
+        name = "bot_dry_run_portfolios",
         indexes = {
-                @Index(name = "idx_bot_telemetry_bot_time", columnList = "bot_id,timestamp", unique = true),
-                @Index(name = "idx_bot_telemetry_time", columnList = "timestamp")
+                @Index(name = "idx_bot_dry_run_portfolio_bot_time", columnList = "bot_id,timestamp", unique = true),
+                @Index(name = "idx_bot_dry_run_portfolio_time", columnList = "timestamp")
         }
 )
 @Getter
@@ -29,7 +29,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-public class BotTelemetryEntity extends BaseEntity {
+public class BotDryRunPortfolioEntity extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -38,8 +38,14 @@ public class BotTelemetryEntity extends BaseEntity {
     @Column(name = "bot_id", nullable = false)
     private String botId;
 
+    @Column(name = "data_source", nullable = false)
+    private String dataSource;
+
     @Column(nullable = false)
     private LocalDateTime timestamp;
+
+    @Column(nullable = false, precision = 18, scale = 8)
+    private BigDecimal cash;
 
     @Column(nullable = false, precision = 18, scale = 8)
     private BigDecimal equity;
@@ -50,6 +56,6 @@ public class BotTelemetryEntity extends BaseEntity {
     @Column(name = "unrealized_pnl", nullable = false, precision = 18, scale = 8)
     private BigDecimal unrealizedPnl;
 
-    @Column(name = "metrics_json", columnDefinition = "TEXT")
-    private String metricsJson;
+    @Column(name = "total_fees", nullable = false, precision = 18, scale = 8)
+    private BigDecimal totalFees;
 }

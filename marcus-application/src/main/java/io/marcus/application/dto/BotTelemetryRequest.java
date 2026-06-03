@@ -1,14 +1,14 @@
 package io.marcus.application.dto;
 
-import jakarta.validation.constraints.NotNull;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 public record BotTelemetryRequest(
-        @NotNull LocalDateTime timestamp,
-        @NotNull BigDecimal equity,
-        @NotNull BigDecimal realizedPnl,
-        @NotNull BigDecimal unrealizedPnl
+        LocalDateTime timestamp,
+        BigDecimal equity,
+        BigDecimal realizedPnl,
+        BigDecimal unrealizedPnl,
+        Map<String, Object> metrics
 ) {
 }

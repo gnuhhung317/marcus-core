@@ -45,7 +45,57 @@ public final class BotAnalyticsDtos {
             LocalDateTime timestamp,
             BigDecimal equity,
             BigDecimal realizedPnl,
-            BigDecimal unrealizedPnl
+            BigDecimal unrealizedPnl,
+            String metricsJson
+    ) {
+    }
+
+    public record DryRunPortfolioSnapshot(
+            LocalDateTime timestamp,
+            BigDecimal cash,
+            BigDecimal equity,
+            BigDecimal realizedPnl,
+            BigDecimal unrealizedPnl,
+            BigDecimal totalFees
+    ) {
+    }
+
+    public record DryRunPositionSnapshot(
+            String positionId,
+            String symbol,
+            String marketType,
+            String side,
+            BigDecimal quantity,
+            BigDecimal entryPrice,
+            BigDecimal currentPrice,
+            BigDecimal unrealizedPnl,
+            LocalDateTime openedAt,
+            String sourceSignalId,
+            String status
+    ) {
+    }
+
+    public record DryRunClosedTradeSnapshot(
+            String tradeId,
+            String symbol,
+            String marketType,
+            String side,
+            BigDecimal quantity,
+            BigDecimal entryPrice,
+            BigDecimal exitPrice,
+            BigDecimal pnl,
+            BigDecimal fees,
+            LocalDateTime entryTimestamp,
+            LocalDateTime exitTimestamp,
+            String entrySignalId,
+            String exitSignalId
+    ) {
+    }
+
+    public record DryRunStateResponse(
+            DryRunPortfolioSnapshot portfolio,
+            List<DryRunPositionSnapshot> positions,
+            List<DryRunClosedTradeSnapshot> closedTrades
     ) {
     }
 }

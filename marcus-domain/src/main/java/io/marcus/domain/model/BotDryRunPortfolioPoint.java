@@ -3,12 +3,13 @@ package io.marcus.domain.model;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-public record BotTelemetryPoint(
+public record BotDryRunPortfolioPoint(
         String botId,
         LocalDateTime timestamp,
+        BigDecimal cash,
         BigDecimal equity,
         BigDecimal realizedPnl,
         BigDecimal unrealizedPnl,
-        String metricsJson
+        BigDecimal totalFees
 ) {
 }

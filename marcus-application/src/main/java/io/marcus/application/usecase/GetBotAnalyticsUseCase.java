@@ -4,8 +4,10 @@ import io.marcus.application.dto.BotAnalyticsDtos.GroupedMetricsResponse;
 import io.marcus.application.dto.BotAnalyticsDtos.MetricBlock;
 import io.marcus.application.dto.BotAnalyticsDtos.PerformancePoint;
 import io.marcus.application.dto.BotAnalyticsDtos.PerformanceSeriesResponse;
-import io.marcus.domain.model.BotTelemetryPoint;
-import io.marcus.domain.port.BotTelemetryPort;
+import io.marcus.domain.model.BotBacktestRun;
+import io.marcus.domain.model.BotDryRunPortfolioPoint;
+import io.marcus.domain.port.BotBacktestPort;
+import io.marcus.domain.port.BotDryRunPort;
 import io.marcus.domain.repository.BotRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,14 +25,16 @@ public class GetBotAnalyticsUseCase {
     private static final int OOS_SIGNIFICANCE_DAYS = 30;
 
     private final BotRepository botRepository;
-    private final BotTelemetryPort botTelemetryPort;
+    private final BotBacktestPort botBacktestPort;
+    private final BotDryRunPort botDryRunPort;
 
     public GroupedMetricsResponse getMetrics(String botId) {
         ensureBotExists(botId);
-        List<CurvePoint> historical = historicalCurve();
+        List<CurvePoint> historical = historicalCurve(botId);
         List<CurvePoint> oos = oosCurve(botId, historical);
         List<CurvePoint> total = new ArrayList<>(historical);
         total.addAll(oos);
+        total = total.stream().sorted(Comparator.comparing(CurvePoint::timestamp)).toList();
 
         return new GroupedMetricsResponse(
                 calculate(total, false),
@@ -41,15 +45,16 @@ public class GetBotAnalyticsUseCase {
 
     public PerformanceSeriesResponse getPerformanceSeries(String botId, String range) {
         ensureBotExists(botId);
-        List<CurvePoint> historical = historicalCurve();
+        List<CurvePoint> historical = historicalCurve(botId);
         List<CurvePoint> oos = oosCurve(botId, historical);
         LocalDateTime splitTimestamp = oos.isEmpty() ? null : oos.get(0).timestamp();
 
         List<PerformancePoint> points = new ArrayList<>();
         historical.forEach(point -> points.add(new PerformancePoint(point.timestamp(), round2(point.value()), "HISTORICAL")));
         oos.forEach(point -> points.add(new PerformancePoint(point.timestamp(), round2(point.value()), "OUT_OF_SAMPLE")));
+        List<PerformancePoint> sortedPoints = points.stream().sorted(Comparator.comparing(PerformancePoint::timestamp)).toList();
 
-        return new PerformanceSeriesResponse(splitTimestamp, applyRange(points, range));
+        return new PerformanceSeriesResponse(splitTimestamp, applyRange(sortedPoints, range));
     }
 
     private void ensureBotExists(String botId) {
@@ -60,33 +65,45 @@ public class GetBotAnalyticsUseCase {
                 .orElseThrow(() -> new IllegalArgumentException("Bot not found: " + botId));
     }
 
-    private List<CurvePoint> historicalCurve() {
-        LocalDateTime base = LocalDateTime.now().minusDays(180);
-        return List.of(
-                new CurvePoint(base, 0.0),
-                new CurvePoint(base.plusDays(30), 5.2),
-                new CurvePoint(base.plusDays(60), 3.8),
-                new CurvePoint(base.plusDays(90), 12.4),
-                new CurvePoint(base.plusDays(120), 18.0),
-                new CurvePoint(base.plusDays(150), 16.6),
-                new CurvePoint(base.plusDays(180), 24.5)
-        );
+    private List<CurvePoint> historicalCurve(String botId) {
+        return botBacktestPort.findLatestRun(botId.trim())
+                .map(this::historicalCurveForRun)
+                .orElse(List.of());
     }
 
-    private List<CurvePoint> oosCurve(String botId, List<CurvePoint> historical) {
-        List<BotTelemetryPoint> telemetry = botTelemetryPort.findByBotId(botId.trim()).stream()
-                .sorted(Comparator.comparing(BotTelemetryPoint::timestamp))
+    private List<CurvePoint> historicalCurveForRun(BotBacktestRun run) {
+        List<BotDryRunPortfolioPoint> points = botBacktestPort.findPortfolioPoints(run.botId(), run.runId()).stream()
+                .sorted(Comparator.comparing(BotDryRunPortfolioPoint::timestamp))
                 .toList();
-        if (telemetry.isEmpty()) {
+        if (points.isEmpty()) {
             return List.of();
         }
-
-        double firstEquity = telemetry.get(0).equity().doubleValue();
+        double firstEquity = points.get(0).equity().doubleValue();
         if (firstEquity == 0.0d) {
             return List.of();
         }
-        double anchor = historical.get(historical.size() - 1).value();
-        return telemetry.stream()
+        return points.stream()
+                .map(point -> new CurvePoint(
+                        point.timestamp(),
+                        ((point.equity().doubleValue() - firstEquity) / Math.abs(firstEquity)) * 100.0
+                ))
+                .toList();
+    }
+
+    private List<CurvePoint> oosCurve(String botId, List<CurvePoint> historical) {
+        List<BotDryRunPortfolioPoint> snapshots = botDryRunPort.findPortfolioPoints(botId.trim()).stream()
+                .sorted(Comparator.comparing(BotDryRunPortfolioPoint::timestamp))
+                .toList();
+        if (snapshots.isEmpty()) {
+            return List.of();
+        }
+
+        double firstEquity = snapshots.get(0).equity().doubleValue();
+        if (firstEquity == 0.0d) {
+            return List.of();
+        }
+        double anchor = historical.isEmpty() ? 0.0d : historical.get(historical.size() - 1).value();
+        return snapshots.stream()
                 .map(point -> new CurvePoint(
                         point.timestamp(),
                         anchor + ((point.equity().doubleValue() - firstEquity) / Math.abs(firstEquity)) * 100.0

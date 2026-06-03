@@ -1,7 +1,10 @@
 package io.marcus.api.controller;
 
 import io.marcus.application.dto.BotSummaryResult;
+import io.marcus.application.dto.BacktestUploadRequest;
+import io.marcus.application.dto.BacktestUploadResponse;
 import io.marcus.application.dto.BotAnalyticsDtos;
+import io.marcus.application.dto.BotDryRunSyncRequest;
 import io.marcus.application.dto.BotTelemetryRequest;
 import io.marcus.application.dto.BotRegistrationResult;
 import io.marcus.application.dto.RegisterBotRequest;
@@ -15,13 +18,17 @@ import io.marcus.application.usecase.RegisterBotUseCase;
 import io.marcus.application.usecase.GetBotIntegrationHealthUseCase;
 import io.marcus.application.usecase.GetBotCredentialsUseCase;
 import io.marcus.application.usecase.GetLatestBotTelemetryUseCase;
+import io.marcus.application.usecase.GetLatestBotDryRunUseCase;
 import io.marcus.application.usecase.SyncBotTelemetryUseCase;
+import io.marcus.application.usecase.SyncBotDryRunUseCase;
+import io.marcus.application.usecase.UploadBotBacktestResultUseCase;
 import io.marcus.application.usecase.UpdateBotStatusUseCase;
 import io.marcus.application.usecase.UpdateBotMetadataUseCase;
 import io.marcus.application.usecase.DeleteBotUseCase;
 import io.marcus.domain.port.BotDiscoveryReadPort;
 import io.marcus.domain.port.PortfolioReadPort;
 import io.marcus.domain.model.Bot;
+import io.marcus.domain.model.BotDryRunState;
 import io.marcus.application.usecase.BotHeartbeatUseCase;
 import io.marcus.infrastructure.security.RequireBotSignature;
 import jakarta.validation.Valid;
@@ -55,6 +62,9 @@ public class BotController {
     private final GetBotAnalyticsUseCase getBotAnalyticsUseCase;
     private final SyncBotTelemetryUseCase syncBotTelemetryUseCase;
     private final GetLatestBotTelemetryUseCase getLatestBotTelemetryUseCase;
+    private final SyncBotDryRunUseCase syncBotDryRunUseCase;
+    private final GetLatestBotDryRunUseCase getLatestBotDryRunUseCase;
+    private final UploadBotBacktestResultUseCase uploadBotBacktestResultUseCase;
     private final UpdateBotStatusUseCase updateBotStatusUseCase;
     private final UpdateBotMetadataUseCase updateBotMetadataUseCase;
     private final DeleteBotUseCase deleteBotUseCase;
@@ -113,6 +123,40 @@ public class BotController {
         return ResponseEntity.ok(getBotAnalyticsUseCase.getPerformanceSeries(botId, range));
     }
 
+    @PostMapping("/{botId}/backtest-results")
+    @RequireBotSignature
+    public ResponseEntity<BacktestUploadResponse> uploadBacktestResults(
+            @PathVariable String botId,
+            @RequestHeader("X-Bot-Api-Key") String apiKey,
+            @Valid @RequestBody BacktestUploadRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(uploadBotBacktestResultUseCase.execute(botId, apiKey, request));
+    }
+
+    @PostMapping("/{botId}/dry-run/sync")
+    @RequireBotSignature
+    public ResponseEntity<BotAnalyticsDtos.DryRunStateResponse> syncDryRun(
+            @PathVariable String botId,
+            @RequestHeader("X-Bot-Api-Key") String apiKey,
+            @Valid @RequestBody BotDryRunSyncRequest request
+    ) {
+        return ResponseEntity.ok(toDryRunResponse(syncBotDryRunUseCase.execute(botId, apiKey, request)));
+    }
+
+    @GetMapping("/{botId}/dry-run/latest")
+    @RequireBotSignature
+    public ResponseEntity<BotAnalyticsDtos.DryRunStateResponse> latestDryRun(
+            @PathVariable String botId,
+            @RequestHeader("X-Bot-Api-Key") String apiKey
+    ) {
+        BotDryRunState snapshot = getLatestBotDryRunUseCase.execute(botId, apiKey);
+        if (snapshot == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(toDryRunResponse(snapshot));
+    }
+
     @PostMapping("/{botId}/telemetry")
     @RequireBotSignature
     public ResponseEntity<BotAnalyticsDtos.TelemetrySnapshot> syncTelemetry(
@@ -125,7 +169,8 @@ public class BotController {
                 point.timestamp(),
                 point.equity(),
                 point.realizedPnl(),
-                point.unrealizedPnl()
+                point.unrealizedPnl(),
+                point.metricsJson()
         ));
     }
 
@@ -172,5 +217,50 @@ public class BotController {
     ) {
         botHeartbeatUseCase.execute(botId, apiKey);
         return ResponseEntity.ok().build();
+    }
+
+    private BotAnalyticsDtos.DryRunStateResponse toDryRunResponse(BotDryRunState state) {
+        return new BotAnalyticsDtos.DryRunStateResponse(
+                new BotAnalyticsDtos.DryRunPortfolioSnapshot(
+                        state.portfolio().timestamp(),
+                        state.portfolio().cash(),
+                        state.portfolio().equity(),
+                        state.portfolio().realizedPnl(),
+                        state.portfolio().unrealizedPnl(),
+                        state.portfolio().totalFees()
+                ),
+                state.positions().stream()
+                        .map(position -> new BotAnalyticsDtos.DryRunPositionSnapshot(
+                                position.positionId(),
+                                position.symbol(),
+                                position.marketType(),
+                                position.side(),
+                                position.quantity(),
+                                position.entryPrice(),
+                                position.currentPrice(),
+                                position.unrealizedPnl(),
+                                position.openedAt(),
+                                position.sourceSignalId(),
+                                position.status()
+                        ))
+                        .toList(),
+                state.closedTrades().stream()
+                        .map(trade -> new BotAnalyticsDtos.DryRunClosedTradeSnapshot(
+                                trade.tradeId(),
+                                trade.symbol(),
+                                trade.marketType(),
+                                trade.side(),
+                                trade.quantity(),
+                                trade.entryPrice(),
+                                trade.exitPrice(),
+                                trade.pnl(),
+                                trade.fees(),
+                                trade.entryTimestamp(),
+                                trade.exitTimestamp(),
+                                trade.entrySignalId(),
+                                trade.exitSignalId()
+                        ))
+                        .toList()
+        );
     }
 }
