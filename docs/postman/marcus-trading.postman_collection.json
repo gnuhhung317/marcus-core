@@ -182,10 +182,10 @@
       "name": "Leaderboard",
       "item": [
         {
-          "name": "List strategies",
+          "name": "List bots",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/leaderboard/strategies?timeframe=24h&market=spot&asset=BTC&rankMetric=return&page=0&size=20"
+            "url": "{{baseUrl}}/leaderboard/bots?timeframe=24h&market=spot&asset=BTC&rankMetric=return&page=0&size=20"
           }
         },
         {
@@ -267,20 +267,20 @@
       ]
     },
     {
-      "name": "Strategies",
+      "name": "Bots",
       "item": [
         {
-          "name": "Favorite strategy",
+          "name": "Favorite bot",
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/strategies/{{strategyId}}/favorite"
+            "url": "{{baseUrl}}/bots/{{botId}}/favorite"
           }
         },
         {
-          "name": "List strategy trades",
+          "name": "List bot trades",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/strategies/{{strategyId}}/trades?page=0&size=8&asset=BTC"
+            "url": "{{baseUrl}}/bots/{{botId}}/trades?page=0&size=8&asset=BTC"
           }
         }
       ]

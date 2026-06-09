@@ -53,6 +53,19 @@ class HmacSignatureValidatorTest {
     }
 
     @Test
+    void shouldValidateBytePayloadWhenSignatureMatches() throws Exception {
+        byte[] payload = "1711900800000\ncompressed-bytes".getBytes(StandardCharsets.UTF_8);
+        String encryptedSecret = "enc:secret";
+        String rawSecret = "bot-secret-123";
+
+        when(encryptionService.decrypt(encryptedSecret)).thenReturn(rawSecret);
+
+        String signature = buildSignature(payload, rawSecret);
+
+        assertThat(validator.isValid(payload, encryptedSecret, signature)).isTrue();
+    }
+
+    @Test
     void shouldRejectWhenSignatureDoesNotMatch() {
         String payload = "1711900800000\\n{\"botId\":\"bot-1\",\"symbol\":\"BTCUSDT\"}";
         String encryptedSecret = "enc:secret";
@@ -70,8 +83,12 @@ class HmacSignatureValidatorTest {
     }
 
     private String buildSignature(String payload, String rawSecret) throws Exception {
+        return buildSignature(payload.getBytes(StandardCharsets.UTF_8), rawSecret);
+    }
+
+    private String buildSignature(byte[] payload, String rawSecret) throws Exception {
         Mac mac = Mac.getInstance("HmacSHA256");
         mac.init(new SecretKeySpec(rawSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
-        return HexFormat.of().formatHex(mac.doFinal(payload.getBytes(StandardCharsets.UTF_8)));
+        return HexFormat.of().formatHex(mac.doFinal(payload));
     }
 }

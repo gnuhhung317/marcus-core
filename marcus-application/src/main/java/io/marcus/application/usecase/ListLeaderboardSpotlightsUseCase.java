@@ -12,7 +12,7 @@ public class ListLeaderboardSpotlightsUseCase {
 
     private final BotDiscoveryReadPort botDiscoveryReadPort;
 
-    public List<BotDiscoveryReadPort.StrategySpotlightSnapshot> execute() {
+    public List<BotDiscoveryReadPort.BotSpotlightSnapshot> execute() {
         return botDiscoveryReadPort.listLeaderboardSpotlights();
     }
 }

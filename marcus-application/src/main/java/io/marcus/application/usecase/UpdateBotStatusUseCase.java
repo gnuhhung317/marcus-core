@@ -31,7 +31,7 @@ public class UpdateBotStatusUseCase {
                 .orElseThrow(() -> new IllegalArgumentException("Bot not found with id: " + botId));
 
         if (bot.getStatus() == BotStatus.DELETED) {
-            throw new IllegalStateException("Cannot modify status of a deleted bot");
+            throw new IllegalStateException("Deleted bot cannot be reactivated or modified");
         }
 
         if (!currentUserId.equals(bot.getDeveloperId())) {

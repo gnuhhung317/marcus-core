@@ -21,7 +21,7 @@ Replace hardcoded mock data in `StaticBotDiscoveryReadAdapter` with real databas
 
 [Types]
 **Modified domain record:**
-- `LeaderboardStrategySnapshot(rank, strategyId, strategyName, creatorName, cagr, sharpe, maxDrawdown, dataSource)` — Add optional `dataSource` field: `"DRY_RUN"` or `"SIGNAL_BASED"` (no "COMBINED" since dry-run and signals are different calculation models, not combinable).
+- `LeaderboardBotSnapshot(rank, botId, botName, creatorName, cagr, sharpe, maxDrawdown, dataSource)` — Add optional `dataSource` field: `"DRY_RUN"` or `"SIGNAL_BASED"` (no "COMBINED" since dry-run and signals are different calculation models, not combinable).
 
 [Files]
 **New files:**
@@ -97,7 +97,7 @@ No new Maven dependencies. `SpringDataSignalRepository` already exists.
 1. `mvn -pl marcus-domain -am test` — `EquityCurveMetricsCalculator` compiles.
 2. `mvn -pl marcus-application -am test` — `GetBotAnalyticsUseCase` tests pass.
 3. `mvn -pl marcus-infrastructure -am test` — Adapter compiles.
-4. Start backend. Call `GET /api/v1/leaderboard/strategies` — returns real bots with `dataSource` field.
+4. Start backend. Call `GET /api/v1/leaderboard/bots` — returns real bots with `dataSource` field.
 5. Bot with dry-run data → `dataSource: "DRY_RUN"`, metrics from equity curve.
 6. Bot with only signals → `dataSource: "SIGNAL_BASED"`, metrics from `SignalMetricsCalculator`.
 7. Bot with no data → excluded, warning logged.

@@ -15,11 +15,15 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.method.HandlerMethod;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.zip.GZIPOutputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -123,6 +127,36 @@ class BotSignatureInterceptorTest {
         verifyNoInteractions(redisTemplate, botSecretProvider, hmacSignatureValidator);
     }
 
+    @Test
+    void shouldValidateGzipRequestAgainstCompressedBytes() throws Exception {
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        String apiKey = "ak_test";
+        String signature = "ABCDEF123456";
+        String body = "{\"signal\":\"BUY\"}";
+        byte[] compressedBody = gzip(body);
+
+        HttpServletRequest request = createWrappedGzipRequest(timestamp, apiKey, signature, compressedBody);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.setIfAbsent(any(String.class), eq("1"), any(Duration.class))).thenReturn(true);
+        when(botSecretProvider.getEncryptedSecret(apiKey)).thenReturn("enc:secret");
+        when(hmacSignatureValidator.isValid(any(byte[].class), eq("enc:secret"), eq(signature.toLowerCase()))).thenReturn(true);
+
+        boolean allowed = interceptor.preHandle(request, response, createHandlerMethod());
+
+        assertThat(allowed).isTrue();
+        assertThat(response.getStatus()).isEqualTo(200);
+
+        ArgumentCaptor<byte[]> payloadCaptor = ArgumentCaptor.forClass(byte[].class);
+        verify(hmacSignatureValidator).isValid(payloadCaptor.capture(), eq("enc:secret"), eq(signature.toLowerCase()));
+        byte[] expectedPayload = new byte[timestamp.getBytes(StandardCharsets.UTF_8).length + 1 + compressedBody.length];
+        System.arraycopy(timestamp.getBytes(StandardCharsets.UTF_8), 0, expectedPayload, 0, timestamp.getBytes(StandardCharsets.UTF_8).length);
+        expectedPayload[timestamp.getBytes(StandardCharsets.UTF_8).length] = (byte) '\n';
+        System.arraycopy(compressedBody, 0, expectedPayload, timestamp.getBytes(StandardCharsets.UTF_8).length + 1, compressedBody.length);
+        assertThat(payloadCaptor.getValue()).isEqualTo(expectedPayload);
+    }
+
     private HttpServletRequest createWrappedRequest(String timestamp, String apiKey, String signature, String body)
             throws Exception {
         MockHttpServletRequest rawRequest = new MockHttpServletRequest();
@@ -133,6 +167,27 @@ class BotSignatureInterceptorTest {
         rawRequest.addHeader("X-Signature", signature);
         rawRequest.setContent(body.getBytes(StandardCharsets.UTF_8));
         return new MultiReadHttpServletRequestWrapper(rawRequest);
+    }
+
+    private HttpServletRequest createWrappedGzipRequest(String timestamp, String apiKey, String signature, byte[] body)
+            throws Exception {
+        MockHttpServletRequest rawRequest = new MockHttpServletRequest();
+        rawRequest.setMethod("POST");
+        rawRequest.setContentType("application/json");
+        rawRequest.addHeader("Content-Encoding", "gzip");
+        rawRequest.addHeader("X-Timestamp", timestamp);
+        rawRequest.addHeader("X-Bot-Api-Key", apiKey);
+        rawRequest.addHeader("X-Signature", signature);
+        rawRequest.setContent(body);
+        return new MultiReadHttpServletRequestWrapper(rawRequest);
+    }
+
+    private byte[] gzip(String value) throws IOException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try (GZIPOutputStream gzipOutputStream = new GZIPOutputStream(outputStream)) {
+            gzipOutputStream.write(value.getBytes(StandardCharsets.UTF_8));
+        }
+        return outputStream.toByteArray();
     }
 
     private HandlerMethod createHandlerMethod() throws NoSuchMethodException {

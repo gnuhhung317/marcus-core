@@ -11,24 +11,24 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class FavoriteStrategyUseCase {
+public class FavoriteBotUseCase {
 
     private final IdentityService identityService;
     private final UserRepository userRepository;
     private final BotDiscoveryReadPort botDiscoveryReadPort;
 
-    public BotDiscoveryReadPort.FavoriteStrategySnapshot execute(String strategyId) {
+    public BotDiscoveryReadPort.FavoriteBotSnapshot execute(String botId) {
         String currentUserId = identityService.getCurrentUserId()
                 .orElseThrow(() -> new UnauthenticatedException("No authenticated user found"));
 
         if (!userRepository.existsByIdAndRole(currentUserId, Role.TRADER)) {
-            throw new ForbiddenOperationException("Only trader can favorite strategies");
+            throw new ForbiddenOperationException("Only trader can favorite bots");
         }
 
-        if (strategyId == null || strategyId.isBlank()) {
-            throw new IllegalArgumentException("Strategy id is required");
+        if (botId == null || botId.isBlank()) {
+            throw new IllegalArgumentException("Bot id is required");
         }
 
-        return botDiscoveryReadPort.favoriteStrategy(currentUserId, strategyId.trim());
+        return botDiscoveryReadPort.favoriteBot(currentUserId, botId.trim());
     }
 }

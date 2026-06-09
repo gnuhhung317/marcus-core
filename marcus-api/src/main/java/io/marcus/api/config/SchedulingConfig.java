@@ -1,5 +1,7 @@
 package io.marcus.api.config;
 
+import io.marcus.domain.service.EquityCurveMetricsCalculator;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
@@ -11,5 +13,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @Configuration
 @EnableScheduling
 public class SchedulingConfig {
-    // Enables @Scheduled annotations across the application
+    @Bean
+    public EquityCurveMetricsCalculator equityCurveMetricsCalculator() {
+        return new EquityCurveMetricsCalculator();
+    }
 }

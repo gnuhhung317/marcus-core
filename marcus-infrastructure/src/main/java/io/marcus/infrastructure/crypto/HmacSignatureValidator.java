@@ -24,6 +24,13 @@ public class HmacSignatureValidator {
         if (payload == null || encryptedBotSecret == null || providedSignature == null) {
             return false;
         }
+        return isValid(payload.getBytes(StandardCharsets.UTF_8), encryptedBotSecret, providedSignature);
+    }
+
+    public boolean isValid(byte[] payload, String encryptedBotSecret, String providedSignature) {
+        if (payload == null || encryptedBotSecret == null || providedSignature == null) {
+            return false;
+        }
 
         try {
             String rawBotSecret = encryptionService.decrypt(encryptedBotSecret);
@@ -32,7 +39,7 @@ public class HmacSignatureValidator {
             SecretKeySpec secret_key = new SecretKeySpec(rawBotSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
             sha256_HMAC.init(secret_key);
 
-            byte[] hashBytes = sha256_HMAC.doFinal(payload.getBytes(StandardCharsets.UTF_8));
+            byte[] hashBytes = sha256_HMAC.doFinal(payload);
             String calculatedSignature = HEX_FORMAT.formatHex(hashBytes);
             String normalizedProvidedSignature = providedSignature.toLowerCase(Locale.ROOT);
 

@@ -1,7 +1,6 @@
 package io.marcus.domain.port;
 
 import io.marcus.domain.port.UserProfileReadPort.OffsetPaginationMetaSnapshot;
-import io.marcus.domain.port.PortfolioReadPort.TimeSeriesPointSnapshot;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -42,6 +41,7 @@ public interface BotDiscoveryReadPort {
             String risk,
             double annualReturn,
             double maxDrawdown,
+            double winRate,
             int subscribers
             ) {
 
@@ -54,30 +54,9 @@ public interface BotDiscoveryReadPort {
 
     }
 
-    record FavoriteStrategySnapshot(
-            String strategyId,
+    record FavoriteBotSnapshot(
+            String botId,
             boolean favorited
-            ) {
-
-    }
-
-    record StrategyDetailSnapshot(
-            String strategyId,
-            String strategyName,
-            String ownerName,
-            String market,
-            String status
-            ) {
-
-    }
-
-    record StrategyMetricsSnapshot(
-            double annualReturn,
-            double maxDrawdown,
-            double sharpe,
-            double sortino,
-            double calmar,
-            double profitFactor
             ) {
 
     }
@@ -98,10 +77,10 @@ public interface BotDiscoveryReadPort {
 
     }
 
-    record LeaderboardStrategySnapshot(
+    record LeaderboardBotSnapshot(
             int rank,
-            String strategyId,
-            String strategyName,
+            String botId,
+            String botName,
             String creatorName,
             double cagr,
             double sharpe,
@@ -111,16 +90,16 @@ public interface BotDiscoveryReadPort {
 
     }
 
-    record LeaderboardStrategiesPageSnapshot(
-            List<LeaderboardStrategySnapshot> items,
+    record LeaderboardBotsPageSnapshot(
+            List<LeaderboardBotSnapshot> items,
             OffsetPaginationMetaSnapshot meta
             ) {
 
     }
 
     record LeaderboardFeaturedItemSnapshot(
-            String strategyId,
-            String strategyName,
+            String botId,
+            String botName,
             String rankLabel,
             double sharpe
             ) {
@@ -131,9 +110,9 @@ public interface BotDiscoveryReadPort {
 
     }
 
-    record StrategySpotlightSnapshot(
-            String strategyId,
-            String strategyName,
+    record BotSpotlightSnapshot(
+            String botId,
+            String botName,
             String market,
             double oneDayReturn
             ) {
@@ -144,17 +123,11 @@ public interface BotDiscoveryReadPort {
 
     BotDiscoveryPageSnapshot listPublicBots(String q, String asset, String risk, String sort, int page, int size);
 
-    FavoriteStrategySnapshot favoriteStrategy(String userId, String strategyId);
+    FavoriteBotSnapshot favoriteBot(String userId, String botId);
 
-    StrategyDetailSnapshot getStrategyDetail(String strategyId);
+    TradeLogPageSnapshot listBotTrades(String botId, int page, int size, String asset);
 
-    StrategyMetricsSnapshot getStrategyMetrics(String strategyId, String feeMode);
-
-    List<TimeSeriesPointSnapshot> listStrategyPerformanceSeries(String strategyId, String range);
-
-    TradeLogPageSnapshot listStrategyTrades(String strategyId, int page, int size, String asset);
-
-    LeaderboardStrategiesPageSnapshot listLeaderboardStrategies(
+    LeaderboardBotsPageSnapshot listLeaderboardBots(
             String timeframe,
             String market,
             String asset,
@@ -165,5 +138,5 @@ public interface BotDiscoveryReadPort {
 
     LeaderboardFeaturedSnapshot listLeaderboardFeatured();
 
-    List<StrategySpotlightSnapshot> listLeaderboardSpotlights();
+    List<BotSpotlightSnapshot> listLeaderboardSpotlights();
 }

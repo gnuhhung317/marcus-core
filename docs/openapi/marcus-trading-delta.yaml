@@ -23,8 +23,8 @@ tags:
     description: Bot discovery and content exploration endpoints.
   - name: dashboard
     description: Portfolio and dashboard analytics endpoints.
-  - name: strategies
-    description: Strategy details, metrics, and activity endpoints.
+  - name: bots
+    description: Bot analytics and activity endpoints.
   - name: exports
     description: Export request operations for strategy reports.
   - name: leaderboard
@@ -470,13 +470,13 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /strategies/{strategyId}:
+  /bots/{botId}:
     get:
-      tags: [strategies]
-      operationId: getStrategyDetail
-      summary: Load strategy header and metadata.
+      tags: [bots]
+      operationId: getBotDetail
+      summary: Load bot header and metadata.
       parameters:
-        - $ref: '#/components/parameters/StrategyId'
+        - $ref: '#/components/parameters/BotId'
       responses:
         '200':
           description: Strategy detail.
@@ -487,7 +487,7 @@ paths:
               examples:
                 default:
                   value:
-                    strategyId: stg_001
+                    botId: bot_001
                     strategyName: Momentum Alpha
                     ownerName: Marcus Labs
                     market: CRYPTO
@@ -499,13 +499,13 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /strategies/{strategyId}/metrics:
+  /bots/{botId}/analytics/metrics:
     get:
-      tags: [strategies]
-      operationId: getStrategyMetrics
-      summary: Load strategy metrics (raw or after-fees).
+      tags: [bots]
+      operationId: getBotAnalyticsMetrics
+      summary: Load bot analytics metrics (raw or after-fees).
       parameters:
-        - $ref: '#/components/parameters/StrategyId'
+        - $ref: '#/components/parameters/BotId'
         - name: feeMode
           in: query
           schema:
@@ -527,13 +527,13 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /strategies/{strategyId}/performance-series:
+  /bots/{botId}/analytics/performance-series:
     get:
-      tags: [strategies]
-      operationId: getStrategyPerformanceSeries
-      summary: Load strategy performance series by range.
+      tags: [bots]
+      operationId: getBotAnalyticsPerformanceSeries
+      summary: Load bot performance series by range.
       parameters:
-        - $ref: '#/components/parameters/StrategyId'
+        - $ref: '#/components/parameters/BotId'
         - $ref: '#/components/parameters/Range'
       responses:
         '200':
@@ -553,13 +553,13 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /strategies/{strategyId}/trades:
+  /bots/{botId}/trades:
     get:
-      tags: [strategies]
-      operationId: listStrategyTradeLogs
-      summary: Paginated trade logs for strategy.
+      tags: [bots]
+      operationId: listBotTrades
+      summary: Paginated trade logs for a bot.
       parameters:
-        - $ref: '#/components/parameters/StrategyId'
+        - $ref: '#/components/parameters/BotId'
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/Size'
         - name: asset
@@ -580,13 +580,13 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /strategies/{strategyId}/favorite:
+  /bots/{botId}/favorite:
     post:
-      tags: [strategies]
-      operationId: upsertFavoriteStrategy
-      summary: Mark strategy as favorite for current user.
+      tags: [bots]
+      operationId: favoriteBot
+      summary: Mark bot as favorite for current user.
       parameters:
-        - $ref: '#/components/parameters/StrategyId'
+        - $ref: '#/components/parameters/BotId'
       requestBody:
         required: true
         content:
@@ -609,13 +609,13 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /strategies/{strategyId}/export/pdf:
+  /bots/{botId}/export/pdf:
     post:
       tags: [exports]
-      operationId: exportStrategyReportPdf
-      summary: Request PDF strategy report export.
+      operationId: exportBotReportPdf
+      summary: Request PDF bot report export.
       parameters:
-        - $ref: '#/components/parameters/StrategyId'
+        - $ref: '#/components/parameters/BotId'
       responses:
         '202':
           description: Export accepted.
@@ -632,13 +632,13 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /strategies/{strategyId}/export/json:
+  /bots/{botId}/export/json:
     post:
       tags: [exports]
-      operationId: exportStrategySnapshotJson
+      operationId: exportBotSnapshotJson
       summary: Request JSON snapshot export.
       parameters:
-        - $ref: '#/components/parameters/StrategyId'
+        - $ref: '#/components/parameters/BotId'
       responses:
         '202':
           description: Export accepted.
@@ -655,13 +655,13 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /strategies/{strategyId}/paper-history:
+  /bots/{botId}/paper-history:
     get:
-      tags: [strategies]
-      operationId: listStrategyPaperHistory
-      summary: Paginated paper trade history for a strategy.
+      tags: [bots]
+      operationId: listBotPaperHistory
+      summary: Paginated paper trade history for a bot.
       parameters:
-        - $ref: '#/components/parameters/StrategyId'
+        - $ref: '#/components/parameters/BotId'
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/Size'
         - name: range
@@ -683,11 +683,11 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /leaderboard/strategies:
+  /leaderboard/bots:
     get:
       tags: [leaderboard]
-      operationId: listLeaderboardStrategies
-      summary: List ranked strategies for leaderboard tables.
+      operationId: listLeaderboardBots
+      summary: List ranked bots for leaderboard tables.
       parameters:
         - name: timeframe
           in: query
@@ -1332,8 +1332,8 @@ components:
       required: true
       schema:
         type: string
-    StrategyId:
-      name: strategyId
+    BotId:
+      name: botId
       in: path
       required: true
       schema:
@@ -1856,11 +1856,11 @@ components:
     StrategyDetailResponse:
       type: object
       properties:
-        strategyId:
+        botId:
           type: string
-        strategyName:
+        botName:
           type: string
-        ownerName:
+        creatorName:
           type: string
         market:
           type: string
@@ -1932,7 +1932,7 @@ components:
     FavoriteStrategyResponse:
       type: object
       properties:
-        strategyId:
+        botId:
           type: string
         favorite:
           type: boolean
@@ -1980,9 +1980,9 @@ components:
       properties:
         rank:
           type: integer
-        strategyId:
+        botId:
           type: string
-        strategyName:
+        botName:
           type: string
         creatorName:
           type: string
@@ -2009,9 +2009,9 @@ components:
     LeaderboardFeaturedItem:
       type: object
       properties:
-        strategyId:
+        botId:
           type: string
-        strategyName:
+        botName:
           type: string
         rankLabel:
           type: string
@@ -2030,9 +2030,9 @@ components:
     StrategySpotlight:
       type: object
       properties:
-        strategyId:
+        botId:
           type: string
-        strategyName:
+        botName:
           type: string
         market:
           type: string
@@ -2304,7 +2304,7 @@ components:
       properties:
         activeStudents:
           type: integer
-        strategiesDeployed:
+        botsDeployed:
           type: integer
         averagePerformancePercent:
           type: number
@@ -2429,7 +2429,7 @@ components:
         topVolume24h:
           type: number
           format: double
-        activeStrategies:
+        activeBots:
           type: integer
         liveTickers:
           type: array

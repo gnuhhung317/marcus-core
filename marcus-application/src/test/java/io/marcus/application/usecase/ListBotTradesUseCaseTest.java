@@ -13,16 +13,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class ListStrategyTradesUseCaseTest {
+class ListBotTradesUseCaseTest {
 
     @Mock
     private BotDiscoveryReadPort botDiscoveryReadPort;
 
-    private ListStrategyTradesUseCase useCase;
+    private ListBotTradesUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new ListStrategyTradesUseCase(botDiscoveryReadPort);
+        useCase = new ListBotTradesUseCase(botDiscoveryReadPort);
     }
 
     @Test
@@ -33,9 +33,9 @@ class ListStrategyTradesUseCaseTest {
                 100,
                 0L
         );
-        when(botDiscoveryReadPort.listStrategyTrades("stg_1", 0, 100, "BTCUSDT")).thenReturn(page);
+        when(botDiscoveryReadPort.listBotTrades("bot_1", 0, 100, "BTCUSDT")).thenReturn(page);
 
-        BotDiscoveryReadPort.TradeLogPageSnapshot result = useCase.execute(" stg_1 ", -1, 300, " btcusdt ");
+        BotDiscoveryReadPort.TradeLogPageSnapshot result = useCase.execute(" bot_1 ", -1, 300, " btcusdt ");
 
         assertThat(result).isEqualTo(page);
     }

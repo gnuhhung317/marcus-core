@@ -4,6 +4,7 @@ import io.marcus.domain.model.BotBacktestRun;
 import io.marcus.domain.model.BotDryRunPortfolioPoint;
 import io.marcus.domain.port.BotBacktestPort;
 import io.marcus.domain.port.BotDryRunPort;
+import io.marcus.domain.port.LeaderboardMetricsRefreshPort;
 import io.marcus.domain.service.EquityCurveMetricsCalculator;
 import io.marcus.domain.vo.BotStatus;
 import io.marcus.infrastructure.persistence.SpringDataBotRepository;
@@ -37,7 +38,7 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class LeaderboardMetricsCalculator {
+public class LeaderboardMetricsCalculator implements LeaderboardMetricsRefreshPort {
 
     private static final int MIN_DRY_RUN_DAYS = 7;  // Minimum days for Main Leaderboard
 

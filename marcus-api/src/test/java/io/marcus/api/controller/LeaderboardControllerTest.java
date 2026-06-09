@@ -4,7 +4,7 @@ import io.marcus.api.exception.GlobalExceptionsHandler;
 import io.marcus.api.security.JwtAuthenticationFilter;
 import io.marcus.application.usecase.ListLeaderboardFeaturedUseCase;
 import io.marcus.application.usecase.ListLeaderboardSpotlightsUseCase;
-import io.marcus.application.usecase.ListLeaderboardStrategiesUseCase;
+import io.marcus.application.usecase.ListLeaderboardBotsUseCase;
 import io.marcus.domain.port.BotDiscoveryReadPort;
 import io.marcus.domain.port.UserProfileReadPort;
 import io.marcus.infrastructure.security.BotSignatureInterceptor;
@@ -37,7 +37,7 @@ class LeaderboardControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private ListLeaderboardStrategiesUseCase listLeaderboardStrategiesUseCase;
+    private ListLeaderboardBotsUseCase listLeaderboardBotsUseCase;
 
     @MockBean
     private ListLeaderboardFeaturedUseCase listLeaderboardFeaturedUseCase;
@@ -59,18 +59,18 @@ class LeaderboardControllerTest {
     }
 
     @Test
-    void shouldGetLeaderboardStrategies() throws Exception {
-        BotDiscoveryReadPort.LeaderboardStrategySnapshot item = new BotDiscoveryReadPort.LeaderboardStrategySnapshot(
-                1, "stg_1", "Momentum 1", "Marcus Desk", 0.32, 2.1, 0.15
+    void shouldGetLeaderboardBots() throws Exception {
+        BotDiscoveryReadPort.LeaderboardBotSnapshot item = new BotDiscoveryReadPort.LeaderboardBotSnapshot(
+                1, "bot_1", "Momentum 1", "Marcus Desk", 0.32, 2.1, 0.15, "DRY_RUN"
         );
         UserProfileReadPort.OffsetPaginationMetaSnapshot meta = new UserProfileReadPort.OffsetPaginationMetaSnapshot(
                 0, 20, 1, 1, false
         );
 
-        when(listLeaderboardStrategiesUseCase.execute("7D", "CRYPTO", "BTCUSDT", "sharpe", 0, 20))
-                .thenReturn(new BotDiscoveryReadPort.LeaderboardStrategiesPageSnapshot(List.of(item), meta));
+        when(listLeaderboardBotsUseCase.execute("7D", "CRYPTO", "BTCUSDT", "sharpe", 0, 20))
+                .thenReturn(new BotDiscoveryReadPort.LeaderboardBotsPageSnapshot(List.of(item), meta));
 
-        mockMvc.perform(get("/api/v1/leaderboard/strategies")
+        mockMvc.perform(get("/api/v1/leaderboard/bots")
                         .param("timeframe", "7D")
                         .param("market", "CRYPTO")
                         .param("asset", "BTCUSDT")
@@ -78,7 +78,7 @@ class LeaderboardControllerTest {
                         .param("page", "0")
                         .param("size", "20"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[0].strategyId").value("stg_1"))
+                .andExpect(jsonPath("$.items[0].botId").value("bot_1"))
                 .andExpect(jsonPath("$.meta.page").value(0));
     }
 
@@ -98,20 +98,20 @@ class LeaderboardControllerTest {
     void shouldGetLeaderboardSpotlights() throws Exception {
         when(listLeaderboardSpotlightsUseCase.execute())
                 .thenReturn(List.of(
-                        new BotDiscoveryReadPort.StrategySpotlightSnapshot("stg_1", "Neutron", "CRYPTO", 0.03)
+                        new BotDiscoveryReadPort.BotSpotlightSnapshot("bot_1", "Neutron", "CRYPTO", 0.03)
                 ));
 
         mockMvc.perform(get("/api/v1/leaderboard/spotlights"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].strategyName").value("Neutron"));
+                .andExpect(jsonPath("$[0].botName").value("Neutron"));
     }
 
     @Test
     void shouldReturnBadRequestWhenStrategiesRequestInvalid() throws Exception {
-        when(listLeaderboardStrategiesUseCase.execute(null, null, null, null, -1, 0))
+        when(listLeaderboardBotsUseCase.execute(null, null, null, null, -1, 0))
                 .thenThrow(new IllegalArgumentException("Invalid pagination"));
 
-        mockMvc.perform(get("/api/v1/leaderboard/strategies")
+        mockMvc.perform(get("/api/v1/leaderboard/bots")
                         .param("page", "-1")
                         .param("size", "0"))
                 .andExpect(status().isBadRequest())

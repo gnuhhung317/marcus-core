@@ -8,16 +8,20 @@ import io.marcus.domain.model.BotDryRunPortfolioPoint;
 import io.marcus.domain.model.BotDryRunPosition;
 import io.marcus.domain.model.BotDryRunState;
 import io.marcus.domain.port.BotDryRunPort;
+import io.marcus.domain.port.LeaderboardMetricsRefreshPort;
 import io.marcus.domain.repository.BotRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SyncBotDryRunUseCase {
 
     private final BotRepository botRepository;
     private final BotDryRunPort botDryRunPort;
+    private final LeaderboardMetricsRefreshPort leaderboardMetricsRefreshPort;
 
     public BotDryRunState execute(String botId, String apiKey, BotDryRunSyncRequest request) {
         if (botId == null || botId.isBlank()) {
@@ -83,6 +87,12 @@ public class SyncBotDryRunUseCase {
                         .toList()
         );
 
-        return botDryRunPort.syncSnapshot(state);
+        BotDryRunState saved = botDryRunPort.syncSnapshot(state);
+        try {
+            leaderboardMetricsRefreshPort.recalculateForBot(normalizedBotId);
+        } catch (Exception ex) {
+            log.warn("Failed to refresh leaderboard metrics after dry-run sync for bot {}", normalizedBotId, ex);
+        }
+        return saved;
     }
 }

@@ -12,7 +12,9 @@ import io.marcus.application.dto.UpdateBotStatusRequest;
 import io.marcus.application.dto.UpdateBotMetadataRequest;
 import io.marcus.application.usecase.GetBotAnalyticsUseCase;
 import io.marcus.application.usecase.GetBotDetailUseCase;
+import io.marcus.application.usecase.FavoriteBotUseCase;
 import io.marcus.application.usecase.ListDeveloperBotsUseCase;
+import io.marcus.application.usecase.ListBotTradesUseCase;
 import io.marcus.application.usecase.ListPublicBotsUseCase;
 import io.marcus.application.usecase.RegisterBotUseCase;
 import io.marcus.application.usecase.GetBotIntegrationHealthUseCase;
@@ -69,6 +71,8 @@ public class BotController {
     private final UpdateBotMetadataUseCase updateBotMetadataUseCase;
     private final DeleteBotUseCase deleteBotUseCase;
     private final BotHeartbeatUseCase botHeartbeatUseCase;
+    private final ListBotTradesUseCase listBotTradesUseCase;
+    private final FavoriteBotUseCase favoriteBotUseCase;
 
     @PostMapping({"", "/register"})
     public ResponseEntity<BotRegistrationResult> registerBot(@Valid @RequestBody RegisterBotRequest botRequest) {
@@ -121,6 +125,21 @@ public class BotController {
             @RequestParam(required = false, defaultValue = "ALL") String range
     ) {
         return ResponseEntity.ok(getBotAnalyticsUseCase.getPerformanceSeries(botId, range));
+    }
+
+    @GetMapping("/{botId}/trades")
+    public ResponseEntity<BotDiscoveryReadPort.TradeLogPageSnapshot> listBotTrades(
+            @PathVariable String botId,
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @RequestParam(required = false, defaultValue = "20") int size,
+            @RequestParam(required = false) String asset
+    ) {
+        return ResponseEntity.ok(listBotTradesUseCase.execute(botId, page, size, asset));
+    }
+
+    @PostMapping("/{botId}/favorite")
+    public ResponseEntity<BotDiscoveryReadPort.FavoriteBotSnapshot> favoriteBot(@PathVariable String botId) {
+        return ResponseEntity.ok(favoriteBotUseCase.execute(botId));
     }
 
     @PostMapping("/{botId}/backtest-results")

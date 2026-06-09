@@ -10,6 +10,7 @@ import io.marcus.infrastructure.security.filter.RequestCachingFilter;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -43,8 +44,10 @@ public class SecurityConfig {
     }
 
     @Bean
-    public RequestCachingFilter requestCachingFilter() {
-        return new RequestCachingFilter();
+    public RequestCachingFilter requestCachingFilter(
+            @Value("${marcus.security.compressed-request.max-bytes:5242880}") int maxCompressedRequestBytes
+    ) {
+        return new RequestCachingFilter(maxCompressedRequestBytes);
     }
 
     @Bean

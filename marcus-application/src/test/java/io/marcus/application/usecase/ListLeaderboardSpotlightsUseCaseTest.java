@@ -27,12 +27,12 @@ class ListLeaderboardSpotlightsUseCaseTest {
 
     @Test
     void shouldReturnSpotlights() {
-        List<BotDiscoveryReadPort.StrategySpotlightSnapshot> spotlights = List.of(
-                new BotDiscoveryReadPort.StrategySpotlightSnapshot("stg_1", "Neutron", "CRYPTO", 0.03)
+        List<BotDiscoveryReadPort.BotSpotlightSnapshot> spotlights = List.of(
+                new BotDiscoveryReadPort.BotSpotlightSnapshot("bot_1", "Neutron", "CRYPTO", 0.03)
         );
         when(botDiscoveryReadPort.listLeaderboardSpotlights()).thenReturn(spotlights);
 
-        List<BotDiscoveryReadPort.StrategySpotlightSnapshot> result = useCase.execute();
+        List<BotDiscoveryReadPort.BotSpotlightSnapshot> result = useCase.execute();
 
         assertThat(result).containsExactlyElementsOf(spotlights);
     }

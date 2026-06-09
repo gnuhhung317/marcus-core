@@ -6,11 +6,11 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class ListLeaderboardStrategiesUseCase {
+public class ListLeaderboardBotsUseCase {
 
     private final BotDiscoveryReadPort botDiscoveryReadPort;
 
-    public BotDiscoveryReadPort.LeaderboardStrategiesPageSnapshot execute(
+    public BotDiscoveryReadPort.LeaderboardBotsPageSnapshot execute(
             String timeframe,
             String market,
             String asset,
@@ -21,7 +21,7 @@ public class ListLeaderboardStrategiesUseCase {
         int normalizedPage = Math.max(page, 0);
         int normalizedSize = Math.max(1, Math.min(size, 100));
 
-        return botDiscoveryReadPort.listLeaderboardStrategies(
+        return botDiscoveryReadPort.listLeaderboardBots(
                 timeframe,
                 market,
                 asset,

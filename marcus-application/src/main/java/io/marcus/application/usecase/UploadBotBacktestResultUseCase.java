@@ -10,8 +10,10 @@ import io.marcus.domain.model.BotBacktestRun;
 import io.marcus.domain.model.BotDryRunPortfolioPoint;
 import io.marcus.domain.model.BotHistoricalClosedTrade;
 import io.marcus.domain.port.BotBacktestPort;
+import io.marcus.domain.port.LeaderboardMetricsRefreshPort;
 import io.marcus.domain.repository.BotRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -22,10 +24,12 @@ import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UploadBotBacktestResultUseCase {
 
     private final BotRepository botRepository;
     private final BotBacktestPort botBacktestPort;
+    private final LeaderboardMetricsRefreshPort leaderboardMetricsRefreshPort;
     private final ObjectMapper objectMapper;
 
     public BacktestUploadResponse execute(String botId, String apiKey, BacktestUploadRequest request) {
@@ -76,6 +80,11 @@ public class UploadBotBacktestResultUseCase {
                 .toList();
 
         BotBacktestRun saved = botBacktestPort.saveRun(run, equityHistory, closedTrades);
+        try {
+            leaderboardMetricsRefreshPort.recalculateForBot(normalizedBotId);
+        } catch (Exception ex) {
+            log.warn("Failed to refresh leaderboard metrics after backtest upload for bot {}", normalizedBotId, ex);
+        }
         return new BacktestUploadResponse(
                 saved.runId(),
                 saved.botId(),

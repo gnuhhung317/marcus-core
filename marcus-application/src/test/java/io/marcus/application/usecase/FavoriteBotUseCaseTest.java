@@ -20,7 +20,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class FavoriteStrategyUseCaseTest {
+class FavoriteBotUseCaseTest {
 
     @Mock
     private IdentityService identityService;
@@ -32,19 +32,19 @@ class FavoriteStrategyUseCaseTest {
     private BotDiscoveryReadPort botDiscoveryReadPort;
 
     @InjectMocks
-    private FavoriteStrategyUseCase favoriteStrategyUseCase;
+    private FavoriteBotUseCase favoriteBotUseCase;
 
     @Test
     void shouldFavoriteStrategyForTraderUser() {
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("user-1"));
         when(userRepository.existsByIdAndRole("user-1", Role.TRADER)).thenReturn(true);
-        BotDiscoveryReadPort.FavoriteStrategySnapshot snapshot = new BotDiscoveryReadPort.FavoriteStrategySnapshot("strat-1", true);
-        when(botDiscoveryReadPort.favoriteStrategy("user-1", "strat-1")).thenReturn(snapshot);
+        BotDiscoveryReadPort.FavoriteBotSnapshot snapshot = new BotDiscoveryReadPort.FavoriteBotSnapshot("bot-1", true);
+        when(botDiscoveryReadPort.favoriteBot("user-1", "bot-1")).thenReturn(snapshot);
 
-        BotDiscoveryReadPort.FavoriteStrategySnapshot result = favoriteStrategyUseCase.execute(" strat-1 ");
+        BotDiscoveryReadPort.FavoriteBotSnapshot result = favoriteBotUseCase.execute(" bot-1 ");
 
         assertEquals(snapshot, result);
-        verify(botDiscoveryReadPort).favoriteStrategy("user-1", "strat-1");
+        verify(botDiscoveryReadPort).favoriteBot("user-1", "bot-1");
     }
 
     @Test
@@ -52,17 +52,17 @@ class FavoriteStrategyUseCaseTest {
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("user-1"));
         when(userRepository.existsByIdAndRole("user-1", Role.TRADER)).thenReturn(false);
 
-        assertThrows(ForbiddenOperationException.class, () -> favoriteStrategyUseCase.execute("strat-1"));
+        assertThrows(ForbiddenOperationException.class, () -> favoriteBotUseCase.execute("bot-1"));
 
         verifyNoInteractions(botDiscoveryReadPort);
     }
 
     @Test
-    void shouldRejectBlankStrategyId() {
+    void shouldRejectBlankBotId() {
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("user-1"));
         when(userRepository.existsByIdAndRole("user-1", Role.TRADER)).thenReturn(true);
 
-        assertThrows(IllegalArgumentException.class, () -> favoriteStrategyUseCase.execute("   "));
+        assertThrows(IllegalArgumentException.class, () -> favoriteBotUseCase.execute("   "));
 
         verifyNoInteractions(botDiscoveryReadPort);
     }

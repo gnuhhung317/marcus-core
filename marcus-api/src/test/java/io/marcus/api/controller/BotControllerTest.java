@@ -20,7 +20,9 @@ import io.marcus.application.usecase.GetBotCredentialsUseCase;
 import io.marcus.application.usecase.GetBotAnalyticsUseCase;
 import io.marcus.application.usecase.GetLatestBotDryRunUseCase;
 import io.marcus.application.usecase.GetLatestBotTelemetryUseCase;
+import io.marcus.application.usecase.FavoriteBotUseCase;
 import io.marcus.application.usecase.ListDeveloperBotsUseCase;
+import io.marcus.application.usecase.ListBotTradesUseCase;
 import io.marcus.application.usecase.ListPublicBotsUseCase;
 import io.marcus.application.usecase.RegisterBotUseCase;
 import io.marcus.application.usecase.SyncBotDryRunUseCase;
@@ -42,6 +44,7 @@ import io.marcus.domain.model.BotTelemetryPoint;
 import io.marcus.domain.vo.BotStatus;
 import io.marcus.infrastructure.security.BotSignatureInterceptor;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -100,6 +103,12 @@ class BotControllerTest {
     private GetBotAnalyticsUseCase getBotAnalyticsUseCase;
 
     @MockBean
+    private ListBotTradesUseCase listBotTradesUseCase;
+
+    @MockBean
+    private FavoriteBotUseCase favoriteBotUseCase;
+
+    @MockBean
     private SyncBotTelemetryUseCase syncBotTelemetryUseCase;
 
     @MockBean
@@ -134,6 +143,11 @@ class BotControllerTest {
 
     @MockBean
     private BotSignatureInterceptor botSignatureInterceptor;
+
+    @BeforeEach
+    void allowSignedBotRequestsThrough() throws Exception {
+        when(botSignatureInterceptor.preHandle(any(), any(), any())).thenReturn(true);
+    }
 
     @Test
     void shouldReturnPublicBots() throws Exception {
@@ -311,6 +325,43 @@ class BotControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.splitTimestamp").exists())
                 .andExpect(jsonPath("$.points[0].phase").value("OUT_OF_SAMPLE"));
+    }
+
+    @Test
+    void shouldReturnBotTrades() throws Exception {
+        BotDiscoveryReadPort.TradeLogPageSnapshot page = new BotDiscoveryReadPort.TradeLogPageSnapshot(
+                List.of(new BotDiscoveryReadPort.TradeLogSnapshot(
+                        LocalDateTime.of(2026, 1, 2, 12, 0),
+                        "BTCUSDT",
+                        "BUY",
+                        0.5,
+                        100.0,
+                        110.0,
+                        5.0
+                )),
+                0,
+                20,
+                1L
+        );
+
+        when(listBotTradesUseCase.execute("bot_123", 0, 20, "BTCUSDT")).thenReturn(page);
+
+        mockMvc.perform(get("/api/v1/bots/bot_123/trades")
+                .param("asset", "BTCUSDT"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].assetPair").value("BTCUSDT"))
+                .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
+    void shouldFavoriteBot() throws Exception {
+        when(favoriteBotUseCase.execute("bot_123"))
+                .thenReturn(new BotDiscoveryReadPort.FavoriteBotSnapshot("bot_123", true));
+
+        mockMvc.perform(post("/api/v1/bots/bot_123/favorite"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.botId").value("bot_123"))
+                .andExpect(jsonPath("$.favorited").value(true));
     }
 
     @Test

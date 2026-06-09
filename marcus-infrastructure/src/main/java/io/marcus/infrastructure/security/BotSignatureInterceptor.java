@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
 @Component
@@ -108,16 +109,23 @@ public class BotSignatureInterceptor implements HandlerInterceptor {
         }
 
         String jsonBody = RequestCachingFilter.currentRequestBody();
+        byte[] rawBody = RequestCachingFilter.currentRawRequestBody();
         if (jsonBody == null) {
             jsonBody = (String) request.getAttribute(RequestCachingFilter.CACHED_REQUEST_BODY_ATTRIBUTE);
+        }
+        if (rawBody == null) {
+            rawBody = (byte[]) request.getAttribute(RequestCachingFilter.CACHED_RAW_REQUEST_BODY_ATTRIBUTE);
         }
         if (jsonBody == null && request instanceof MultiReadHttpServletRequestWrapper multiReadRequest) {
             jsonBody = multiReadRequest.getBody();
         }
+        if (rawBody == null && request instanceof MultiReadHttpServletRequestWrapper multiReadRequest) {
+            rawBody = multiReadRequest.getRawBody();
+        }
         if (jsonBody == null && "GET".equalsIgnoreCase(request.getMethod())) {
             jsonBody = "{}";
         }
-        if (jsonBody == null) {
+        if (jsonBody == null && rawBody == null) {
             log.error("Can not read request body");
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             return false;
@@ -132,8 +140,15 @@ public class BotSignatureInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        String signaturePayload = timestampHeader + "\n" + jsonBody;
-        boolean isValid = hmacSignatureValidator.isValid(signaturePayload, botSecret, normalizedSignature);
+        boolean gzipEncoded = isGzipEncoded(request);
+        boolean isValid;
+        if (gzipEncoded) {
+            byte[] signaturePayload = buildBinarySignaturePayload(timestampHeader, rawBody);
+            isValid = hmacSignatureValidator.isValid(signaturePayload, botSecret, normalizedSignature);
+        } else {
+            String signaturePayload = timestampHeader + "\n" + jsonBody;
+            isValid = hmacSignatureValidator.isValid(signaturePayload, botSecret, normalizedSignature);
+        }
         if (!isValid) {
             log.warn("[BotSignatureReject] reason=invalid_signature, apiKey={}, path={}", apiKey, request.getRequestURI());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -141,5 +156,20 @@ public class BotSignatureInterceptor implements HandlerInterceptor {
         }
 
         return true;
+    }
+
+    private boolean isGzipEncoded(HttpServletRequest request) {
+        String contentEncoding = request.getHeader("Content-Encoding");
+        return contentEncoding != null && contentEncoding.toLowerCase(Locale.ROOT).contains("gzip");
+    }
+
+    private byte[] buildBinarySignaturePayload(String timestampHeader, byte[] rawBody) {
+        byte[] timestampBytes = timestampHeader.getBytes(StandardCharsets.UTF_8);
+        byte[] bodyBytes = rawBody == null ? new byte[0] : rawBody;
+        byte[] payload = new byte[timestampBytes.length + 1 + bodyBytes.length];
+        System.arraycopy(timestampBytes, 0, payload, 0, timestampBytes.length);
+        payload[timestampBytes.length] = (byte) '\n';
+        System.arraycopy(bodyBytes, 0, payload, timestampBytes.length + 1, bodyBytes.length);
+        return payload;
     }
 }

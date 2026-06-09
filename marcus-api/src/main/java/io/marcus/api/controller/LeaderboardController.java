@@ -2,7 +2,7 @@ package io.marcus.api.controller;
 
 import io.marcus.application.usecase.ListLeaderboardFeaturedUseCase;
 import io.marcus.application.usecase.ListLeaderboardSpotlightsUseCase;
-import io.marcus.application.usecase.ListLeaderboardStrategiesUseCase;
+import io.marcus.application.usecase.ListLeaderboardBotsUseCase;
 import io.marcus.domain.port.BotDiscoveryReadPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,12 +16,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class LeaderboardController {
 
-    private final ListLeaderboardStrategiesUseCase listLeaderboardStrategiesUseCase;
+    private final ListLeaderboardBotsUseCase listLeaderboardBotsUseCase;
     private final ListLeaderboardFeaturedUseCase listLeaderboardFeaturedUseCase;
     private final ListLeaderboardSpotlightsUseCase listLeaderboardSpotlightsUseCase;
 
-    @GetMapping("/strategies")
-    public ResponseEntity<BotDiscoveryReadPort.LeaderboardStrategiesPageSnapshot> getLeaderboardStrategies(
+    @GetMapping("/bots")
+    public ResponseEntity<BotDiscoveryReadPort.LeaderboardBotsPageSnapshot> getLeaderboardBots(
             @RequestParam(required = false) String timeframe,
             @RequestParam(required = false) String market,
             @RequestParam(required = false) String asset,
@@ -30,7 +30,7 @@ public class LeaderboardController {
             @RequestParam(required = false, defaultValue = "20") int size
     ) {
         return ResponseEntity.ok(
-                listLeaderboardStrategiesUseCase.execute(timeframe, market, asset, rankMetric, page, size)
+                listLeaderboardBotsUseCase.execute(timeframe, market, asset, rankMetric, page, size)
         );
     }
 
@@ -40,7 +40,7 @@ public class LeaderboardController {
     }
 
     @GetMapping("/spotlights")
-    public ResponseEntity<java.util.List<BotDiscoveryReadPort.StrategySpotlightSnapshot>> getLeaderboardSpotlights() {
+    public ResponseEntity<java.util.List<BotDiscoveryReadPort.BotSpotlightSnapshot>> getLeaderboardSpotlights() {
         return ResponseEntity.ok(listLeaderboardSpotlightsUseCase.execute());
     }
 }

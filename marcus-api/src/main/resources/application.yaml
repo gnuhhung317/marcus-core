@@ -2,7 +2,7 @@ spring:
   application:
     name: marcus-parent
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/signal_db}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/signal_db?sslmode=disable}
     username: ${SPRING_DATASOURCE_USERNAME:user}
     password: ${SPRING_DATASOURCE_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
@@ -55,6 +55,8 @@ marcus:
   security:
     master-key: coleemchangkhocchutnaocoleemchangquantamanhrasao
     salt: 944440b12311f820b2cf6acd2290b497
+    compressed-request:
+      max-bytes: ${MARCUS_SECURITY_COMPRESSED_REQUEST_MAX_BYTES:5242880}
     bot-signature:
       max-skew-ms: 60000
     jwt:

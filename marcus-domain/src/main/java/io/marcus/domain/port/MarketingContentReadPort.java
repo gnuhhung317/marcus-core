@@ -19,7 +19,7 @@ public interface MarketingContentReadPort {
 
     record MarketOverviewSnapshot(
             double topVolume24h,
-            int activeStrategies,
+            int activeBots,
             List<MarketTickerSnapshot> liveTickers
     ) {
     }
@@ -42,7 +42,7 @@ public interface MarketingContentReadPort {
 
     record AcademyMetricsSnapshot(
             int activeStudents,
-            int strategiesDeployed,
+            int botsDeployed,
             double averagePerformancePercent,
             double academyRating
     ) {

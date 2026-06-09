@@ -8,13 +8,13 @@ import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
-public class ListStrategyTradesUseCase {
+public class ListBotTradesUseCase {
 
     private final BotDiscoveryReadPort botDiscoveryReadPort;
 
-    public BotDiscoveryReadPort.TradeLogPageSnapshot execute(String strategyId, int page, int size, String asset) {
-        if (strategyId == null || strategyId.isBlank()) {
-            throw new IllegalArgumentException("Strategy id is required");
+    public BotDiscoveryReadPort.TradeLogPageSnapshot execute(String botId, int page, int size, String asset) {
+        if (botId == null || botId.isBlank()) {
+            throw new IllegalArgumentException("Bot id is required");
         }
 
         int normalizedPage = Math.max(page, 0);
@@ -23,6 +23,6 @@ public class ListStrategyTradesUseCase {
             ? null
             : asset.trim().toUpperCase(Locale.ROOT);
 
-        return botDiscoveryReadPort.listStrategyTrades(strategyId.trim(), normalizedPage, normalizedSize, normalizedAsset);
+        return botDiscoveryReadPort.listBotTrades(botId.trim(), normalizedPage, normalizedSize, normalizedAsset);
     }
 }
