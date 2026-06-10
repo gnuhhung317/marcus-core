@@ -1,6 +1,8 @@
 package io.marcus.domain.port;
 
 import io.marcus.domain.port.UserProfileReadPort.OffsetPaginationMetaSnapshot;
+import io.marcus.domain.vo.LeaderboardDataSource;
+import io.marcus.domain.vo.LeaderboardRankMetric;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -128,10 +130,10 @@ public interface BotDiscoveryReadPort {
     TradeLogPageSnapshot listBotTrades(String botId, int page, int size, String asset);
 
     LeaderboardBotsPageSnapshot listLeaderboardBots(
-            String timeframe,
+            LeaderboardDataSource dataSource,
             String market,
             String asset,
-            String rankMetric,
+            LeaderboardRankMetric rankMetric,
             int page,
             int size
     );

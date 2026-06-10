@@ -7,6 +7,7 @@ import io.marcus.domain.port.BotDryRunPort;
 import io.marcus.domain.port.LeaderboardMetricsRefreshPort;
 import io.marcus.domain.service.EquityCurveMetricsCalculator;
 import io.marcus.domain.vo.BotStatus;
+import io.marcus.domain.vo.LeaderboardDataSource;
 import io.marcus.infrastructure.persistence.SpringDataBotRepository;
 import io.marcus.infrastructure.persistence.SpringDataLeaderboardMetricsRepository;
 import io.marcus.infrastructure.persistence.entity.BotEntity;
@@ -108,7 +109,7 @@ public class LeaderboardMetricsCalculator implements LeaderboardMetricsRefreshPo
                 //  Each saveOrUpdate is a separate short transaction
                 metricsRepository.saveOrUpdate(
                         botId,
-                        "DRY_RUN",
+                        LeaderboardDataSource.DRY_RUN.name(),
                         metrics.annualReturn(),
                         metrics.sharpe(),
                         metrics.maxDrawdown(),
@@ -137,7 +138,7 @@ public class LeaderboardMetricsCalculator implements LeaderboardMetricsRefreshPo
                     //  Each saveOrUpdate is a separate short transaction
                     metricsRepository.saveOrUpdate(
                             botId,
-                            "HISTORICAL",
+                            LeaderboardDataSource.HISTORICAL.name(),
                             metrics.annualReturn(),
                             metrics.sharpe(),
                             metrics.maxDrawdown(),

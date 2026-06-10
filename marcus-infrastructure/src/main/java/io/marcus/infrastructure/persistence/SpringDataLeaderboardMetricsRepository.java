@@ -69,8 +69,8 @@ public interface SpringDataLeaderboardMetricsRepository extends JpaRepository<Bo
     @Modifying
     @Transactional
     @Query(value = """
-            INSERT INTO bot_leaderboard_metrics (bot_id, data_source, cagr, sharpe, max_drawdown, sample_days)
-            VALUES (:botId, :dataSource, :cagr, :sharpe, :maxDD, :days)
+            INSERT INTO bot_leaderboard_metrics (bot_id, data_source, cagr, sharpe, max_drawdown, sample_days, last_calculated_at, created_at, updated_at)
+            VALUES (:botId, :dataSource, :cagr, :sharpe, :maxDD, :days, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             ON CONFLICT (bot_id, data_source) DO UPDATE SET
                 cagr = EXCLUDED.cagr,
                 sharpe = EXCLUDED.sharpe,

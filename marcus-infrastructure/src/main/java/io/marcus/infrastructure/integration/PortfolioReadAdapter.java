@@ -12,6 +12,7 @@ import io.marcus.infrastructure.persistence.SpringDataUserPortfolioRepository;
 import io.marcus.infrastructure.persistence.entity.BotEntity;
 import io.marcus.infrastructure.persistence.entity.SignalEntity;
 import io.marcus.infrastructure.persistence.SpringDataRawEventRepository;
+import io.marcus.infrastructure.persistence.SpringDataPortfolioHistoryRepository;
 import io.marcus.infrastructure.persistence.entity.RawEventEntity;
 import io.marcus.infrastructure.persistence.entity.UserPortfolioEntity;
 import io.marcus.infrastructure.persistence.entity.UserSubscriptionEntity;
@@ -35,13 +36,14 @@ import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
-public class StaticPortfolioReadAdapter implements PortfolioReadPort {
+public class PortfolioReadAdapter implements PortfolioReadPort {
 
     private final SpringDataBotRepository springDataBotRepository;
     private final SpringDataSignalRepository springDataSignalRepository;
     private final SpringDataUserSubscriptionRepository springDataUserSubscriptionRepository;
     private final SpringDataUserPortfolioRepository springDataUserPortfolioRepository;
     private final SpringDataRawEventRepository springDataRawEventRepository;
+    private final SpringDataPortfolioHistoryRepository springDataPortfolioHistoryRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -49,9 +51,27 @@ public class StaticPortfolioReadAdapter implements PortfolioReadPort {
         if (userId == null || userId.isBlank()) {
             throw new IllegalArgumentException("userId must not be blank");
         }
-        UserPortfolioEntity portfolio = findPortfolioOrDefault(userId);
-        double currentEquity = safeDouble(portfolio.getTotalCapital(), 10000.0);
-        return List.of(new TimeSeriesPointSnapshot(LocalDateTime.now(), SignalMetricsCalculator.round4(currentEquity)));
+
+        LocalDateTime from = switch (range != null ? range.toUpperCase() : "7D") {
+            case "1D" -> LocalDateTime.now().minusDays(1);
+            case "7D" -> LocalDateTime.now().minusDays(7);
+            case "30D" -> LocalDateTime.now().minusDays(30);
+            case "ALL" -> LocalDateTime.now().minusYears(10);
+            default -> LocalDateTime.now().minusDays(7);
+        };
+
+        List<io.marcus.infrastructure.persistence.entity.PortfolioBalanceHistoryEntity> history =
+                springDataPortfolioHistoryRepository.findByUserIdAndSnapshotAtAfterOrderBySnapshotAtAsc(userId, from);
+
+        if (history.isEmpty()) {
+            UserPortfolioEntity portfolio = findPortfolioOrDefault(userId);
+            double currentEquity = safeDouble(portfolio.getTotalCapital(), 10000.0);
+            return List.of(new TimeSeriesPointSnapshot(LocalDateTime.now(), SignalMetricsCalculator.round4(currentEquity)));
+        }
+
+        return history.stream()
+                .map(h -> new TimeSeriesPointSnapshot(h.getSnapshotAt(), SignalMetricsCalculator.round4(h.getTotal().doubleValue())))
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -93,8 +113,6 @@ public class StaticPortfolioReadAdapter implements PortfolioReadPort {
         int normalizedLimit = Math.max(1, Math.min(limit, 200));
         String normalizedStatus = (status == null || status.isBlank()) ? "ALL" : status.trim().toUpperCase(Locale.ROOT);
 
-        // For simplicity we just use findByBotIdOrderByGeneratedTimestampDesc and filter in memory if status != ALL
-        // In a real system you'd add a method findByBotIdAndStatusStringOrderByGeneratedTimestampDesc
         List<SignalEntity> signals = springDataSignalRepository.findByBotIdOrderByGeneratedTimestampDesc(
                 botId, PageRequest.of(0, normalizedLimit)
         );
@@ -157,8 +175,6 @@ public class StaticPortfolioReadAdapter implements PortfolioReadPort {
                 .filter(s -> SignalMetricsCalculator.deriveReturn(toSignalData(s)) > 0)
                 .count();
 
-        // Calculate active subscribers
-        // Using UserSubscription repository
         List<UserSubscriptionEntity> subs = springDataUserSubscriptionRepository.findAll();
         int activeSubscribers = (int) subs.stream()
                 .filter(s -> s.getBotId().equals(botId) && s.getStatus() == SubscriptionStatus.ACTIVE)
@@ -170,7 +186,6 @@ public class StaticPortfolioReadAdapter implements PortfolioReadPort {
                 .map(SignalEntity::getGeneratedTimestamp)
                 .orElse(null);
 
-        // Mock dispatched total for now since we don't persist per-subscriber dispatches yet
         long totalDispatched24h = totalSignals24h * Math.max(1, activeSubscribers);
         double deliveryRate = totalDispatched24h > 0 ? ((double) (success * Math.max(1, activeSubscribers)) / totalDispatched24h) * 100 : 100.0;
         
@@ -299,7 +314,6 @@ public class StaticPortfolioReadAdapter implements PortfolioReadPort {
             }
         }
 
-        // Fetch limit + 1 records to check if hasMore is true
         int fetchLimit = limit + 1;
         List<RawEventEntity> entities = springDataRawEventRepository.findSystemExecutionLogs(fetchLimit, offset);
 
@@ -375,7 +389,6 @@ public class StaticPortfolioReadAdapter implements PortfolioReadPort {
 
         UserPortfolioEntity portfolio = findPortfolioOrDefault(userId);
         int activeBotsCount = activeSubscriptions.size();
-        double totalCapital = safeDouble(portfolio.getTotalCapital(), 10000.0);
 
         LocalDateTime yesterday = LocalDateTime.now().minusHours(24);
         List<SignalEntity> allSignals24h = activeSubscriptions.stream()
@@ -396,14 +409,18 @@ public class StaticPortfolioReadAdapter implements PortfolioReadPort {
                 .mapToDouble(sub -> calculateCurrentPnL(sub, portfolio))
                 .sum();
 
+        double liveEquity = safeDouble(portfolio.getTotalCapital(), 0.0);
+        double freeBalance = safeDouble(portfolio.getAvailableBalance(), liveEquity);
+        double capitalInPositions = Math.max(0.0, liveEquity - freeBalance);
+
         return new PortfolioOverviewSnapshot(
                 activeBotsCount,
-                totalCapital,
+                capitalInPositions,
                 aggregateWinRate24h,
                 atRiskCount,
-                totalCapital,
+                liveEquity,
                 aggregateOpenPnL,
-                LocalDateTime.now()
+                portfolio.getLastSyncAt() != null ? portfolio.getLastSyncAt() : LocalDateTime.now()
         );
     }
 
@@ -580,7 +597,7 @@ public class StaticPortfolioReadAdapter implements PortfolioReadPort {
                             .maxDrawdownThreshold(defaultPortfolio.getMaxDrawdownThreshold())
                             .mediumRiskThreshold(defaultPortfolio.getMediumRiskThreshold())
                             .build();
-                });
+                 });
     }
 
     private UserPortfolio defaultPortfolio(String userId) {

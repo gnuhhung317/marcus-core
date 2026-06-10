@@ -22,7 +22,7 @@ public class LeaderboardController {
 
     @GetMapping("/bots")
     public ResponseEntity<BotDiscoveryReadPort.LeaderboardBotsPageSnapshot> getLeaderboardBots(
-            @RequestParam(required = false) String timeframe,
+            @RequestParam(value = "dataSource", required = false) String dataSource,
             @RequestParam(required = false) String market,
             @RequestParam(required = false) String asset,
             @RequestParam(required = false) String rankMetric,
@@ -30,7 +30,7 @@ public class LeaderboardController {
             @RequestParam(required = false, defaultValue = "20") int size
     ) {
         return ResponseEntity.ok(
-                listLeaderboardBotsUseCase.execute(timeframe, market, asset, rankMetric, page, size)
+                listLeaderboardBotsUseCase.execute(dataSource, market, asset, rankMetric, page, size)
         );
     }
 

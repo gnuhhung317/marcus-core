@@ -1,6 +1,8 @@
 package io.marcus.application.usecase;
 
 import io.marcus.domain.port.BotDiscoveryReadPort;
+import io.marcus.domain.vo.LeaderboardDataSource;
+import io.marcus.domain.vo.LeaderboardRankMetric;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -11,7 +13,7 @@ public class ListLeaderboardBotsUseCase {
     private final BotDiscoveryReadPort botDiscoveryReadPort;
 
     public BotDiscoveryReadPort.LeaderboardBotsPageSnapshot execute(
-            String timeframe,
+            String dataSource,
             String market,
             String asset,
             String rankMetric,
@@ -22,10 +24,10 @@ public class ListLeaderboardBotsUseCase {
         int normalizedSize = Math.max(1, Math.min(size, 100));
 
         return botDiscoveryReadPort.listLeaderboardBots(
-                timeframe,
+                LeaderboardDataSource.fromString(dataSource),
                 market,
                 asset,
-                rankMetric,
+                LeaderboardRankMetric.fromString(rankMetric),
                 normalizedPage,
                 normalizedSize
         );

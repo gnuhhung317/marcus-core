@@ -58,8 +58,8 @@ public class AuditPushEventHandler {
 
             rawEventPersistencePort.save(auditTrail);
 
-            // 2. Route if kind is balance_snapshot
-            if ("balance_snapshot".equals(kind)) {
+            // 2. Route if kind is balance_snapshot or balance-snapshot
+            if ("balance_snapshot".equals(kind) || "balance-snapshot".equals(kind)) {
                 processBalanceSnapshot(userId, payloadNode);
             } else {
                 log.debug("Received unhandled audit-push kind: {}", kind);

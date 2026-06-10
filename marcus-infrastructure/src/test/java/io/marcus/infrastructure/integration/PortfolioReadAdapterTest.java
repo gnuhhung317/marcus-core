@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class StaticPortfolioReadAdapterTest {
+class PortfolioReadAdapterTest {
 
     @Mock
     private SpringDataBotRepository springDataBotRepository;
@@ -41,16 +41,17 @@ class StaticPortfolioReadAdapterTest {
     @Mock
     private SpringDataRawEventRepository springDataRawEventRepository;
 
-    private StaticPortfolioReadAdapter adapter;
+    private PortfolioReadAdapter adapter;
 
     @BeforeEach
     void setUp() {
-        adapter = new StaticPortfolioReadAdapter(
+        adapter = new PortfolioReadAdapter(
                 springDataBotRepository,
                 springDataSignalRepository,
                 springDataUserSubscriptionRepository,
                 springDataUserPortfolioRepository,
-                springDataRawEventRepository
+                springDataRawEventRepository,
+                mock(io.marcus.infrastructure.persistence.SpringDataPortfolioHistoryRepository.class)
         );
     }
 

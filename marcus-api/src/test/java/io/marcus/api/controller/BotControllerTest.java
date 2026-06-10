@@ -416,6 +416,56 @@ class BotControllerTest {
     }
 
     @Test
+    void shouldUploadBotBacktestResultsWithOffsetTimestamps() throws Exception {
+        String jsonPayload = """
+                {
+                  "runName": "baseline-offset",
+                  "startedAt": "2026-03-24T05:00:00+00:00",
+                  "endedAt": "2026-03-24T06:00:00+00:00",
+                  "metrics": {"total_return": 0.12},
+                  "equityHistory": [
+                    {
+                      "timestamp": "2026-03-24T05:00:00+00:00",
+                      "cash": 10000,
+                      "equity": 10000,
+                      "realizedPnl": 0,
+                      "unrealizedPnl": 0,
+                      "totalFees": 0
+                    }
+                  ],
+                  "closedTrades": [
+                    {
+                      "symbol": "BTCUSDT",
+                      "marketType": "SPOT",
+                      "side": "BUY",
+                      "quantity": 1,
+                      "entryPrice": 60000,
+                      "exitPrice": 61000,
+                      "pnl": 1000,
+                      "fees": 10,
+                      "entryTimestamp": "2026-03-24T05:00:00+00:00",
+                      "exitTimestamp": "2026-03-24T05:30:00+00:00",
+                      "durationSeconds": 1800
+                    }
+                  ]
+                }
+                """;
+
+        LocalDateTime startedAt = LocalDateTime.of(2026, 3, 24, 5, 0, 0);
+        LocalDateTime endedAt = LocalDateTime.of(2026, 3, 24, 6, 0, 0);
+        when(uploadBotBacktestResultUseCase.execute(eq("bot_123"), eq("ak_123"), any(BacktestUploadRequest.class)))
+                .thenReturn(new BacktestUploadResponse("bt_1", "bot_123", "baseline-offset", 1, 1, startedAt, endedAt));
+
+        mockMvc.perform(post("/api/v1/bots/bot_123/backtest-results")
+                .header("X-Bot-Api-Key", "ak_123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonPayload))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.runId").value("bt_1"))
+                .andExpect(jsonPath("$.closedTrades").value(1));
+    }
+
+    @Test
     void shouldSyncBotDryRunState() throws Exception {
         LocalDateTime snapshotAt = LocalDateTime.of(2026, 1, 2, 0, 0);
         BotDryRunSyncRequest request = new BotDryRunSyncRequest(

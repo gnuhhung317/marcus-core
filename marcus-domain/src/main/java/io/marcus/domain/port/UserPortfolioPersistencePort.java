@@ -10,4 +10,5 @@ public interface UserPortfolioPersistencePort {
 
     Optional<UserPortfolio> findByUserId(String userId);
 
+    void saveHistory(String userId, java.math.BigDecimal total, java.math.BigDecimal free, java.math.BigDecimal used, java.math.BigDecimal unrealizedPnl, String exchangeId);
 }

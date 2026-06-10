@@ -41,7 +41,15 @@ public class BalanceSyncUseCase {
         );
 
         userPortfolioPersistencePort.save(portfolio);
-        log.info("Successfully synced balance for user: {}. Available: {}, Unrealized PnL: {}",
+        userPortfolioPersistencePort.saveHistory(
+                userId,
+                request.total(),
+                request.available(),
+                request.used(),
+                request.unrealizedPnl(),
+                request.exchange()
+        );
+        log.info("Successfully synced balance and saved history for user: {}. Available: {}, Unrealized PnL: {}",
                 userId, request.available(), request.unrealizedPnl());
     }
 }

@@ -67,11 +67,11 @@ class LeaderboardControllerTest {
                 0, 20, 1, 1, false
         );
 
-        when(listLeaderboardBotsUseCase.execute("7D", "CRYPTO", "BTCUSDT", "sharpe", 0, 20))
+        when(listLeaderboardBotsUseCase.execute("DRY_RUN", "CRYPTO", "BTCUSDT", "sharpe", 0, 20))
                 .thenReturn(new BotDiscoveryReadPort.LeaderboardBotsPageSnapshot(List.of(item), meta));
 
         mockMvc.perform(get("/api/v1/leaderboard/bots")
-                        .param("timeframe", "7D")
+                        .param("dataSource", "DRY_RUN")
                         .param("market", "CRYPTO")
                         .param("asset", "BTCUSDT")
                         .param("rankMetric", "sharpe")

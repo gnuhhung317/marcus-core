@@ -36,12 +36,15 @@ public class JpaBotBacktestAdapter implements BotBacktestPort {
         runEntity.setMetricsJson(run.metricsJson());
         BotBacktestRunEntity savedRun = runRepository.save(runEntity);
 
-        equityHistory.stream()
+        List<BotHistoricalPortfolioEntity> portfolioEntities = equityHistory.stream()
                 .map(point -> toPortfolioEntity(run.runId(), point))
-                .forEach(portfolioRepository::save);
-        closedTrades.stream()
+                .toList();
+        portfolioRepository.saveAll(portfolioEntities);
+
+        List<BotHistoricalClosedTradeEntity> closedTradeEntities = closedTrades.stream()
                 .map(this::toClosedTradeEntity)
-                .forEach(closedTradeRepository::save);
+                .toList();
+        closedTradeRepository.saveAll(closedTradeEntities);
 
         return toRun(savedRun);
     }
