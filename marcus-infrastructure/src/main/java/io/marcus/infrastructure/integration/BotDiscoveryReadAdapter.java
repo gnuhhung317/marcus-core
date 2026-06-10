@@ -19,6 +19,7 @@ import io.marcus.domain.vo.BotStatus;
 import io.marcus.domain.vo.SubscriptionStatus;
 import io.marcus.domain.vo.LeaderboardDataSource;
 import io.marcus.domain.vo.LeaderboardRankMetric;
+import io.marcus.domain.service.IdentityService;
 import io.marcus.infrastructure.persistence.SpringDataBotFavoriteRepository;
 import io.marcus.infrastructure.persistence.SpringDataBotDryRunClosedTradeRepository;
 import io.marcus.infrastructure.persistence.SpringDataBotHistoricalClosedTradeRepository;
@@ -35,17 +36,25 @@ import io.marcus.infrastructure.persistence.entity.BotDryRunClosedTradeEntity;
 import io.marcus.infrastructure.persistence.entity.SignalEntity;
 import io.marcus.infrastructure.persistence.entity.UserEntity;
 import io.marcus.infrastructure.persistence.entity.UserSubscriptionEntity;
+import io.marcus.infrastructure.persistence.executor.ExecutionStateRepository;
+import io.marcus.infrastructure.persistence.executor.ExecutionEventRepository;
+import io.marcus.infrastructure.persistence.executor.ExecutionStateEntity;
+import io.marcus.infrastructure.persistence.executor.ExecutionEventEntity;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 /**
  * Real-time adapter for bot discovery and leaderboard operations.
@@ -63,6 +72,10 @@ public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
     private final SpringDataBotDryRunClosedTradeRepository botDryRunClosedTradeRepository;
     private final SpringDataBotHistoricalClosedTradeRepository botHistoricalClosedTradeRepository;
     private final SpringDataBotFavoriteRepository botFavoriteRepository;
+    private final IdentityService identityService;
+    private final ExecutionStateRepository executionStateRepository;
+    private final ExecutionEventRepository executionEventRepository;
+
 
     @Override
     @Transactional(readOnly = true)
@@ -160,32 +173,119 @@ public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
                 .orElseThrow(() -> new IllegalArgumentException("Bot not found with id: " + normalizedBotId));
 
         String normalizedAsset = normalizeAsset(asset);
-        List<TradeView> trades = new ArrayList<>();
-        trades.addAll(botDryRunClosedTradeRepository.findByBotIdOrderByExitTimestampAsc(normalizedBotId).stream()
-                .map(this::toTradeView)
-                .toList());
-        trades.addAll(botHistoricalClosedTradeRepository.findByBotIdOrderByExitTimestampAsc(normalizedBotId).stream()
-                .map(this::toTradeView)
-                .toList());
 
-        List<TradeLogSnapshot> filtered = trades.stream()
-                .filter(trade -> normalizedAsset == null
-                        || trade.assetPair().toUpperCase(Locale.ROOT).contains(normalizedAsset))
-                .sorted(Comparator.comparing(TradeView::timestamp).reversed())
-                .map(trade -> new TradeLogSnapshot(
-                        trade.timestamp(),
-                        trade.assetPair(),
-                        trade.side(),
-                        trade.size(),
-                        trade.entryPrice(),
-                        trade.exitPrice(),
-                        trade.netPnl()))
-                .toList();
+        Optional<String> currentUserIdOpt = identityService.getCurrentUserId();
+        if (currentUserIdOpt.isEmpty()) {
+            return new TradeLogPageSnapshot(List.of(), page, size, 0);
+        }
 
-        int totalElements = filtered.size();
+        String userId = currentUserIdOpt.get();
+        boolean hasActiveSubscription = springDataUserSubscriptionRepository
+                .findByUserIdAndBotIdAndStatus(userId, normalizedBotId, SubscriptionStatus.ACTIVE)
+                .isPresent();
+        if (!hasActiveSubscription) {
+            return new TradeLogPageSnapshot(List.of(), page, size, 0);
+        }
+
+        // Fetch execution states and signals
+        List<Object[]> rows = executionStateRepository.findClosedExecutionStatesAndSignalsForBot(normalizedBotId, normalizedAsset);
+
+        // Sort by closedAt descending
+        rows.sort((a, b) -> {
+            ExecutionStateEntity esA = (ExecutionStateEntity) a[0];
+            ExecutionStateEntity esB = (ExecutionStateEntity) b[0];
+            Instant tA = esA.getClosedAt() != null ? esA.getClosedAt() : Instant.MIN;
+            Instant tB = esB.getClosedAt() != null ? esB.getClosedAt() : Instant.MIN;
+            return tB.compareTo(tA);
+        });
+
+        int totalElements = rows.size();
         int fromIndex = Math.min(page * size, totalElements);
         int toIndex = Math.min(fromIndex + size, totalElements);
-        List<TradeLogSnapshot> pagedItems = filtered.subList(fromIndex, toIndex);
+        List<Object[]> pagedRows = rows.subList(fromIndex, toIndex);
+
+        List<TradeLogSnapshot> pagedItems = new ArrayList<>();
+        for (Object[] row : pagedRows) {
+            ExecutionStateEntity es = (ExecutionStateEntity) row[0];
+            SignalEntity s = (SignalEntity) row[1];
+
+            List<ExecutionEventEntity> events = executionEventRepository.findBySignalIdOrderBySequenceAsc(es.getSignalId());
+
+            double entryPrice = 0.0;
+            double exitPrice = 0.0;
+            double sizeVal = s.getAmount() != null ? s.getAmount().doubleValue() : 0.0;
+            double netPnl = 0.0;
+
+            for (ExecutionEventEntity event : events) {
+                JsonNode payload = event.getPayload();
+                String type = event.getEventType();
+
+                if ("ORDER_FILLED".equals(type)) {
+                    double fillPrice = 0.0;
+                    if (payload.has("fill_price")) {
+                        fillPrice = payload.get("fill_price").asDouble();
+                    } else if (payload.has("price")) {
+                        fillPrice = payload.get("price").asDouble();
+                    }
+
+                    if (entryPrice == 0.0) {
+                        entryPrice = fillPrice;
+                    } else {
+                        exitPrice = fillPrice;
+                    }
+                } else if ("POSITION_OPENED".equals(type)) {
+                    if (payload.has("position_size")) {
+                        sizeVal = payload.get("position_size").asDouble();
+                    } else if (payload.has("size")) {
+                        sizeVal = payload.get("size").asDouble();
+                    }
+                } else if ("POSITION_CLOSED".equals(type)) {
+                    if (payload.has("pnl")) {
+                        netPnl = payload.get("pnl").asDouble();
+                    } else if (payload.has("netPnl")) {
+                        netPnl = payload.get("netPnl").asDouble();
+                    } else if (payload.has("realized_pnl")) {
+                        netPnl = payload.get("realized_pnl").asDouble();
+                    }
+
+                    if (payload.has("exit_price")) {
+                        exitPrice = payload.get("exit_price").asDouble();
+                    } else if (payload.has("price") && exitPrice == 0.0) {
+                        exitPrice = payload.get("price").asDouble();
+                    }
+                }
+            }
+
+            if (entryPrice == 0.0 && s.getEntry() != null) {
+                entryPrice = s.getEntry().doubleValue();
+            }
+
+            if (exitPrice == 0.0 && entryPrice != 0.0 && sizeVal != 0.0) {
+                boolean isLong = s.getAction() == io.marcus.domain.vo.SignalAction.OPEN_LONG;
+                if (isLong) {
+                    exitPrice = entryPrice + (netPnl / sizeVal);
+                } else {
+                    exitPrice = entryPrice - (netPnl / sizeVal);
+                }
+            }
+
+            LocalDateTime timestamp = es.getClosedAt() != null
+                    ? LocalDateTime.ofInstant(es.getClosedAt(), ZoneOffset.UTC)
+                    : LocalDateTime.now();
+
+            String sideStr = (s.getAction() == io.marcus.domain.vo.SignalAction.OPEN_SHORT) ? "SHORT" : "LONG";
+
+            pagedItems.add(new TradeLogSnapshot(
+                    timestamp,
+                    s.getSymbol(),
+                    sideStr,
+                    sizeVal,
+                    entryPrice,
+                    exitPrice,
+                    netPnl
+            ));
+        }
+
         return new TradeLogPageSnapshot(pagedItems, page, size, totalElements);
     }
 
