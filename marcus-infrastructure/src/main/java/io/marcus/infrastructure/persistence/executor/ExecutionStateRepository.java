@@ -37,5 +37,18 @@ public interface ExecutionStateRepository extends JpaRepository<ExecutionStateEn
             @Param("botId") String botId,
             @Param("asset") String asset
     );
+
+    /**
+     * Find closed execution states and associated signals for a list of bot IDs and optional asset filter.
+     */
+    @Query("SELECT es, s FROM ExecutionStateEntity es, SignalEntity s " +
+           "WHERE es.signalId = s.signalId " +
+           "AND s.botId IN :botIds " +
+           "AND es.positionState = 'CLOSED' " +
+           "AND (:asset IS NULL OR UPPER(s.symbol) LIKE UPPER(CONCAT('%', :asset, '%')))")
+    List<Object[]> findClosedExecutionStatesAndSignalsForBots(
+            @Param("botIds") List<String> botIds,
+            @Param("asset") String asset
+    );
 }
 

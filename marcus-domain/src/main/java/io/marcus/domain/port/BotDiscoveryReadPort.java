@@ -129,6 +129,8 @@ public interface BotDiscoveryReadPort {
 
     TradeLogPageSnapshot listBotTrades(String botId, int page, int size, String asset);
 
+    TradeLogPageSnapshot listUserTrades(String userId, int page, int size, String asset);
+
     LeaderboardBotsPageSnapshot listLeaderboardBots(
             LeaderboardDataSource dataSource,
             String market,

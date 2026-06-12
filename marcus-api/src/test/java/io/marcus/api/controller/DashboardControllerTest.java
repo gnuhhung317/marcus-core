@@ -8,6 +8,8 @@ import io.marcus.application.usecase.GetDashboardExchangeAllocationUseCase;
 import io.marcus.application.usecase.GetDashboardOverviewUseCase;
 import io.marcus.application.usecase.GetPortfolioDecisionsUseCase;
 import io.marcus.application.usecase.GetPortfolioOverviewUseCase;
+import io.marcus.application.usecase.GetDashboardTradesUseCase;
+import io.marcus.domain.port.BotDiscoveryReadPort;
 import io.marcus.domain.port.MarketDataReadPort;
 import io.marcus.domain.port.PortfolioReadPort;
 import io.marcus.infrastructure.security.BotSignatureInterceptor;
@@ -54,6 +56,9 @@ class DashboardControllerTest {
 
     @MockBean
     private GetPortfolioDecisionsUseCase getPortfolioDecisionsUseCase;
+
+    @MockBean
+    private GetDashboardTradesUseCase getDashboardTradesUseCase;
 
     @MockBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -118,6 +123,27 @@ class DashboardControllerTest {
                 .thenThrow(new UnauthenticatedException("No authenticated user found"));
 
         mockMvc.perform(get("/api/v1/dashboard/overview"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+     }
+
+    @Test
+    void shouldGetDashboardTrades() throws Exception {
+        when(getDashboardTradesUseCase.execute(0, 8, null))
+                .thenReturn(new BotDiscoveryReadPort.TradeLogPageSnapshot(List.of(), 0, 8, 0));
+
+        mockMvc.perform(get("/api/v1/dashboard/trades"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items").isArray())
+                .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    @Test
+    void shouldReturnUnauthorizedWhenDashboardTradesUnauthenticated() throws Exception {
+        when(getDashboardTradesUseCase.execute(0, 8, null))
+                .thenThrow(new UnauthenticatedException("No authenticated user found"));
+
+        mockMvc.perform(get("/api/v1/dashboard/trades"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
     }

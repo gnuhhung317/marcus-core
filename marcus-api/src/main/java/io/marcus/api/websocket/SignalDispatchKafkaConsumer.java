@@ -29,7 +29,11 @@ public class SignalDispatchKafkaConsumer {
     private final ExecutorSessionRegistry sessionRegistry;
     private final SignalFrameBuilder signalFrameBuilder;
 
-    @KafkaListener(topics = "trading-signals", groupId = "marcus-websocket-dispatcher")
+    @KafkaListener(
+            topics = "${marcus.messaging.signal-storage-topic:trading-signals}",
+            groupId = "#{'marcus-websocket-dispatcher-' + T(java.util.UUID).randomUUID().toString()}",
+            properties = "auto.offset.reset=latest"
+    )
     public void consume(String signalJson) {
         try {
             Signal signal = objectMapper.readValue(signalJson, Signal.class);

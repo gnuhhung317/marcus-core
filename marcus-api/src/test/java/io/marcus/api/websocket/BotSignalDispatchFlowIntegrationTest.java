@@ -5,7 +5,6 @@ import io.marcus.api.websocket.executor.ExecutorEventEventHandler;
 import io.marcus.api.websocket.executor.AuditPushEventHandler;
 import io.marcus.application.dto.UpsertUserSessionRequest;
 import io.marcus.application.usecase.CaptureSignalUseCase;
-import io.marcus.application.usecase.ResolveBotRoutingTargetsUseCase;
 import io.marcus.application.usecase.SubscribeBotUseCase;
 import io.marcus.application.usecase.UpsertUserSessionUseCase;
 import io.marcus.domain.model.Bot;
@@ -13,7 +12,6 @@ import io.marcus.domain.model.Signal;
 import io.marcus.domain.model.UserSubscription;
 import io.marcus.domain.port.BotSubscriberRoutingPort;
 import io.marcus.domain.port.SignalPublisherPort;
-import io.marcus.domain.port.SignalServerDispatchPort;
 import io.marcus.domain.port.UserSessionRoutingPort;
 import io.marcus.domain.port.UserSubscriptionPersistencePort;
 import io.marcus.domain.repository.BotRepository;
@@ -146,18 +144,13 @@ class BotSignalDispatchFlowIntegrationTest {
 
         SignalFrameBuilder signalFrameBuilder = new SignalFrameBuilder();
         SignalDispatchKafkaConsumer consumer = new SignalDispatchKafkaConsumer(objectMapper, sessionRegistry, signalFrameBuilder);
-        RecordingSignalServerDispatchPort signalServerDispatchPort = new RecordingSignalServerDispatchPort(consumer);
-        ResolveBotRoutingTargetsUseCase resolveBotRoutingTargetsUseCase = new ResolveBotRoutingTargetsUseCase(
-                botSubscriberRoutingPort,
-                userSessionRoutingPort);
         InMemoryBotRepository inMemoryBotRepository = new InMemoryBotRepository();
         inMemoryBotRepository.registerBot(botId);
+        InMemorySignalPublisherPort signalPublisherPort = new InMemorySignalPublisherPort(consumer, objectMapper);
         CaptureSignalUseCase captureSignalUseCase = new CaptureSignalUseCase(
                 new InMemorySignalRepository(),
                 inMemoryBotRepository,
-                resolveBotRoutingTargetsUseCase,
-                new InMemorySignalPublisherPort(),
-                signalServerDispatchPort);
+                signalPublisherPort);
 
         io.marcus.application.dto.CaptureSignalRequest request = new io.marcus.application.dto.CaptureSignalRequest(
                 "sig_1",
@@ -181,9 +174,6 @@ class BotSignalDispatchFlowIntegrationTest {
 
         captureSignalUseCase.execute(request);
 
-        assertThat(signalServerDispatchPort.dispatchedTargetSets).hasSize(1);
-        assertThat(signalServerDispatchPort.dispatchedTargetSets.get(0)).containsExactly(serverId);
-
         org.mockito.ArgumentCaptor<TextMessage> messageCaptor = org.mockito.ArgumentCaptor.forClass(TextMessage.class);
         verify(webSocketSession, times(2)).sendMessage(messageCaptor.capture());
 
@@ -200,27 +190,6 @@ class BotSignalDispatchFlowIntegrationTest {
         assertThat(frames.get(1)).contains("\"bot_id\":\"" + botId + "\"");
         assertThat(frames.get(1)).contains("\"symbol\":\"BTC/USDT\"");
         assertThat(frames.get(1)).contains("\"action\":\"OPEN_LONG\"");
-    }
-
-    private static final class RecordingSignalServerDispatchPort implements SignalServerDispatchPort {
-
-        private final SignalDispatchKafkaConsumer consumer;
-        private final List<Set<String>> dispatchedTargetSets = new ArrayList<>();
-        private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
-
-        private RecordingSignalServerDispatchPort(SignalDispatchKafkaConsumer consumer) {
-            this.consumer = consumer;
-        }
-
-        @Override
-        public void dispatchToServers(Signal signal, Set<String> serverIds) {
-            dispatchedTargetSets.add(new LinkedHashSet<>(serverIds));
-            try {
-                consumer.consume(objectMapper.writeValueAsString(signal));
-            } catch (Exception exception) {
-                throw new IllegalStateException("Failed to serialize signal for dispatch test", exception);
-            }
-        }
     }
 
     private static final class InMemorySignalRepository implements SignalRepository {
@@ -255,9 +224,21 @@ class BotSignalDispatchFlowIntegrationTest {
 
     private static final class InMemorySignalPublisherPort implements SignalPublisherPort {
 
+        private final SignalDispatchKafkaConsumer consumer;
+        private final ObjectMapper objectMapper;
+
+        private InMemorySignalPublisherPort(SignalDispatchKafkaConsumer consumer, ObjectMapper objectMapper) {
+            this.consumer = consumer;
+            this.objectMapper = objectMapper;
+        }
+
         @Override
         public void publish(Signal signal) {
-            // no-op for this integration test
+            try {
+                consumer.consume(objectMapper.writeValueAsString(signal));
+            } catch (Exception exception) {
+                throw new IllegalStateException("Failed to serialize signal for dispatch test", exception);
+            }
         }
     }
 

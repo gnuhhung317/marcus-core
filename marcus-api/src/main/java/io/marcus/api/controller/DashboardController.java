@@ -5,6 +5,8 @@ import io.marcus.application.usecase.GetDashboardEquitySeriesUseCase;
 import io.marcus.application.usecase.GetDashboardOverviewUseCase;
 import io.marcus.application.usecase.GetPortfolioDecisionsUseCase;
 import io.marcus.application.usecase.GetPortfolioOverviewUseCase;
+import io.marcus.application.usecase.GetDashboardTradesUseCase;
+import io.marcus.domain.port.BotDiscoveryReadPort;
 import io.marcus.domain.port.MarketDataReadPort;
 import io.marcus.domain.port.PortfolioReadPort;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ public class DashboardController {
     private final GetDashboardExchangeAllocationUseCase getDashboardExchangeAllocationUseCase;
     private final GetPortfolioOverviewUseCase getPortfolioOverviewUseCase;
     private final GetPortfolioDecisionsUseCase getPortfolioDecisionsUseCase;
+    private final GetDashboardTradesUseCase getDashboardTradesUseCase;
 
     @GetMapping("/overview")
     public ResponseEntity<MarketDataReadPort.DashboardOverviewSnapshot> getOverview() {
@@ -82,6 +85,15 @@ public class DashboardController {
                 )
         );
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/trades")
+    public ResponseEntity<BotDiscoveryReadPort.TradeLogPageSnapshot> getDashboardTrades(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size,
+            @RequestParam(required = false) String asset
+    ) {
+        return ResponseEntity.ok(getDashboardTradesUseCase.execute(page, size, asset));
     }
 
     /**

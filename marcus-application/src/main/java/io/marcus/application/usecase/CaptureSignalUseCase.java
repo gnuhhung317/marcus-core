@@ -1,7 +1,6 @@
 package io.marcus.application.usecase;
 
 import io.marcus.application.dto.CaptureSignalRequest;
-import io.marcus.application.dto.ResolveBotRoutingTargetsRequest;
 import io.marcus.domain.exception.BotNotFoundException;
 import io.marcus.domain.exception.DuplicateSignalException;
 import io.marcus.domain.model.Bot;
@@ -12,25 +11,22 @@ import io.marcus.domain.vo.MarketType;
 import io.marcus.domain.vo.OrderType;
 import io.marcus.domain.vo.SignalStatus;
 import io.marcus.domain.port.SignalPublisherPort;
-import io.marcus.domain.port.SignalServerDispatchPort;
 import io.marcus.domain.repository.BotRepository;
 import io.marcus.domain.repository.SignalRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
-import java.util.Set;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional
 @RequiredArgsConstructor
 @Slf4j
 public class CaptureSignalUseCase {
 
     private final SignalRepository signalRepository;
     private final BotRepository botRepository;
-    private final ResolveBotRoutingTargetsUseCase resolveBotRoutingTargetsUseCase;
     private final SignalPublisherPort signalPublisherPort;
-    private final SignalServerDispatchPort signalServerDispatchPort;
 
     public void execute(CaptureSignalRequest request) {
         if (request == null) {
@@ -78,22 +74,11 @@ public class CaptureSignalUseCase {
                 signal.getMarketType(), signal.getOrderType(), signal.simulated());
 
         if (signal.simulated()) {
-            log.info("[Signal] Skipping Kafka publication and WebSocket dispatch for simulated signalId={}", signal.getSignalId());
+            log.info("[Signal] Skipping Kafka publication for simulated signalId={}", signal.getSignalId());
             return;
         }
 
-        // 2. Publish to Kafka (storage + global broadcast)
+        // 2. Publish to Kafka for global broadcast
         signalPublisherPort.publish(signal);
-
-        // 3. Resolve target servers and dispatch for real-time routing
-        Set<String> targetServerIds = resolveBotRoutingTargetsUseCase
-                .execute(new ResolveBotRoutingTargetsRequest(signal.getBotId()));
-
-        if (targetServerIds.isEmpty()) {
-            log.debug("[Signal] No active subscribers found for botId={}", signal.getBotId());
-            return;
-        }
-
-        signalServerDispatchPort.dispatchToServers(signal, targetServerIds);
     }
 }

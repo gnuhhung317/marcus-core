@@ -36,14 +36,10 @@ Luồng đi của một **Signal** từ khi bot gửi đến khi tới tay ngư�
     *   **CaptureSignalUseCase** gọi `signalRepository.existsBySignalId` để chặn trùng lặp logic vĩnh viễn trong DB.
 3.  **Persistence**: Lưu vào PostgreSQL thông qua **SignalRepository**.
 4.  **Global Event**: Gọi `signalPublisherPort.publish(signal)` đẩy vào Kafka topic `trading-signals`.
-5.  **Targeted Routing**:
-    *   **ResolveBotRoutingTargetsUseCase** tìm các server (pod) đang giữ kết nối của các subscriber.
-    *   **KafkaSignalServerDispatchAdapter** đẩy tín hiệu vào topic `trading-signals-routing` với Kafka Key là `targetServerId`.
-6.  **Instance Delivery**:
-    *   **KafkaSignalRoutingDispatcherAdapter** tại mỗi instance lắng nghe topic routing. Nếu đúng `serverId`, nó đẩy vào **Redis Pub/Sub** channel `marcus:signals:dispatch:broadcast`.
-7.  **WebSocket Dispatch**:
-    *   **SignalDispatchKafkaConsumer** (hoặc Redis listener tương ứng) nhận tin, gọi **ExecutorSessionRegistry**.
-    *   **ExecutorSessionRegistry** tìm **WebSocketSession** trong memory và gửi frame JSON qua dây.
+5.  **Instance Fanout**:
+    *   **SignalDispatchKafkaConsumer** trên mỗi pod dùng group id riêng và nhận mọi signal từ topic `trading-signals`.
+6.  **WebSocket Dispatch**:
+    *   **ExecutorSessionRegistry** giữ **WebSocketSession** trong memory và broadcast frame JSON đến mọi executor đã đăng ký với bot đó.
 
 ---
 

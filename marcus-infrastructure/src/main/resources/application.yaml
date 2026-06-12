@@ -38,6 +38,3 @@ marcus:
     signal-storage-topic: trading-signals
     signal-storage-group: marcus-signal-storage
     signal-storage-batch-size: 100
-    signal-routing-topic: trading-signals-routing
-    signal-dispatcher-group: marcus-signal-dispatcher
-    signal-dispatch-broadcast-channel: marcus:signals:dispatch:broadcast
