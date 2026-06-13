@@ -63,26 +63,28 @@ class SubscribeBotUseCaseTest {
     @Test
     void shouldCreateSubscriptionWhenValidRequest() {
         Bot activeBot = Bot.builder().botId("bot_1").status(BotStatus.ACTIVE).build();
-        UserSubscription savedSubscription = UserSubscription.builder()
-                .userSubscriptionId("sub_1")
-                .userId("usr_1")
-                .botId("bot_1")
-                .wsToken("ws_abc")
-                .status(SubscriptionStatus.ACTIVE)
-                .startDate(LocalDateTime.now())
-                .build();
 
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("usr_1"));
         when(userRepository.existsByIdAndRole("usr_1", Role.TRADER)).thenReturn(true);
         when(botRepository.findByBotId("bot_1")).thenReturn(Optional.of(activeBot));
         when(userSubscriptionPersistencePort.findActiveByUserIdAndBotId("usr_1", "bot_1")).thenReturn(Optional.empty());
-        when(userSubscriptionPersistencePort.findAnyActiveWsTokenByUserId("usr_1")).thenReturn(Optional.of("ws_abc"));
-        when(userSubscriptionPersistencePort.save(any(UserSubscription.class))).thenReturn(savedSubscription);
+        when(userSubscriptionPersistencePort.save(any(UserSubscription.class)))
+                .thenAnswer(invocation -> {
+                    UserSubscription subscription = invocation.getArgument(0);
+                    return UserSubscription.builder()
+                            .userSubscriptionId(subscription.getUserSubscriptionId())
+                            .userId(subscription.getUserId())
+                            .botId(subscription.getBotId())
+                            .wsToken(subscription.getWsToken())
+                            .status(subscription.getStatus())
+                            .startDate(subscription.getStartDate())
+                            .build();
+                });
 
         SubscribeBotResult result = useCase.execute("bot_1");
 
         assertThat(result.botId()).isEqualTo("bot_1");
-        assertThat(result.wsToken()).isEqualTo("ws_abc");
+        assertThat(result.wsToken()).startsWith("ws_");
         assertThat(result.status()).isEqualTo("ACTIVE");
         verify(botSubscriberRoutingPort).upsertSubscriber("bot_1", "usr_1");
     }

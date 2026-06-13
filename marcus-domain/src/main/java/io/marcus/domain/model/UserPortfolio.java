@@ -29,6 +29,9 @@ public class UserPortfolio extends BaseModel {
     
     private String exchangeId;
     private LocalDateTime lastSyncAt;
+    private Integer freshAccountsCount;
+    private Integer staleAccountsCount;
+    private String dataFreshness;
 
     public static UserPortfolio createDefault(String userId) {
         return UserPortfolio.builder()
@@ -39,6 +42,9 @@ public class UserPortfolio extends BaseModel {
                 .unrealizedPnl(BigDecimal.ZERO)
                 .maxDrawdownThreshold(new BigDecimal("0.1000")) // 10%
                 .mediumRiskThreshold(new BigDecimal("0.0500"))  // 5%
+                .freshAccountsCount(0)
+                .staleAccountsCount(0)
+                .dataFreshness("STALE")
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();

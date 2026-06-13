@@ -8,7 +8,10 @@ public interface MarketDataReadPort {
             double totalEquity,
             double openPnl,
             double winRate,
-            int activeBots
+            int activeBots,
+            int freshAccountsCount,
+            int staleAccountsCount,
+            String dataFreshness
     ) {}
 
     record ExchangeAllocationSnapshot(String exchange, double percentage) {}

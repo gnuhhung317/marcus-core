@@ -1,13 +1,14 @@
-package io.marcus.application.dto;
+package io.marcus.domain.port;
 
 import java.math.BigDecimal;
 
-public record BalanceSyncRequest(
+public record PortfolioBalanceSyncData(
         BigDecimal total,
         BigDecimal available,
         BigDecimal used,
         BigDecimal unrealizedPnl,
-        String exchange,
+        String exchangeId,
         String currency,
         String executionMode
-) {}
+) {
+}

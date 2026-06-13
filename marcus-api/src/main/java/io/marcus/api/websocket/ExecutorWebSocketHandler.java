@@ -187,6 +187,7 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
                 session
         );
         session.getAttributes().put(ExecutorHandshakeInterceptor.USER_ID_ATTRIBUTE, subscription.get().getUserId());
+        session.getAttributes().put(ExecutorHandshakeInterceptor.USER_SUBSCRIPTION_ID_ATTRIBUTE, subscription.get().getUserSubscriptionId());
         session.getAttributes().put("botId", botId);
         userSubscriptionPersistencePort.markExecutorConnected(subscription.get().getUserSubscriptionId(), true);
         executorOnlineStatusPort.markOnline(wsToken, 30);
@@ -218,6 +219,7 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
                 session
         );
         session.getAttributes().put(ExecutorHandshakeInterceptor.USER_ID_ATTRIBUTE, subscription.get().getUserId());
+        session.getAttributes().put(ExecutorHandshakeInterceptor.USER_SUBSCRIPTION_ID_ATTRIBUTE, subscription.get().getUserSubscriptionId());
         session.getAttributes().put("botId", botId);
         userSubscriptionPersistencePort.markExecutorConnected(subscription.get().getUserSubscriptionId(), true);
         executorOnlineStatusPort.markOnline(wsToken, 30);

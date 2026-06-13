@@ -60,4 +60,13 @@ public class UserPortfolioEntity extends BaseEntity {
 
     @Column(name = "last_sync_at")
     private LocalDateTime lastSyncAt;
+
+    @Column(name = "fresh_accounts_count", nullable = false)
+    private Integer freshAccountsCount = 0;
+
+    @Column(name = "stale_accounts_count", nullable = false)
+    private Integer staleAccountsCount = 0;
+
+    @Column(name = "data_freshness", nullable = false)
+    private String dataFreshness = "STALE";
 }

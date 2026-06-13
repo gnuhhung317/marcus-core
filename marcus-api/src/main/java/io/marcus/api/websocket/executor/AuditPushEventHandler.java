@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.marcus.api.websocket.ExecutorHandshakeInterceptor;
 import io.marcus.application.dto.BalanceSyncRequest;
 import io.marcus.application.usecase.BalanceSyncUseCase;
+import io.marcus.domain.port.PortfolioSyncContext;
 import io.marcus.domain.model.RawEvent;
 import io.marcus.domain.port.RawEventPersistencePort;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,8 @@ public class AuditPushEventHandler {
             String kind = payloadNode.path("kind").asText("unknown");
             String botId = (String) session.getAttributes().get("botId");
             String userId = (String) session.getAttributes().get(ExecutorHandshakeInterceptor.USER_ID_ATTRIBUTE);
+            String userSubscriptionId = (String) session.getAttributes().get(ExecutorHandshakeInterceptor.USER_SUBSCRIPTION_ID_ATTRIBUTE);
+            String wsToken = (String) session.getAttributes().get(ExecutorHandshakeInterceptor.WS_TOKEN_ATTRIBUTE);
 
             // Map the raw json to Map for RawEvent storage
             Map<String, Object> rawPayload = objectMapper.convertValue(payloadNode, new TypeReference<Map<String, Object>>() {});
@@ -60,7 +63,7 @@ public class AuditPushEventHandler {
 
             // 2. Route if kind is balance_snapshot or balance-snapshot
             if ("balance_snapshot".equals(kind) || "balance-snapshot".equals(kind)) {
-                processBalanceSnapshot(userId, payloadNode);
+                processBalanceSnapshot(userId, userSubscriptionId, botId, wsToken, payloadNode);
             } else {
                 log.debug("Received unhandled audit-push kind: {}", kind);
             }
@@ -70,9 +73,9 @@ public class AuditPushEventHandler {
         }
     }
 
-    private void processBalanceSnapshot(String userId, JsonNode node) {
-        if (userId == null) {
-            log.warn("Skipping balance snapshot processing: session userId is null");
+    private void processBalanceSnapshot(String userId, String userSubscriptionId, String botId, String wsToken, JsonNode node) {
+        if (userId == null || userSubscriptionId == null) {
+            log.warn("Skipping balance snapshot processing: session context missing userId or subscriptionId");
             return;
         }
 
@@ -82,16 +85,23 @@ public class AuditPushEventHandler {
             BigDecimal used = getBigDecimalSafely(node, "used", BigDecimal.ZERO);
             BigDecimal unrealized = getBigDecimalSafely(node, "unrealizedPnl", BigDecimal.ZERO);
             String exchange = node.path("exchange").asText("unknown");
+            String currency = node.path("currency").asText("USDT");
+            String executionMode = node.path("mode").asText(node.path("executionMode").asText("unknown"));
 
             BalanceSyncRequest request = new BalanceSyncRequest(
                     total,
                     free,
                     used,
                     unrealized,
-                    exchange
+                    exchange,
+                    currency,
+                    executionMode
             );
 
-            balanceSyncUseCase.execute(userId, request);
+            balanceSyncUseCase.execute(
+                    new PortfolioSyncContext(userId, userSubscriptionId, botId, wsToken),
+                    request
+            );
         } catch (Exception ex) {
             log.error("Error parsing balance snapshot data", ex);
         }

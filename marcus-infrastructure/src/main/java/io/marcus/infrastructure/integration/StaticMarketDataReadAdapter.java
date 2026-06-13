@@ -4,20 +4,25 @@ import io.marcus.domain.port.MarketDataReadPort;
 import io.marcus.domain.service.SignalMetricsCalculator;
 import io.marcus.domain.vo.SubscriptionStatus;
 import io.marcus.infrastructure.persistence.SpringDataBotRepository;
+import io.marcus.infrastructure.persistence.SpringDataPortfolioAccountRepository;
 import io.marcus.infrastructure.persistence.SpringDataSignalRepository;
 import io.marcus.infrastructure.persistence.SpringDataUserSubscriptionRepository;
 import io.marcus.infrastructure.persistence.SpringDataUserPortfolioRepository;
 import io.marcus.infrastructure.persistence.entity.BotEntity;
 import io.marcus.infrastructure.persistence.entity.SignalEntity;
+import io.marcus.infrastructure.persistence.entity.PortfolioAccountEntity;
 import io.marcus.infrastructure.persistence.entity.UserPortfolioEntity;
 import io.marcus.infrastructure.persistence.entity.UserSubscriptionEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.NoSuchElementException;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -29,6 +34,7 @@ public class StaticMarketDataReadAdapter implements MarketDataReadPort {
     private final SpringDataSignalRepository springDataSignalRepository;
     private final SpringDataUserSubscriptionRepository springDataUserSubscriptionRepository;
     private final SpringDataUserPortfolioRepository springDataUserPortfolioRepository;
+    private final SpringDataPortfolioAccountRepository springDataPortfolioAccountRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -37,7 +43,7 @@ public class StaticMarketDataReadAdapter implements MarketDataReadPort {
             throw new IllegalArgumentException("userId must not be blank");
         }
 
-        UserPortfolioEntity portfolio = findPortfolioOrDefault(userId);
+        UserPortfolioEntity portfolio = currentPortfolioState(userId);
 
         List<UserSubscriptionEntity> activeSubscriptions = springDataUserSubscriptionRepository
                 .findByUserIdAndStatusOrderByCreatedAtDesc(userId, SubscriptionStatus.ACTIVE);
@@ -63,7 +69,15 @@ public class StaticMarketDataReadAdapter implements MarketDataReadPort {
         double winRate = signalDataList.isEmpty() ? 0.0
                 : SignalMetricsCalculator.round4(successfulSignals / (double) signalDataList.size());
         int activeBots = activeSubscriptions.size();
-        return new DashboardOverviewSnapshot(totalEquity, openPnl, winRate, activeBots);
+        return new DashboardOverviewSnapshot(
+                totalEquity,
+                openPnl,
+                winRate,
+                activeBots,
+                safeInt(portfolio.getFreshAccountsCount()),
+                safeInt(portfolio.getStaleAccountsCount()),
+                portfolio.getDataFreshness() != null ? portfolio.getDataFreshness() : "STALE"
+        );
     }
 
     @Override
@@ -73,6 +87,7 @@ public class StaticMarketDataReadAdapter implements MarketDataReadPort {
             throw new IllegalArgumentException("userId must not be blank");
         }
 
+        LocalDateTime freshnessCutoff = LocalDateTime.now().minusHours(24);
         Map<String, String> exchangeByBotId = springDataBotRepository.findAllWithExchange()
                 .stream()
                 .collect(Collectors.toMap(
@@ -82,38 +97,34 @@ public class StaticMarketDataReadAdapter implements MarketDataReadPort {
                         LinkedHashMap::new
                 ));
 
-        List<UserSubscriptionEntity> activeSubscriptions = springDataUserSubscriptionRepository
-                .findByUserIdAndStatusOrderByCreatedAtDesc(userId, SubscriptionStatus.ACTIVE);
+        List<PortfolioAccountEntity> freshAccounts = springDataPortfolioAccountRepository.findByUserId(userId).stream()
+                .filter(account -> account.getLastSyncAt() != null && !account.getLastSyncAt().isBefore(freshnessCutoff) && account.isActive())
+                .toList();
 
-        Map<String, Long> countsByExchange = activeSubscriptions.stream()
+        Map<String, BigDecimal> totalsByExchange = freshAccounts.stream()
                 .collect(Collectors.groupingBy(
-                        subscription -> exchangeByBotId.getOrDefault(subscription.getBotId(), "UNASSIGNED"),
+                        account -> exchangeByBotId.getOrDefault(account.getBotId(), normalizeExchange(account.getExchangeId())),
                         LinkedHashMap::new,
-                        Collectors.counting()
+                        Collectors.reducing(BigDecimal.ZERO,
+                                account -> account.getTotal() != null ? account.getTotal().max(BigDecimal.ZERO) : BigDecimal.ZERO,
+                                BigDecimal::add)
                 ));
 
-        long total = countsByExchange.values().stream().mapToLong(Long::longValue).sum();
-        if (total == 0L) {
+        BigDecimal total = totalsByExchange.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (total.compareTo(BigDecimal.ZERO) <= 0) {
             return List.of();
         }
 
-        return countsByExchange.entrySet().stream()
+        return totalsByExchange.entrySet().stream()
                 .map(entry -> new ExchangeAllocationSnapshot(entry.getKey(),
-                        SignalMetricsCalculator.round2(entry.getValue() / (double) total)))
+                        SignalMetricsCalculator.round2(entry.getValue().divide(total, 8, java.math.RoundingMode.HALF_UP).doubleValue())))
                 .sorted((left, right) -> Double.compare(right.percentage(), left.percentage()))
                 .toList();
     }
 
-    private UserPortfolioEntity findPortfolioOrDefault(String userId) {
+    private UserPortfolioEntity currentPortfolioState(String userId) {
         return springDataUserPortfolioRepository.findByUserId(userId)
-                .orElseGet(() -> UserPortfolioEntity.builder()
-                        .totalCapital(java.math.BigDecimal.valueOf(10000.0))
-                        .availableBalance(java.math.BigDecimal.valueOf(10000.0))
-                        .unrealizedPnl(java.math.BigDecimal.ZERO)
-                        .realizedPnl(java.math.BigDecimal.ZERO)
-                        .maxDrawdownThreshold(java.math.BigDecimal.valueOf(0.1000))
-                        .mediumRiskThreshold(java.math.BigDecimal.valueOf(0.0500))
-                        .build());
+                .orElseThrow(() -> new NoSuchElementException("Portfolio not found for user: " + userId));
     }
 
     private SignalMetricsCalculator.SignalData toSignalData(SignalEntity signal) {
@@ -140,5 +151,13 @@ public class StaticMarketDataReadAdapter implements MarketDataReadPort {
 
     private double safeDouble(java.math.BigDecimal value, double fallback) {
         return value != null ? value.doubleValue() : fallback;
+    }
+
+    private int safeInt(Integer value) {
+        return value != null ? value : 0;
+    }
+
+    private String normalizeExchange(String exchangeId) {
+        return exchangeId == null || exchangeId.isBlank() ? "UNASSIGNED" : exchangeId.toUpperCase(Locale.ROOT);
     }
 }

@@ -16,13 +16,13 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "portfolio_balance_history")
+@Table(name = "portfolio_aggregate_history")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-public class PortfolioBalanceHistoryEntity extends BaseEntity {
+public class PortfolioAggregateHistoryEntity extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -40,26 +40,23 @@ public class PortfolioBalanceHistoryEntity extends BaseEntity {
     @Column(name = "used", precision = 18, scale = 8, nullable = false)
     private BigDecimal used;
 
+    @Column(name = "realized_pnl", precision = 18, scale = 8, nullable = false)
+    private BigDecimal realizedPnl;
+
     @Column(name = "unrealized_pnl", precision = 18, scale = 8, nullable = false)
     private BigDecimal unrealizedPnl;
 
+    @Column(name = "fresh_accounts_count", nullable = false)
+    private Integer freshAccountsCount;
+
+    @Column(name = "stale_accounts_count", nullable = false)
+    private Integer staleAccountsCount;
+
+    @Column(name = "data_freshness", nullable = false)
+    private String dataFreshness;
+
     @Column(name = "exchange_id")
     private String exchangeId;
-
-    @Column(name = "user_subscription_id")
-    private String userSubscriptionId;
-
-    @Column(name = "bot_id")
-    private String botId;
-
-    @Column(name = "currency")
-    private String currency;
-
-    @Column(name = "execution_mode")
-    private String executionMode;
-
-    @Column(name = "is_active", nullable = false)
-    private boolean active = true;
 
     @Column(name = "snapshot_at", nullable = false)
     private LocalDateTime snapshotAt;

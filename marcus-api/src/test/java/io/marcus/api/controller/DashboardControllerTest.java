@@ -76,7 +76,7 @@ class DashboardControllerTest {
     @Test
     void shouldGetDashboardOverview() throws Exception {
         when(getDashboardOverviewUseCase.execute())
-                .thenReturn(new MarketDataReadPort.DashboardOverviewSnapshot(12500.25, 132.4, 0.61, 3));
+                .thenReturn(new MarketDataReadPort.DashboardOverviewSnapshot(12500.25, 132.4, 0.61, 3, 0, 0, "FRESH"));
 
         mockMvc.perform(get("/api/v1/dashboard/overview"))
                 .andExpect(status().isOk())

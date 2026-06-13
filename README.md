@@ -90,6 +90,7 @@ The backend now stores bot history in three distinct flows:
 ## 📚 Further Documentation
 
 - **[Business Flows](./docs/BUSINESS_FLOWS.md)**: Detailed Mermaid diagrams for IAM, Signal Fan-out, and Handshakes.
+- **[Multi-Account Portfolio Sync Guide](./docs/guides/multi-account-portfolio-sync-guide.md)**: Operational guide for the account-scoped portfolio model and manual verification steps.
 - **[Contributing & Coding Standards](./CONTRIBUTING.md)**: Rules for developers and PR guidelines.
 - **[Knowledge Base](./docs/knowledge/)**: Best practices, DDD patterns, and repo structure.
 - **[API Specification](./docs/openapi/marcus-trading-delta.yaml)**: OpenAPI/Swagger definition.

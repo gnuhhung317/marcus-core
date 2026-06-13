@@ -77,7 +77,10 @@ public interface PortfolioReadPort {
                         int atRiskSubscriptionCount,
                         double totalEquity,
                         double aggregateOpenPnL,
-                        LocalDateTime lastUpdated) {
+                        LocalDateTime lastUpdated,
+                        int freshAccountsCount,
+                        int staleAccountsCount,
+                        String dataFreshness) {
         }
 
         enum DecisionReason {

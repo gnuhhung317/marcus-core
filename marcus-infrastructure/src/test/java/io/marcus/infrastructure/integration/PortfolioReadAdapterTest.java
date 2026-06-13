@@ -5,11 +5,13 @@ import io.marcus.domain.port.PortfolioReadPort.ExecutionLogItemSnapshot;
 import io.marcus.domain.port.PortfolioReadPort.BotIntegrationHealthSnapshot;
 import io.marcus.infrastructure.persistence.entity.BotEntity;
 import io.marcus.infrastructure.persistence.entity.SignalEntity;
+import io.marcus.infrastructure.persistence.entity.PortfolioAggregateHistoryEntity;
 import io.marcus.infrastructure.persistence.SpringDataBotRepository;
 import io.marcus.infrastructure.persistence.SpringDataRawEventRepository;
 import io.marcus.infrastructure.persistence.SpringDataSignalRepository;
 import io.marcus.infrastructure.persistence.SpringDataUserPortfolioRepository;
 import io.marcus.infrastructure.persistence.SpringDataUserSubscriptionRepository;
+import io.marcus.infrastructure.persistence.SpringDataPortfolioAggregateHistoryRepository;
 import io.marcus.infrastructure.persistence.entity.RawEventEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 import java.util.NoSuchElementException;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 import java.time.Instant;
 import java.util.List;
@@ -40,6 +43,8 @@ class PortfolioReadAdapterTest {
     private SpringDataUserPortfolioRepository springDataUserPortfolioRepository;
     @Mock
     private SpringDataRawEventRepository springDataRawEventRepository;
+    @Mock
+    private SpringDataPortfolioAggregateHistoryRepository springDataPortfolioAggregateHistoryRepository;
 
     private PortfolioReadAdapter adapter;
 
@@ -51,7 +56,7 @@ class PortfolioReadAdapterTest {
                 springDataUserSubscriptionRepository,
                 springDataUserPortfolioRepository,
                 springDataRawEventRepository,
-                mock(io.marcus.infrastructure.persistence.SpringDataPortfolioHistoryRepository.class)
+                springDataPortfolioAggregateHistoryRepository
         );
     }
 
@@ -302,5 +307,26 @@ class PortfolioReadAdapterTest {
         assertNotNull(snapshot);
         assertEquals("UP", snapshot.overallStatus());
         assertTrue(snapshot.message().contains("System is fully healthy"));
+    }
+
+    @Test
+    void listDashboardEquitySeries_usesAggregateHistory() {
+        when(springDataPortfolioAggregateHistoryRepository.findByUserIdAndSnapshotAtAfterOrderBySnapshotAtAsc(eq("usr-1"), any()))
+                .thenReturn(List.of(
+                        PortfolioAggregateHistoryEntity.builder()
+                                .snapshotAt(LocalDateTime.of(2026, 5, 1, 10, 0))
+                                .total(new BigDecimal("10000"))
+                                .build(),
+                        PortfolioAggregateHistoryEntity.builder()
+                                .snapshotAt(LocalDateTime.of(2026, 5, 1, 10, 5))
+                                .total(new BigDecimal("15000"))
+                                .build()
+                ));
+
+        var series = adapter.listDashboardEquitySeries("usr-1", "1D");
+
+        assertEquals(2, series.size());
+        assertEquals(10000.0, series.get(0).value());
+        assertEquals(15000.0, series.get(1).value());
     }
 }

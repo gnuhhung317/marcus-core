@@ -1,55 +1,43 @@
 package io.marcus.application.usecase;
 
 import io.marcus.application.dto.BalanceSyncRequest;
-import io.marcus.domain.model.UserPortfolio;
-import io.marcus.domain.port.UserPortfolioPersistencePort;
+import io.marcus.domain.port.PortfolioBalanceSyncData;
+import io.marcus.domain.port.PortfolioSyncContext;
+import io.marcus.domain.port.PortfolioSyncPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class BalanceSyncUseCase {
 
-    private final UserPortfolioPersistencePort userPortfolioPersistencePort;
+    private final PortfolioSyncPort portfolioSyncPort;
 
-    @Transactional
-    public void execute(String userId, BalanceSyncRequest request) {
-        if (userId == null || userId.isBlank()) {
-            log.warn("Received balance sync attempt without valid userId");
+    public void execute(PortfolioSyncContext context, BalanceSyncRequest request) {
+        if (context == null || context.userId() == null || context.userId().isBlank()) {
+            log.warn("Received balance sync attempt without valid user context");
             return;
         }
         if (request == null) {
-            log.warn("Received balance sync with null request payload for user: {}", userId);
+            log.warn("Received balance sync with null request payload for user: {}", context.userId());
             return;
         }
 
-        UserPortfolio portfolio = userPortfolioPersistencePort
-                .findByUserId(userId)
-                .orElseGet(() -> {
-                    log.info("Initializing default user portfolio for userId: {}", userId);
-                    return UserPortfolio.createDefault(userId);
-                });
-
-        portfolio.updateBalance(
-                request.total(),
-                request.available(),
-                request.unrealizedPnl(),
-                request.exchange()
+        portfolioSyncPort.syncBalance(
+                context,
+                new PortfolioBalanceSyncData(
+                        request.total(),
+                        request.available(),
+                        request.used(),
+                        request.unrealizedPnl(),
+                        request.exchange(),
+                        request.currency(),
+                        request.executionMode()
+                )
         );
-
-        userPortfolioPersistencePort.save(portfolio);
-        userPortfolioPersistencePort.saveHistory(
-                userId,
-                request.total(),
-                request.available(),
-                request.used(),
-                request.unrealizedPnl(),
-                request.exchange()
-        );
-        log.info("Successfully synced balance and saved history for user: {}. Available: {}, Unrealized PnL: {}",
-                userId, request.available(), request.unrealizedPnl());
+        log.info("Successfully synced balance for user: {} subscription: {}. Available: {}, Unrealized PnL: {}",
+                context.userId(), context.userSubscriptionId(), request.available(), request.unrealizedPnl());
     }
 }

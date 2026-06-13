@@ -1,6 +1,5 @@
 package io.marcus.infrastructure.integration;
 
-import io.marcus.domain.model.UserPortfolio;
 import io.marcus.domain.port.PortfolioReadPort;
 import io.marcus.domain.service.SignalMetricsCalculator;
 import io.marcus.domain.service.PortfolioAnalyzerService;
@@ -12,7 +11,7 @@ import io.marcus.infrastructure.persistence.SpringDataUserPortfolioRepository;
 import io.marcus.infrastructure.persistence.entity.BotEntity;
 import io.marcus.infrastructure.persistence.entity.SignalEntity;
 import io.marcus.infrastructure.persistence.SpringDataRawEventRepository;
-import io.marcus.infrastructure.persistence.SpringDataPortfolioHistoryRepository;
+import io.marcus.infrastructure.persistence.SpringDataPortfolioAggregateHistoryRepository;
 import io.marcus.infrastructure.persistence.entity.RawEventEntity;
 import io.marcus.infrastructure.persistence.entity.UserPortfolioEntity;
 import io.marcus.infrastructure.persistence.entity.UserSubscriptionEntity;
@@ -43,7 +42,7 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
     private final SpringDataUserSubscriptionRepository springDataUserSubscriptionRepository;
     private final SpringDataUserPortfolioRepository springDataUserPortfolioRepository;
     private final SpringDataRawEventRepository springDataRawEventRepository;
-    private final SpringDataPortfolioHistoryRepository springDataPortfolioHistoryRepository;
+    private final SpringDataPortfolioAggregateHistoryRepository springDataPortfolioAggregateHistoryRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -60,13 +59,24 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
             default -> LocalDateTime.now().minusDays(7);
         };
 
-        List<io.marcus.infrastructure.persistence.entity.PortfolioBalanceHistoryEntity> history =
-                springDataPortfolioHistoryRepository.findByUserIdAndSnapshotAtAfterOrderBySnapshotAtAsc(userId, from);
+        List<io.marcus.infrastructure.persistence.entity.PortfolioAggregateHistoryEntity> history =
+                springDataPortfolioAggregateHistoryRepository.findByUserIdAndSnapshotAtAfterOrderBySnapshotAtAsc(userId, from);
 
-        if (history.isEmpty()) {
-            UserPortfolioEntity portfolio = findPortfolioOrDefault(userId);
-            double currentEquity = safeDouble(portfolio.getTotalCapital(), 10000.0);
-            return List.of(new TimeSeriesPointSnapshot(LocalDateTime.now(), SignalMetricsCalculator.round4(currentEquity)));
+        if (history.size() < 2) {
+            double currentEquity;
+            LocalDateTime lastTime;
+            if (history.isEmpty()) {
+                UserPortfolioEntity portfolio = currentPortfolioState(userId);
+                currentEquity = safeDouble(portfolio.getTotalCapital(), 10000.0);
+                lastTime = LocalDateTime.now();
+            } else {
+                currentEquity = history.get(0).getTotal().doubleValue();
+                lastTime = history.get(0).getSnapshotAt();
+            }
+            return List.of(
+                new TimeSeriesPointSnapshot(from, SignalMetricsCalculator.round4(currentEquity)),
+                new TimeSeriesPointSnapshot(lastTime, SignalMetricsCalculator.round4(currentEquity))
+            );
         }
 
         return history.stream()
@@ -387,7 +397,7 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
         List<UserSubscriptionEntity> activeSubscriptions = springDataUserSubscriptionRepository
                 .findByUserIdAndStatus(userId, SubscriptionStatus.ACTIVE);
 
-        UserPortfolioEntity portfolio = findPortfolioOrDefault(userId);
+        UserPortfolioEntity portfolio = currentPortfolioState(userId);
         int activeBotsCount = activeSubscriptions.size();
 
         LocalDateTime yesterday = LocalDateTime.now().minusHours(24);
@@ -420,7 +430,10 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
                 atRiskCount,
                 liveEquity,
                 aggregateOpenPnL,
-                portfolio.getLastSyncAt() != null ? portfolio.getLastSyncAt() : LocalDateTime.now()
+                portfolio.getLastSyncAt() != null ? portfolio.getLastSyncAt() : LocalDateTime.now(),
+                portfolio.getFreshAccountsCount() != null ? portfolio.getFreshAccountsCount() : 0,
+                portfolio.getStaleAccountsCount() != null ? portfolio.getStaleAccountsCount() : 0,
+                portfolio.getDataFreshness() != null ? portfolio.getDataFreshness() : "STALE"
         );
     }
 
@@ -449,7 +462,7 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
     }
 
     private SubscriptionDecisionSnapshot enrichSubscriptionWithDecisionReason(UserSubscriptionEntity subscription) {
-        UserPortfolioEntity portfolio = findPortfolioOrDefault(subscription.getUserId());
+        UserPortfolioEntity portfolio = currentPortfolioState(subscription.getUserId());
 
         LocalDateTime yesterday = LocalDateTime.now().minusHours(24);
         List<SignalEntity> signals24h = springDataSignalRepository.findByBotIdAndCreatedAtAfter(
@@ -585,23 +598,9 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
         };
     }
 
-    private UserPortfolioEntity findPortfolioOrDefault(String userId) {
+    private UserPortfolioEntity currentPortfolioState(String userId) {
         return springDataUserPortfolioRepository.findByUserId(userId)
-                .orElseGet(() -> {
-                    UserPortfolio defaultPortfolio = defaultPortfolio(userId);
-                    return UserPortfolioEntity.builder()
-                            .totalCapital(defaultPortfolio.getTotalCapital())
-                            .availableBalance(defaultPortfolio.getAvailableBalance())
-                            .unrealizedPnl(defaultPortfolio.getUnrealizedPnl())
-                            .realizedPnl(defaultPortfolio.getRealizedPnl())
-                            .maxDrawdownThreshold(defaultPortfolio.getMaxDrawdownThreshold())
-                            .mediumRiskThreshold(defaultPortfolio.getMediumRiskThreshold())
-                            .build();
-                 });
-    }
-
-    private UserPortfolio defaultPortfolio(String userId) {
-        return UserPortfolio.createDefault(userId);
+                .orElseThrow(() -> new NoSuchElementException("Portfolio not found for user: " + userId));
     }
 
     private double safeDouble(java.math.BigDecimal value, double fallback) {
