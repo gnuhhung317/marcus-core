@@ -3,7 +3,9 @@ package io.marcus.application.usecase;
 import io.marcus.application.dto.BotAnalyticsDtos;
 import io.marcus.domain.model.Bot;
 import io.marcus.domain.model.BotBacktestRun;
+import io.marcus.domain.model.BotDryRunClosedTrade;
 import io.marcus.domain.model.BotDryRunPortfolioPoint;
+import io.marcus.domain.model.BotHistoricalClosedTrade;
 import io.marcus.domain.port.BotBacktestPort;
 import io.marcus.domain.port.BotDryRunPort;
 import io.marcus.domain.repository.BotRepository;
@@ -48,7 +50,42 @@ class GetBotAnalyticsUseCaseTest {
         assertThat(response.points()).extracting(BotAnalyticsDtos.PerformancePoint::phase)
                 .containsExactly("HISTORICAL", "HISTORICAL", "OUT_OF_SAMPLE", "OUT_OF_SAMPLE");
         assertThat(response.points()).extracting(BotAnalyticsDtos.PerformancePoint::value)
-                .containsExactly(0.0, 10.0, 10.0, 20.0);
+                .containsExactly(0.0, 10.0, 0.0, 10.0);
+    }
+
+    @Test
+    void shouldComputeWinRateAndSampleSizesFromClosedTrades() {
+        LocalDateTime t0 = LocalDateTime.of(2026, 1, 1, 0, 0);
+        LocalDateTime t1 = LocalDateTime.of(2026, 1, 2, 0, 0);
+        LocalDateTime t2 = LocalDateTime.of(2026, 1, 3, 0, 0);
+        LocalDateTime t3 = LocalDateTime.of(2026, 1, 4, 0, 0);
+
+        when(botRepository.findByBotId("bot_1")).thenReturn(Optional.of(Bot.builder().botId("bot_1").build()));
+        when(botBacktestPort.findLatestRun("bot_1")).thenReturn(Optional.of(new BotBacktestRun("bt_1", "bot_1", "baseline", t0, t1, "{}", t1)));
+        when(botBacktestPort.findPortfolioPoints("bot_1", "bt_1")).thenReturn(List.of(
+                point("bot_1", t0, "1000"),
+                point("bot_1", t1, "1100")
+        ));
+        when(botBacktestPort.findClosedTrades("bot_1", "bt_1")).thenReturn(List.of(
+                historicalTrade("bt_1", "bot_1", 12.5),
+                historicalTrade("bt_1", "bot_1", -4.0)
+        ));
+        when(botDryRunPort.findPortfolioPoints("bot_1")).thenReturn(List.of(
+                point("bot_1", t2, "2000"),
+                point("bot_1", t3, "2200")
+        ));
+        when(botDryRunPort.findClosedTrades("bot_1")).thenReturn(List.of(
+                dryRunTrade("bot_1", 8.0)
+        ));
+
+        BotAnalyticsDtos.GroupedMetricsResponse response = useCase.getMetrics("bot_1");
+
+        assertThat(response.historical().sampleSizeTrades()).isEqualTo(2);
+        assertThat(response.historical().winRate()).isEqualTo(0.5);
+        assertThat(response.outOfSample().sampleSizeTrades()).isEqualTo(1);
+        assertThat(response.outOfSample().winRate()).isEqualTo(1.0);
+        assertThat(response.total().sampleSizeTrades()).isEqualTo(3);
+        assertThat(response.total().winRate()).isEqualTo(0.6667);
     }
 
     private BotDryRunPortfolioPoint point(String botId, LocalDateTime timestamp, String equity) {
@@ -60,6 +97,44 @@ class GetBotAnalyticsUseCaseTest {
                 BigDecimal.ZERO,
                 BigDecimal.ZERO,
                 BigDecimal.ZERO
+        );
+    }
+
+    private BotHistoricalClosedTrade historicalTrade(String runId, String botId, double pnl) {
+        return new BotHistoricalClosedTrade(
+                runId,
+                botId,
+                runId + "-" + pnl,
+                "BTCUSDT",
+                "SPOT",
+                "LONG",
+                BigDecimal.ONE,
+                BigDecimal.ONE,
+                BigDecimal.ONE,
+                BigDecimal.valueOf(pnl),
+                BigDecimal.ZERO,
+                LocalDateTime.of(2026, 1, 1, 0, 0),
+                LocalDateTime.of(2026, 1, 1, 1, 0),
+                BigDecimal.valueOf(3600)
+        );
+    }
+
+    private BotDryRunClosedTrade dryRunTrade(String botId, double pnl) {
+        return new BotDryRunClosedTrade(
+                botId,
+                botId + "-" + pnl,
+                "BTCUSDT",
+                "SPOT",
+                "LONG",
+                BigDecimal.ONE,
+                BigDecimal.ONE,
+                BigDecimal.ONE,
+                BigDecimal.valueOf(pnl),
+                BigDecimal.ZERO,
+                LocalDateTime.of(2026, 1, 3, 0, 0),
+                LocalDateTime.of(2026, 1, 3, 1, 0),
+                "signal-1",
+                "signal-2"
         );
     }
 }

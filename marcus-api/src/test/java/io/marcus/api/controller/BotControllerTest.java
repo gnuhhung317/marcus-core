@@ -302,7 +302,7 @@ class BotControllerTest {
 
     @Test
     void shouldReturnBotAnalyticsMetrics() throws Exception {
-        BotAnalyticsDtos.MetricBlock block = new BotAnalyticsDtos.MetricBlock(0.2, -0.1, 1.5, 1.4, 2.0, 1.8, 45, null);
+        BotAnalyticsDtos.MetricBlock block = new BotAnalyticsDtos.MetricBlock(0.2, -0.1, 1.5, 1.4, 2.0, 1.8, 0.6, 45, 12, null);
         when(getBotAnalyticsUseCase.getMetrics("bot_123"))
                 .thenReturn(new BotAnalyticsDtos.GroupedMetricsResponse(block, block, block));
 

@@ -32,7 +32,7 @@ public interface ExecutionStateRepository extends JpaRepository<ExecutionStateEn
            "WHERE es.signalId = s.signalId " +
            "AND s.botId = :botId " +
            "AND es.positionState = 'CLOSED' " +
-           "AND (:asset IS NULL OR UPPER(s.symbol) LIKE UPPER(CONCAT('%', :asset, '%')))")
+           "AND (CAST(:asset AS string) IS NULL OR UPPER(s.symbol) LIKE UPPER(CONCAT('%', CAST(:asset AS string), '%')))")
     List<Object[]> findClosedExecutionStatesAndSignalsForBot(
             @Param("botId") String botId,
             @Param("asset") String asset
@@ -45,7 +45,7 @@ public interface ExecutionStateRepository extends JpaRepository<ExecutionStateEn
            "WHERE es.signalId = s.signalId " +
            "AND s.botId IN :botIds " +
            "AND es.positionState = 'CLOSED' " +
-           "AND (:asset IS NULL OR UPPER(s.symbol) LIKE UPPER(CONCAT('%', :asset, '%')))")
+           "AND (CAST(:asset AS string) IS NULL OR UPPER(s.symbol) LIKE UPPER(CONCAT('%', CAST(:asset AS string), '%')))")
     List<Object[]> findClosedExecutionStatesAndSignalsForBots(
             @Param("botIds") List<String> botIds,
             @Param("asset") String asset

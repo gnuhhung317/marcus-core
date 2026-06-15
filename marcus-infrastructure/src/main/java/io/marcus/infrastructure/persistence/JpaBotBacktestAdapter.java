@@ -1,8 +1,8 @@
 package io.marcus.infrastructure.persistence;
 
 import io.marcus.domain.model.BotBacktestRun;
-import io.marcus.domain.model.BotDryRunPortfolioPoint;
 import io.marcus.domain.model.BotHistoricalClosedTrade;
+import io.marcus.domain.model.BotDryRunPortfolioPoint;
 import io.marcus.domain.port.BotBacktestPort;
 import io.marcus.infrastructure.persistence.entity.BotBacktestRunEntity;
 import io.marcus.infrastructure.persistence.entity.BotHistoricalClosedTradeEntity;
@@ -63,6 +63,15 @@ public class JpaBotBacktestAdapter implements BotBacktestPort {
                 .toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<BotHistoricalClosedTrade> findClosedTrades(String botId, String runId) {
+        return closedTradeRepository.findByRunIdOrderByExitTimestampAsc(runId).stream()
+                .filter(entity -> botId.equals(entity.getBotId()))
+                .map(this::toClosedTrade)
+                .toList();
+    }
+
     private BotHistoricalPortfolioEntity toPortfolioEntity(String runId, BotDryRunPortfolioPoint point) {
         BotHistoricalPortfolioEntity entity = new BotHistoricalPortfolioEntity();
         entity.setRunId(runId);
@@ -118,6 +127,25 @@ public class JpaBotBacktestAdapter implements BotBacktestPort {
                 entity.getEndedAt(),
                 entity.getMetricsJson(),
                 entity.getCreatedAt()
+        );
+    }
+
+    private BotHistoricalClosedTrade toClosedTrade(BotHistoricalClosedTradeEntity entity) {
+        return new BotHistoricalClosedTrade(
+                entity.getRunId(),
+                entity.getBotId(),
+                entity.getTradeId(),
+                entity.getSymbol(),
+                entity.getMarketType(),
+                entity.getSide(),
+                entity.getQuantity(),
+                entity.getEntryPrice(),
+                entity.getExitPrice(),
+                entity.getPnl(),
+                entity.getFees(),
+                entity.getEntryTimestamp(),
+                entity.getExitTimestamp(),
+                entity.getDurationSeconds()
         );
     }
 }

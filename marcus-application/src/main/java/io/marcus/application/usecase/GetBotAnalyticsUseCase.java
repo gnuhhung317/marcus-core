@@ -5,7 +5,9 @@ import io.marcus.application.dto.BotAnalyticsDtos.MetricBlock;
 import io.marcus.application.dto.BotAnalyticsDtos.PerformancePoint;
 import io.marcus.application.dto.BotAnalyticsDtos.PerformanceSeriesResponse;
 import io.marcus.domain.model.BotBacktestRun;
+import io.marcus.domain.model.BotDryRunClosedTrade;
 import io.marcus.domain.model.BotDryRunPortfolioPoint;
+import io.marcus.domain.model.BotHistoricalClosedTrade;
 import io.marcus.domain.port.BotBacktestPort;
 import io.marcus.domain.port.BotDryRunPort;
 import io.marcus.domain.repository.BotRepository;
@@ -36,10 +38,14 @@ public class GetBotAnalyticsUseCase {
         total.addAll(oos);
         total = total.stream().sorted(Comparator.comparing(CurvePoint::timestamp)).toList();
 
+        TradeStats historicalTrades = historicalTradeStats(botId);
+        TradeStats oosTrades = oosTradeStats(botId);
+        TradeStats totalTrades = historicalTrades.merge(oosTrades);
+
         return new GroupedMetricsResponse(
-                calculate(total, false),
-                calculate(historical, false),
-                calculate(oos, true)
+                calculate(total, totalTrades, false),
+                calculate(historical, historicalTrades, false),
+                calculate(oos, oosTrades, true)
         );
     }
 
@@ -102,11 +108,11 @@ public class GetBotAnalyticsUseCase {
         if (firstEquity == 0.0d) {
             return List.of();
         }
-        double anchor = historical.isEmpty() ? 0.0d : historical.get(historical.size() - 1).value();
+
         return snapshots.stream()
                 .map(point -> new CurvePoint(
                         point.timestamp(),
-                        anchor + ((point.equity().doubleValue() - firstEquity) / Math.abs(firstEquity)) * 100.0
+                        ((point.equity().doubleValue() - firstEquity) / Math.abs(firstEquity)) * 100.0
                 ))
                 .toList();
     }
@@ -130,9 +136,20 @@ public class GetBotAnalyticsUseCase {
         return points.stream().filter(point -> !point.timestamp().isBefore(from)).toList();
     }
 
-    private MetricBlock calculate(List<CurvePoint> points, boolean oos) {
+    private MetricBlock calculate(List<CurvePoint> points, TradeStats tradeStats, boolean oos) {
         if (points == null || points.size() < 2) {
-            return new MetricBlock(0, 0, 0, 0, 0, 0, 0, oos ? "Not enough data for statistical significance" : null);
+            return new MetricBlock(
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    round4(tradeStats.winRate()),
+                    0,
+                    tradeStats.totalTrades(),
+                    oos ? "Not enough data for statistical significance" : null
+            );
         }
 
         long sampleDays = Math.max(1, ChronoUnit.DAYS.between(points.get(0).timestamp(), points.get(points.size() - 1).timestamp()) + 1);
@@ -146,7 +163,18 @@ public class GetBotAnalyticsUseCase {
         double profitFactor = profitFactor(points);
         String warning = oos && sampleDays < OOS_SIGNIFICANCE_DAYS ? "Not enough data for statistical significance" : null;
 
-        return new MetricBlock(round4(annualReturn), round4(-Math.abs(maxDrawdown)), round4(sharpe), round4(sortino), round4(calmar), round4(profitFactor), sampleDays, warning);
+        return new MetricBlock(
+                round4(annualReturn),
+                round4(-Math.abs(maxDrawdown)),
+                round4(sharpe),
+                round4(sortino),
+                round4(calmar),
+                round4(profitFactor),
+                round4(tradeStats.winRate()),
+                sampleDays,
+                tradeStats.totalTrades(),
+                warning
+        );
     }
 
     private double maxDrawdown(List<CurvePoint> points) {
@@ -191,6 +219,57 @@ public class GetBotAnalyticsUseCase {
         return Math.round(value * 10_000.0d) / 10_000.0d;
     }
 
+    private TradeStats historicalTradeStats(String botId) {
+        return botBacktestPort.findLatestRun(botId.trim())
+                .map(run -> historicalTradeStats(botBacktestPort.findClosedTrades(botId.trim(), run.runId())))
+                .orElse(TradeStats.empty());
+    }
+
+    private TradeStats oosTradeStats(String botId) {
+        return dryRunTradeStats(botDryRunPort.findClosedTrades(botId.trim()));
+    }
+
+    private TradeStats historicalTradeStats(List<BotHistoricalClosedTrade> trades) {
+        if (trades == null || trades.isEmpty()) {
+            return TradeStats.empty();
+        }
+
+        long winningTrades = trades.stream()
+                .map(BotHistoricalClosedTrade::pnl)
+                .mapToDouble(value -> value == null ? 0.0d : value.doubleValue())
+                .filter(value -> value > 0.0d)
+                .count();
+        return new TradeStats(trades.size(), winningTrades);
+    }
+
+    private TradeStats dryRunTradeStats(List<BotDryRunClosedTrade> trades) {
+        if (trades == null || trades.isEmpty()) {
+            return TradeStats.empty();
+        }
+
+        long winningTrades = trades.stream()
+                .map(BotDryRunClosedTrade::pnl)
+                .mapToDouble(value -> value == null ? 0.0d : value.doubleValue())
+                .filter(value -> value > 0.0d)
+                .count();
+        return new TradeStats(trades.size(), winningTrades);
+    }
+
     private record CurvePoint(LocalDateTime timestamp, double value) {
+    }
+
+    private record TradeStats(long totalTrades, long winningTrades) {
+
+        static TradeStats empty() {
+            return new TradeStats(0, 0);
+        }
+
+        double winRate() {
+            return totalTrades == 0 ? 0.0d : winningTrades / (double) totalTrades;
+        }
+
+        TradeStats merge(TradeStats other) {
+            return new TradeStats(totalTrades + other.totalTrades, winningTrades + other.winningTrades);
+        }
     }
 }

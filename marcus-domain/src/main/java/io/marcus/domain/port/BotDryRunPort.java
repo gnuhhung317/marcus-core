@@ -1,6 +1,7 @@
 package io.marcus.domain.port;
 
 import io.marcus.domain.model.BotDryRunPortfolioPoint;
+import io.marcus.domain.model.BotDryRunClosedTrade;
 import io.marcus.domain.model.BotDryRunState;
 
 import java.util.List;
@@ -13,4 +14,6 @@ public interface BotDryRunPort {
     Optional<BotDryRunState> findLatestState(String botId);
 
     List<BotDryRunPortfolioPoint> findPortfolioPoints(String botId);
+
+    List<BotDryRunClosedTrade> findClosedTrades(String botId);
 }

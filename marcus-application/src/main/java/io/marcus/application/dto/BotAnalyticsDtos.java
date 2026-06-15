@@ -16,7 +16,9 @@ public final class BotAnalyticsDtos {
             double sortino,
             double calmar,
             double profitFactor,
+            double winRate,
             long sampleSizeDays,
+            long sampleSizeTrades,
             String statisticalSignificanceWarning
     ) {
     }

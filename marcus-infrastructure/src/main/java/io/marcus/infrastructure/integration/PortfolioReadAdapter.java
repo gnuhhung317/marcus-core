@@ -490,7 +490,7 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
                 subscription.getId(),
                 subscription.getBotId(),
                 bot.getName(),
-                "/api/icons/bot/" + subscription.getBotId() + ".png",
+                "",
                 subscription.getStatus().name(),
                 currentPnL,
                 currentPnL / Math.max(1.0, safeDouble(portfolio.getTotalCapital(), 10000.0)),

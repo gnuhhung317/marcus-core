@@ -31,6 +31,11 @@ public class GlobalExceptionsHandler {
         return buildErrorResponse(HttpStatus.NOT_FOUND, "BOT_NOT_FOUND", ex.getMessage(), request);
     }
 
+    @ExceptionHandler(io.marcus.domain.exception.KycDocumentNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleKycDocumentNotFound(io.marcus.domain.exception.KycDocumentNotFoundException ex, HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.NOT_FOUND, "KYC_DOCUMENT_NOT_FOUND", ex.getMessage(), request);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, "BAD_REQUEST", ex.getMessage(), request);

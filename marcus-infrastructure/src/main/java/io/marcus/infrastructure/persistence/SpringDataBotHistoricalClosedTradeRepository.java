@@ -8,4 +8,6 @@ import java.util.List;
 public interface SpringDataBotHistoricalClosedTradeRepository extends JpaRepository<BotHistoricalClosedTradeEntity, String> {
 
     List<BotHistoricalClosedTradeEntity> findByBotIdOrderByExitTimestampAsc(String botId);
+
+    List<BotHistoricalClosedTradeEntity> findByRunIdOrderByExitTimestampAsc(String runId);
 }

@@ -66,11 +66,13 @@ public class SubscribeBotUseCase {
     }
 
     private UserSubscription createSubscription(String userId, String botId) {
+        String wsToken = userSubscriptionPersistencePort.findAnyActiveWsTokenByUserId(userId)
+                .orElseGet(this::generateWsToken);
         UserSubscription subscription = UserSubscription.builder()
                 .userSubscriptionId("sub_" + UUID.randomUUID().toString().replace("-", ""))
                 .userId(userId)
                 .botId(botId)
-                .wsToken(generateWsToken())
+                .wsToken(wsToken)
                 .status(SubscriptionStatus.ACTIVE)
                 .startDate(LocalDateTime.now())
                 .build();

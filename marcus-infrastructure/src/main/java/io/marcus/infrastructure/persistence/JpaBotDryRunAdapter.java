@@ -132,6 +132,14 @@ public class JpaBotDryRunAdapter implements BotDryRunPort {
                 .toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<BotDryRunClosedTrade> findClosedTrades(String botId) {
+        return closedTradeRepository.findByBotIdOrderByExitTimestampAsc(botId).stream()
+                .map(this::toClosedTrade)
+                .toList();
+    }
+
     private BotDryRunPortfolioPoint toPortfolio(BotDryRunPortfolioEntity entity) {
         return new BotDryRunPortfolioPoint(
                 entity.getBotId(),

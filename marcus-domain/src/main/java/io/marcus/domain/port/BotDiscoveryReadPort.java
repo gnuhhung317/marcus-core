@@ -41,9 +41,9 @@ public interface BotDiscoveryReadPort {
             String description,
             String asset,
             String risk,
-            double annualReturn,
-            double maxDrawdown,
-            double winRate,
+            Double annualReturn,
+            Double maxDrawdown,
+            Double winRate,
             int subscribers
             ) {
 
