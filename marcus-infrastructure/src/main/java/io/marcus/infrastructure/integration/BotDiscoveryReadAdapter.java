@@ -32,6 +32,7 @@ import io.marcus.infrastructure.persistence.entity.BotEntity;
 import io.marcus.infrastructure.persistence.entity.BotFavoriteEntity;
 import io.marcus.infrastructure.persistence.entity.BotHistoricalClosedTradeEntity;
 import io.marcus.infrastructure.persistence.entity.BotLeaderboardMetricsEntity;
+import io.marcus.infrastructure.persistence.entity.BotLeaderboardMetricsEntity.BotLeaderboardMetricsId;
 import io.marcus.infrastructure.persistence.entity.BotDryRunClosedTradeEntity;
 import io.marcus.infrastructure.persistence.entity.SignalEntity;
 import io.marcus.infrastructure.persistence.entity.UserEntity;
@@ -112,12 +113,16 @@ public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
                 performance);
     }
 
+    private boolean isDiscoverableBot(BotEntity bot) {
+        return bot.getStatus() == BotStatus.ACTIVE;
+    }
+
     @Override
     @Transactional(readOnly = true)
     public BotDiscoveryPageSnapshot listPublicBots(String q, String asset, String risk, String sort, int page,
             int size) {
         List<BotView> views = springDataBotRepository.findAllWithExchange().stream()
-                .filter(bot -> bot.getStatus() != BotStatus.DELETED)
+                .filter(this::isDiscoverableBot)
                 .filter(bot -> matchesQuery(bot, q))
                 .filter(bot -> matchesAsset(bot, asset))
                 .map(bot -> toBotView(bot))
@@ -397,17 +402,102 @@ public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
     }
 
     private BotView toBotView(BotEntity bot) {
-        List<SignalEntity> signals = springDataSignalRepository
-                .findByBotIdAndGeneratedTimestampIsNotNullOrderByGeneratedTimestampAsc(bot.getBotId());
-        SignalMetricsCalculator.MetricsResult metrics = calculateMetrics(signals);
+        MarketplaceMetrics metrics = resolveMarketplaceMetrics(bot);
         long subscribers = springDataUserSubscriptionRepository
                 .findByBotIdAndStatusOrderByCreatedAtDesc(bot.getBotId(), SubscriptionStatus.ACTIVE).size();
-        return new BotView(bot, metrics, subscribers);
+        return new BotView(bot, metrics.metrics(), subscribers, metrics.hasData());
+    }
+
+    private MarketplaceMetrics resolveMarketplaceMetrics(BotEntity bot) {
+        String botId = bot.getBotId();
+        Optional<BotLeaderboardMetricsEntity> dryRunMetrics = leaderboardMetricsRepository
+                .findById(new BotLeaderboardMetricsId(botId, LeaderboardDataSource.DRY_RUN.name()));
+        if (dryRunMetrics.isPresent()) {
+            return new MarketplaceMetrics(
+                    toMarketplaceMetrics(dryRunMetrics.get(), tradeStatsFor(botId, LeaderboardDataSource.DRY_RUN.name())),
+                    true
+            );
+        }
+
+        Optional<BotLeaderboardMetricsEntity> historicalMetrics = leaderboardMetricsRepository
+                .findById(new BotLeaderboardMetricsId(botId, LeaderboardDataSource.HISTORICAL.name()));
+        if (historicalMetrics.isPresent()) {
+            return new MarketplaceMetrics(
+                    toMarketplaceMetrics(historicalMetrics.get(), tradeStatsFor(botId, LeaderboardDataSource.HISTORICAL.name())),
+                    true
+            );
+        }
+
+        List<SignalEntity> signals = springDataSignalRepository
+                .findByBotIdAndGeneratedTimestampIsNotNullOrderByGeneratedTimestampAsc(botId);
+        return new MarketplaceMetrics(calculateMetrics(signals), !signals.isEmpty());
+    }
+
+    private SignalMetricsCalculator.MetricsResult toMarketplaceMetrics(BotLeaderboardMetricsEntity metrics, TradeStats tradeStats) {
+        double annualReturn = metrics.getCagr();
+        double maxDrawdown = Math.abs(metrics.getMaxDrawdown());
+        double sharpe = metrics.getSharpe();
+        double winRate = tradeStats.winRate();
+        double avgTradeReturn = annualReturn;
+        double tradesPerDay = tradeStats.totalTrades();
+        String risk = SignalMetricsCalculator.classifyRisk(annualReturn, maxDrawdown);
+        return new SignalMetricsCalculator.MetricsResult(
+                annualReturn,
+                maxDrawdown,
+                sharpe,
+                winRate,
+                avgTradeReturn,
+                tradesPerDay,
+                risk
+        );
+    }
+
+    private TradeStats tradeStatsFor(String botId, String dataSource) {
+        if (LeaderboardDataSource.DRY_RUN.name().equalsIgnoreCase(dataSource)) {
+            return tradeStatsFromDryRun(botDryRunClosedTradeRepository.findByBotIdOrderByExitTimestampAsc(botId));
+        }
+        return tradeStatsFromHistorical(botHistoricalClosedTradeRepository.findByBotIdOrderByExitTimestampAsc(botId));
+    }
+
+    private TradeStats tradeStatsFromDryRun(List<BotDryRunClosedTradeEntity> trades) {
+        if (trades == null || trades.isEmpty()) {
+            return TradeStats.empty();
+        }
+        long winningTrades = trades.stream()
+                .map(BotDryRunClosedTradeEntity::getPnl)
+                .mapToDouble(pnl -> pnl == null ? 0.0d : pnl.doubleValue())
+                .filter(pnl -> pnl > 0.0d)
+                .count();
+        return new TradeStats(trades.size(), winningTrades);
+    }
+
+    private TradeStats tradeStatsFromHistorical(List<BotHistoricalClosedTradeEntity> trades) {
+        if (trades == null || trades.isEmpty()) {
+            return TradeStats.empty();
+        }
+        long winningTrades = trades.stream()
+                .map(BotHistoricalClosedTradeEntity::getPnl)
+                .mapToDouble(pnl -> pnl == null ? 0.0d : pnl.doubleValue())
+                .filter(pnl -> pnl > 0.0d)
+                .count();
+        return new TradeStats(trades.size(), winningTrades);
     }
 
     private BotDiscoverySnapshot toDiscoverySnapshot(BotView view) {
         BotEntity bot = view.bot();
         SignalMetricsCalculator.MetricsResult metrics = view.metrics();
+        if (!view.hasPerformanceData()) {
+            return new BotDiscoverySnapshot(
+                    bot.getBotId(),
+                    bot.getName(),
+                    bot.getDescription(),
+                    bot.getTradingPair(),
+                    metrics.risk(),
+                    null,
+                    null,
+                    null,
+                    (int) view.subscribers());
+        }
         return new BotDiscoverySnapshot(
                 bot.getBotId(),
                 bot.getName(),
@@ -470,20 +560,24 @@ public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
     private Comparator<BotDiscoverySnapshot> comparatorForSort(String sort) {
         String normalizedSort = sort == null || sort.isBlank() ? "-return" : sort.trim().toLowerCase(Locale.ROOT);
         return switch (normalizedSort) {
-            case "return" -> Comparator.comparingDouble(BotDiscoverySnapshot::annualReturn)
+            case "return" -> Comparator.comparingDouble((BotDiscoverySnapshot snapshot) -> safeDouble(snapshot.annualReturn()))
                     .thenComparing(BotDiscoverySnapshot::botName, Comparator.nullsLast(String::compareToIgnoreCase));
             case "drawdown" -> Comparator
-                    .comparingDouble((BotDiscoverySnapshot snapshot) -> Math.abs(snapshot.maxDrawdown()))
+                    .comparingDouble((BotDiscoverySnapshot snapshot) -> Math.abs(safeDouble(snapshot.maxDrawdown())))
                     .thenComparing(BotDiscoverySnapshot::botName, Comparator.nullsLast(String::compareToIgnoreCase));
-            case "-drawdown" -> Comparator.comparingDouble(BotDiscoverySnapshot::maxDrawdown).reversed()
+            case "-drawdown" -> Comparator.comparingDouble((BotDiscoverySnapshot snapshot) -> safeDouble(snapshot.maxDrawdown())).reversed()
                     .thenComparing(BotDiscoverySnapshot::botName, Comparator.nullsLast(String::compareToIgnoreCase));
             case "subscribers" -> Comparator.comparingInt(BotDiscoverySnapshot::subscribers)
                     .thenComparing(BotDiscoverySnapshot::botName, Comparator.nullsLast(String::compareToIgnoreCase));
             case "-subscribers" -> Comparator.comparingInt(BotDiscoverySnapshot::subscribers).reversed()
                     .thenComparing(BotDiscoverySnapshot::botName, Comparator.nullsLast(String::compareToIgnoreCase));
-            default -> Comparator.comparingDouble(BotDiscoverySnapshot::annualReturn).reversed()
+            default -> Comparator.comparingDouble((BotDiscoverySnapshot snapshot) -> safeDouble(snapshot.annualReturn())).reversed()
                     .thenComparing(BotDiscoverySnapshot::botName, Comparator.nullsLast(String::compareToIgnoreCase));
         };
+    }
+
+    private double safeDouble(Double value) {
+        return value == null ? 0.0d : value;
     }
 
     private boolean matchesQuery(BotEntity bot, String q) {
@@ -612,7 +706,11 @@ public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
         return userId.trim();
     }
 
-    private record BotView(BotEntity bot, SignalMetricsCalculator.MetricsResult metrics, long subscribers) {
+    private record BotView(BotEntity bot, SignalMetricsCalculator.MetricsResult metrics, long subscribers,
+            boolean hasPerformanceData) {
+    }
+
+    private record MarketplaceMetrics(SignalMetricsCalculator.MetricsResult metrics, boolean hasData) {
     }
 
     private record TradeView(
@@ -623,5 +721,16 @@ public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
             double entryPrice,
             double exitPrice,
             double netPnl) {
+    }
+
+    private record TradeStats(long totalTrades, long winningTrades) {
+
+        static TradeStats empty() {
+            return new TradeStats(0, 0);
+        }
+
+        double winRate() {
+            return totalTrades == 0 ? 0.0d : winningTrades / (double) totalTrades;
+        }
     }
 }

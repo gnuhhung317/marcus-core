@@ -1,12 +1,16 @@
 package io.marcus.infrastructure.integration;
 
+import io.marcus.domain.port.BotDiscoveryReadPort.BotDetailSnapshot;
+import io.marcus.domain.port.BotDiscoveryReadPort.BotDiscoveryPageSnapshot;
 import io.marcus.domain.port.BotDiscoveryReadPort.TradeLogPageSnapshot;
 import io.marcus.domain.port.BotDiscoveryReadPort.TradeLogSnapshot;
+import io.marcus.domain.vo.BotStatus;
 import io.marcus.domain.vo.SubscriptionStatus;
 import io.marcus.domain.vo.SignalAction;
 import io.marcus.domain.service.IdentityService;
 import io.marcus.infrastructure.persistence.*;
 import io.marcus.infrastructure.persistence.entity.BotEntity;
+import io.marcus.infrastructure.persistence.entity.BotLeaderboardMetricsEntity.BotLeaderboardMetricsId;
 import io.marcus.infrastructure.persistence.entity.SignalEntity;
 import io.marcus.infrastructure.persistence.entity.UserSubscriptionEntity;
 import io.marcus.infrastructure.persistence.executor.ExecutionEventEntity;
@@ -75,6 +79,43 @@ class BotDiscoveryReadAdapterTest {
                 executionStateRepository,
                 executionEventRepository
         );
+    }
+
+    @Test
+    void listPublicBots_returnsActiveBotsOnly() {
+        BotEntity activeBot = bot("bot-active", BotStatus.ACTIVE);
+        BotEntity pausedBot = bot("bot-paused", BotStatus.PAUSED);
+        BotEntity downBot = bot("bot-down", BotStatus.DOWN);
+        BotEntity deletedBot = bot("bot-deleted", BotStatus.DELETED);
+
+        when(springDataBotRepository.findAllWithExchange())
+                .thenReturn(List.of(activeBot, pausedBot, downBot, deletedBot));
+        when(leaderboardMetricsRepository.findById(any(BotLeaderboardMetricsId.class)))
+                .thenReturn(Optional.empty());
+        when(springDataSignalRepository.findByBotIdAndGeneratedTimestampIsNotNullOrderByGeneratedTimestampAsc(anyString()))
+                .thenReturn(List.of());
+        when(springDataUserSubscriptionRepository.findByBotIdAndStatusOrderByCreatedAtDesc(anyString(), eq(SubscriptionStatus.ACTIVE)))
+                .thenReturn(List.of());
+
+        BotDiscoveryPageSnapshot page = adapter.listPublicBots(null, null, "ALL", "-return", 0, 20);
+
+        assertEquals(1, page.items().size());
+        assertEquals("bot-active", page.items().get(0).botId());
+        assertEquals(1, page.meta().totalElements());
+        assertEquals(1, page.meta().totalPages());
+    }
+
+    @Test
+    void getBotDetail_keepsInactiveStatusForDirectRead() {
+        BotEntity pausedBot = bot("bot-paused", BotStatus.PAUSED);
+        when(springDataBotRepository.findByBotIdWithExchange("bot-paused")).thenReturn(Optional.of(pausedBot));
+        when(springDataSignalRepository.findByBotIdAndGeneratedTimestampIsNotNullOrderByGeneratedTimestampAsc("bot-paused"))
+                .thenReturn(List.of());
+
+        BotDetailSnapshot detail = adapter.getBotDetail("bot-paused");
+
+        assertEquals("bot-paused", detail.botId());
+        assertEquals("PAUSED", detail.status());
     }
 
     @Test
@@ -186,5 +227,14 @@ class BotDiscoveryReadAdapterTest {
         assertEquals(60000.0, item.entryPrice());
         assertEquals(61000.0, item.exitPrice());
         assertEquals(1500.0, item.netPnl());
+    }
+
+    private BotEntity bot(String botId, BotStatus status) {
+        BotEntity bot = new BotEntity();
+        bot.setBotId(botId);
+        bot.setName(botId);
+        bot.setDescription(botId + " description");
+        bot.setStatus(status);
+        return bot;
     }
 }
