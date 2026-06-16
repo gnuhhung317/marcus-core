@@ -48,6 +48,11 @@ public class AuthenticateUserUseCase {
                 user.getEmail(),
                 user.getRole());
 
+        if (user.isBanned()) {
+            log.warn("Auth login rejected for userId='{}' because account is banned", user.getUserId());
+            throw new UnauthenticatedException("Account is banned");
+        }
+
         boolean passwordMatched = passwordHashPort.matches(loginRequest.password(), user.getPasswordHash());
         log.info("Auth password match result for userId='{}': {}", user.getUserId(), passwordMatched);
 

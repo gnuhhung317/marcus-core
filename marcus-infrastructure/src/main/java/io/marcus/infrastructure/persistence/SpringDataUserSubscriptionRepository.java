@@ -3,6 +3,8 @@ package io.marcus.infrastructure.persistence;
 import io.marcus.domain.vo.SubscriptionStatus;
 import io.marcus.infrastructure.persistence.entity.UserSubscriptionEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -25,7 +27,29 @@ public interface SpringDataUserSubscriptionRepository extends JpaRepository<User
 
     List<UserSubscriptionEntity> findByBotIdAndStatusOrderByCreatedAtDesc(String botId, SubscriptionStatus status);
 
+    List<UserSubscriptionEntity> findByBotIdOrderByCreatedAtDesc(String botId);
+
     Optional<UserSubscriptionEntity> findFirstByUserSubscriptionId(String userSubscriptionId);
+
+    long countByStatus(SubscriptionStatus status);
+
+    long countByStatusAndExecutorConnectedFalse(SubscriptionStatus status);
+
+    long countByBotId(String botId);
+
+    long countByBotIdAndStatus(String botId, SubscriptionStatus status);
+
+    @Query("""
+        SELECT s FROM UserSubscriptionEntity s
+        WHERE (:botId IS NULL OR :botId = '' OR s.botId = :botId)
+          AND (:status IS NULL OR s.status = :status)
+        ORDER BY s.createdAt DESC
+    """)
+    Page<UserSubscriptionEntity> searchAdminSubscriptions(
+            @Param("botId") String botId,
+            @Param("status") SubscriptionStatus status,
+            Pageable pageable
+    );
 
     // Pha 1: Decision Dashboard queries
     /**

@@ -34,4 +34,16 @@ public class UserEntity extends BaseEntity {
     @Convert(converter = RoleAttributeConverter.class)
     @Column(nullable = false)
     private Role role;
+
+    @Column(name = "is_banned", nullable = false)
+    private boolean banned = false;
+
+    @Column(name = "banned_at")
+    private java.time.LocalDateTime bannedAt;
+
+    @Column(name = "banned_by_user_id")
+    private String bannedByUserId;
+
+    @Column(name = "ban_reason")
+    private String banReason;
 }

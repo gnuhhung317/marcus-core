@@ -64,4 +64,13 @@ public class UserSubscriptionEntity extends BaseEntity {
 
     @Column(name = "executor_connected", nullable = false)
     private boolean executorConnected = false;
+
+    @Column(name = "canceled_by_admin_id")
+    private String canceledByAdminId;
+
+    @Column(name = "cancellation_reason")
+    private String cancellationReason;
+
+    @Column(name = "canceled_at")
+    private LocalDateTime canceledAt;
 }

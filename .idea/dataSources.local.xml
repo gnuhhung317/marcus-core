@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="dataSourceStorageLocal" created-in="IU-242.21829.142">
-    <data-source name="signal_db@200.200.201.4" uuid="8b815189-9b54-4a8e-b996-4ca7bea2eb9d">
+    <data-source name="collector@200.200.201.4" uuid="7cad7e81-87fc-4ea2-84f0-83df69765872">
       <database-info product="PostgreSQL" version="15.17" jdbc-version="4.2" driver-name="PostgreSQL JDBC Driver" driver-version="42.6.0" dbms="POSTGRES" exact-version="15.17" exact-driver-version="42.6">
         <identifier-quote-string>&quot;</identifier-quote-string>
       </database-info>
@@ -16,8 +16,8 @@
         </introspection-scope>
       </schema-mapping>
     </data-source>
-    <data-source name="collector@200.200.201.4" uuid="7cad7e81-87fc-4ea2-84f0-83df69765872">
-      <database-info product="PostgreSQL" version="15.17" jdbc-version="4.2" driver-name="PostgreSQL JDBC Driver" driver-version="42.6.0" dbms="POSTGRES" exact-version="15.17" exact-driver-version="42.6">
+    <data-source name="postgres@171.244.195.150" uuid="baacf5f1-74a7-400c-8c81-e41ebc0af72f">
+      <database-info product="PostgreSQL" version="15.18" jdbc-version="4.2" driver-name="PostgreSQL JDBC Driver" driver-version="42.6.0" dbms="POSTGRES" exact-version="15.18" exact-driver-version="42.6">
         <identifier-quote-string>&quot;</identifier-quote-string>
       </database-info>
       <case-sensitivity plain-identifiers="lower" quoted-identifiers="exact" />
@@ -25,8 +25,13 @@
       <user-name>user</user-name>
       <schema-mapping>
         <introspection-scope>
-          <node kind="database" qname="@">
-            <node kind="schema" qname="@" />
+          <node negative="1">
+            <node kind="database" negative="1" />
+            <node kind="database">
+              <name qname="postgres" />
+              <name qname="signal_db" />
+              <node kind="schema" qname="@" />
+            </node>
           </node>
         </introspection-scope>
       </schema-mapping>

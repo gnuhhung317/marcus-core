@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="signal_db@200.200.201.4" uuid="8b815189-9b54-4a8e-b996-4ca7bea2eb9d">
+    <data-source source="LOCAL" name="collector@200.200.201.4" uuid="7cad7e81-87fc-4ea2-84f0-83df69765872">
       <driver-ref>postgresql</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.postgresql.Driver</jdbc-driver>
-      <jdbc-url>jdbc:postgresql://200.200.201.4:5432/signal_db</jdbc-url>
+      <jdbc-url>jdbc:postgresql://200.200.201.4:5432/collector</jdbc-url>
       <jdbc-additional-properties>
         <property name="com.intellij.clouds.kubernetes.db.host.port" />
         <property name="com.intellij.clouds.kubernetes.db.enabled" value="false" />
@@ -13,11 +13,11 @@
       </jdbc-additional-properties>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
-    <data-source source="LOCAL" name="collector@200.200.201.4" uuid="7cad7e81-87fc-4ea2-84f0-83df69765872">
+    <data-source source="LOCAL" name="postgres@171.244.195.150" uuid="baacf5f1-74a7-400c-8c81-e41ebc0af72f">
       <driver-ref>postgresql</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.postgresql.Driver</jdbc-driver>
-      <jdbc-url>jdbc:postgresql://200.200.201.4:5432/collector</jdbc-url>
+      <jdbc-url>jdbc:postgresql://171.244.195.150:5432/postgres</jdbc-url>
       <jdbc-additional-properties>
         <property name="com.intellij.clouds.kubernetes.db.host.port" />
         <property name="com.intellij.clouds.kubernetes.db.enabled" value="false" />

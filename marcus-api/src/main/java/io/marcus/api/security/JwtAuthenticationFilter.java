@@ -1,6 +1,7 @@
 package io.marcus.api.security;
 
 import io.marcus.domain.port.AccessTokenPort;
+import io.marcus.domain.port.UserCredentialQueryPort;
 import io.marcus.domain.vo.AuthenticatedUser;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -23,9 +24,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final AccessTokenPort accessTokenPort;
+    private final UserCredentialQueryPort userCredentialQueryPort;
 
-    public JwtAuthenticationFilter(AccessTokenPort accessTokenPort) {
+    public JwtAuthenticationFilter(AccessTokenPort accessTokenPort, UserCredentialQueryPort userCredentialQueryPort) {
         this.accessTokenPort = accessTokenPort;
+        this.userCredentialQueryPort = userCredentialQueryPort;
     }
 
     @Override
@@ -40,6 +43,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (authenticatedUser.isPresent()) {
                 AuthenticatedUser user = authenticatedUser.get();
+                boolean banned = userCredentialQueryPort.findByUserId(user.userId())
+                        .map(io.marcus.domain.model.User::isBanned)
+                        .orElse(false);
+
+                if (banned) {
+                    SecurityContextHolder.clearContext();
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Account is banned");
+                    return;
+                }
+
                 UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
                         user.userId(),
                         null,

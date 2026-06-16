@@ -115,6 +115,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/subscriptions", "/subscriptions/my-subscriptions", "/api/subscriptions", "/api/subscriptions/my-subscriptions", "/api/v1/subscriptions", "/api/v1/subscriptions/my-subscriptions").hasRole(Role.TRADER.name())
                 .requestMatchers(HttpMethod.POST, "/subscriptions/**", "/api/subscriptions/**", "/api/v1/subscriptions/**").hasRole(Role.TRADER.name())
                 .requestMatchers(HttpMethod.GET, "/subscriptions/*/delivery-summary", "/api/subscriptions/*/delivery-summary", "/api/v1/subscriptions/*/delivery-summary").hasRole(Role.DEVELOPER.name())
+                .requestMatchers("/admin/**", "/api/admin/**", "/api/v1/admin/**").hasRole(Role.ADMIN.name())
                 .anyRequest().authenticated())
                 .addFilterBefore(requestCachingFilter, SecurityContextHolderFilter.class)
                 .addFilterAfter(jwtAuthenticationFilter, SecurityContextHolderFilter.class)

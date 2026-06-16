@@ -22,5 +22,8 @@ public class UserSubscription extends BaseModel {
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private boolean executorConnected;
+    private String canceledByAdminId;
+    private String cancellationReason;
+    private LocalDateTime canceledAt;
 }
 

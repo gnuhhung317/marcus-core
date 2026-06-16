@@ -16,4 +16,8 @@ public class User extends BaseModel{
     private String passwordHash;
     private String email;
     private Role role;
+    private boolean banned;
+    private java.time.LocalDateTime bannedAt;
+    private String bannedByUserId;
+    private String banReason;
 }
