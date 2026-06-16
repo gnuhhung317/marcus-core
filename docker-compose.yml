@@ -15,6 +15,44 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  db-seed-admin:
+    image: postgres:15-alpine
+    container_name: postgres-seed-admin
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_started
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGDATABASE: signal_db
+      PGUSER: user
+      PGPASSWORD: password
+      SEED_SQL: |-
+        CREATE EXTENSION IF NOT EXISTS pgcrypto;
+        INSERT INTO users (
+            id, user_id, username, password_hash, email, role, created_at, updated_at
+        )
+        SELECT
+            gen_random_uuid()::text,
+            'usr_admin_ui',
+            'admin-ui',
+            crypt('Admin@1234!', gen_salt('bf')),
+            'admin-ui@marcus.local',
+            'ADMIN',
+            CURRENT_TIMESTAMP,
+            CURRENT_TIMESTAMP
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM users
+            WHERE username = 'admin-ui'
+               OR email = 'admin-ui@marcus.local'
+        );
+    entrypoint:
+      - /bin/sh
+      - -lc
+      - until pg_isready -h postgres -p 5432 -U user; do echo "waiting for postgres..."; sleep 2; done; printf "%s\n" "$$SEED_SQL" | psql -h postgres -p 5432 -U user -d signal_db -v ON_ERROR_STOP=1
+
   pgadmin:
     image: dpage/pgadmin4
     container_name: pgadmin
@@ -92,9 +130,14 @@ services:
     ports:
       - "8081:8080"
     depends_on:
-      - postgres
-      - redis
-      - kafka
+      postgres:
+        condition: service_started
+      db-seed-admin:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+      kafka:
+        condition: service_started
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/signal_db
       SPRING_DATASOURCE_USERNAME: user
