@@ -78,13 +78,13 @@ public class AdminUpdateUserRoleUseCase {
     }
 
     private java.util.Map<String, Object> snapshotUser(User user, Role role) {
-        return java.util.Map.of(
-                "userId", user.getUserId(),
-                "username", user.getUsername(),
-                "email", user.getEmail(),
-                "role", role.name(),
-                "banned", user.isBanned()
-        );
+        java.util.Map<String, Object> snapshot = new java.util.LinkedHashMap<>();
+        snapshot.put("userId", user.getUserId());
+        snapshot.put("username", user.getUsername());
+        snapshot.put("email", user.getEmail());
+        snapshot.put("role", role != null ? role.name() : null);
+        snapshot.put("banned", user.isBanned());
+        return snapshot;
     }
 
     private String normalizeReason(String reason) {

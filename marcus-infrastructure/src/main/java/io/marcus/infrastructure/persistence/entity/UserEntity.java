@@ -35,7 +35,7 @@ public class UserEntity extends BaseEntity {
     @Column(nullable = false)
     private Role role;
 
-    @Column(name = "is_banned", nullable = false)
+    @Column(name = "is_banned", nullable = false, columnDefinition = "boolean default false")
     private boolean banned = false;
 
     @Column(name = "banned_at")

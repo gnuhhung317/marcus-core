@@ -96,14 +96,14 @@ public class AdminUpdateBotStatusUseCase {
     }
 
     private Map<String, Object> snapshot(Bot bot) {
-        return Map.of(
-                "botId", bot.getBotId(),
-                "name", bot.getName(),
-                "developerId", bot.getDeveloperId(),
-                "status", bot.getStatus().name(),
-                "tradingPair", bot.getTradingPair(),
-                "exchangeId", bot.getExchangeId()
-        );
+        Map<String, Object> snapshot = new java.util.LinkedHashMap<>();
+        snapshot.put("botId", bot.getBotId());
+        snapshot.put("name", bot.getName());
+        snapshot.put("developerId", bot.getDeveloperId());
+        snapshot.put("status", bot.getStatus() != null ? bot.getStatus().name() : null);
+        snapshot.put("tradingPair", bot.getTradingPair());
+        snapshot.put("exchangeId", bot.getExchangeId());
+        return snapshot;
     }
 
     private Map<String, Object> snapshotSubscription(UserSubscription subscription) {
