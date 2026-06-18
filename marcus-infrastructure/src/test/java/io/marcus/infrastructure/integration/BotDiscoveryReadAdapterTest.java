@@ -51,8 +51,6 @@ class BotDiscoveryReadAdapterTest {
     @Mock
     private SpringDataLeaderboardMetricsRepository leaderboardMetricsRepository;
     @Mock
-    private SpringDataBotFavoriteRepository botFavoriteRepository;
-    @Mock
     private SpringDataSignalRepository springDataSignalRepository;
     @Mock
     private IdentityService identityService;
@@ -74,7 +72,6 @@ class BotDiscoveryReadAdapterTest {
                 leaderboardMetricsRepository,
                 botDryRunClosedTradeRepository,
                 botHistoricalClosedTradeRepository,
-                botFavoriteRepository,
                 identityService,
                 executionStateRepository,
                 executionEventRepository

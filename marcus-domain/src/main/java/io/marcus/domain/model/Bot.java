@@ -3,7 +3,6 @@ package io.marcus.domain.model;
 import io.marcus.domain.vo.BotStatus;
 
 import java.math.BigDecimal;
-import java.util.List;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
@@ -25,5 +24,4 @@ public class Bot extends BaseModel{
     private String exchangeId;
     private BigDecimal price;
     private String riskLevel;
-    private List<String> assetPairs;
 }

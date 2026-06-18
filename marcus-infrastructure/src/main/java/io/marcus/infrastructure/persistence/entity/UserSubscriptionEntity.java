@@ -46,9 +46,6 @@ public class UserSubscriptionEntity extends BaseEntity {
     @Column(name = "bot_id", nullable = false)
     private String botId;
 
-    @Column(name = "package_id")
-    private String packageId;
-
     @Column(name = "ws_token", nullable = false)
     private String wsToken;
 

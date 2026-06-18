@@ -12,7 +12,6 @@ import io.marcus.application.dto.UpdateBotStatusRequest;
 import io.marcus.application.dto.UpdateBotMetadataRequest;
 import io.marcus.application.usecase.GetBotAnalyticsUseCase;
 import io.marcus.application.usecase.GetBotDetailUseCase;
-import io.marcus.application.usecase.FavoriteBotUseCase;
 import io.marcus.application.usecase.ListDeveloperBotsUseCase;
 import io.marcus.application.usecase.ListBotTradesUseCase;
 import io.marcus.application.usecase.ListPublicBotsUseCase;
@@ -72,7 +71,6 @@ public class BotController {
     private final DeleteBotUseCase deleteBotUseCase;
     private final BotHeartbeatUseCase botHeartbeatUseCase;
     private final ListBotTradesUseCase listBotTradesUseCase;
-    private final FavoriteBotUseCase favoriteBotUseCase;
 
     @PostMapping({"", "/register"})
     public ResponseEntity<BotRegistrationResult> registerBot(@Valid @RequestBody RegisterBotRequest botRequest) {
@@ -135,11 +133,6 @@ public class BotController {
             @RequestParam(required = false) String asset
     ) {
         return ResponseEntity.ok(listBotTradesUseCase.execute(botId, page, size, asset));
-    }
-
-    @PostMapping("/{botId}/favorite")
-    public ResponseEntity<BotDiscoveryReadPort.FavoriteBotSnapshot> favoriteBot(@PathVariable String botId) {
-        return ResponseEntity.ok(favoriteBotUseCase.execute(botId));
     }
 
     @PostMapping("/{botId}/backtest-results")

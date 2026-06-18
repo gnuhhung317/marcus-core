@@ -63,7 +63,6 @@ public class AdminForceCancelSubscriptionUseCase {
                 null,
                 saved.getStatus(),
                 saved.isExecutorConnected(),
-                saved.getPackageId(),
                 saved.getStartDate(),
                 saved.getEndDate(),
                 saved.getCanceledByAdminId(),

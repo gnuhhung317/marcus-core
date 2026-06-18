@@ -6,7 +6,6 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 @Entity
 @Table(name = "bots")
@@ -53,9 +52,4 @@ public class BotEntity extends BaseEntity {
 
     @Column(name = "risk_level")
     private String riskLevel;
-
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "bot_asset_pairs", joinColumns = @JoinColumn(name = "bot_entity_id"))
-    @Column(name = "asset_pair")
-    private List<String> assetPairs;
 }

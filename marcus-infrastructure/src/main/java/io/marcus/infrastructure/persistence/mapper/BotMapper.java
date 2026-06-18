@@ -4,8 +4,6 @@ import io.marcus.domain.model.Bot;
 import io.marcus.infrastructure.persistence.entity.BotEntity;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 @Component
 public class BotMapper {
 
@@ -26,7 +24,6 @@ public class BotMapper {
                 .deletedAt(entity.getDeletedAt())
                 .price(entity.getPrice())
                 .riskLevel(entity.getRiskLevel())
-                .assetPairs(entity.getAssetPairs() != null ? List.copyOf(entity.getAssetPairs()) : null)
                 .build();
     }
 
@@ -48,7 +45,6 @@ public class BotMapper {
                 .deletedAt(domain.getDeletedAt())
                 .price(domain.getPrice())
                 .riskLevel(domain.getRiskLevel())
-                .assetPairs(domain.getAssetPairs() != null ? List.copyOf(domain.getAssetPairs()) : null)
                 .build();
     }
 }

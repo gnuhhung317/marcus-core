@@ -6,7 +6,6 @@ import io.marcus.domain.port.BotDiscoveryReadPort.BotDiscoveryPageSnapshot;
 import io.marcus.domain.port.BotDiscoveryReadPort.BotDiscoverySnapshot;
 import io.marcus.domain.port.BotDiscoveryReadPort.BotPerformanceSnapshot;
 import io.marcus.domain.port.BotDiscoveryReadPort.BotSpotlightSnapshot;
-import io.marcus.domain.port.BotDiscoveryReadPort.FavoriteBotSnapshot;
 import io.marcus.domain.port.BotDiscoveryReadPort.LeaderboardBotSnapshot;
 import io.marcus.domain.port.BotDiscoveryReadPort.LeaderboardBotsPageSnapshot;
 import io.marcus.domain.port.BotDiscoveryReadPort.LeaderboardFeaturedItemSnapshot;
@@ -20,7 +19,6 @@ import io.marcus.domain.vo.SubscriptionStatus;
 import io.marcus.domain.vo.LeaderboardDataSource;
 import io.marcus.domain.vo.LeaderboardRankMetric;
 import io.marcus.domain.service.IdentityService;
-import io.marcus.infrastructure.persistence.SpringDataBotFavoriteRepository;
 import io.marcus.infrastructure.persistence.SpringDataBotDryRunClosedTradeRepository;
 import io.marcus.infrastructure.persistence.SpringDataBotHistoricalClosedTradeRepository;
 import io.marcus.infrastructure.persistence.SpringDataBotRepository;
@@ -29,7 +27,6 @@ import io.marcus.infrastructure.persistence.SpringDataSignalRepository;
 import io.marcus.infrastructure.persistence.SpringDataUserRepository;
 import io.marcus.infrastructure.persistence.SpringDataUserSubscriptionRepository;
 import io.marcus.infrastructure.persistence.entity.BotEntity;
-import io.marcus.infrastructure.persistence.entity.BotFavoriteEntity;
 import io.marcus.infrastructure.persistence.entity.BotHistoricalClosedTradeEntity;
 import io.marcus.infrastructure.persistence.entity.BotLeaderboardMetricsEntity;
 import io.marcus.infrastructure.persistence.entity.BotLeaderboardMetricsEntity.BotLeaderboardMetricsId;
@@ -72,7 +69,6 @@ public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
     private final SpringDataLeaderboardMetricsRepository leaderboardMetricsRepository;
     private final SpringDataBotDryRunClosedTradeRepository botDryRunClosedTradeRepository;
     private final SpringDataBotHistoricalClosedTradeRepository botHistoricalClosedTradeRepository;
-    private final SpringDataBotFavoriteRepository botFavoriteRepository;
     private final IdentityService identityService;
     private final ExecutionStateRepository executionStateRepository;
     private final ExecutionEventRepository executionEventRepository;
@@ -148,26 +144,6 @@ public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
                 page < totalPages - 1);
 
         return new BotDiscoveryPageSnapshot(pagedItems, meta);
-    }
-
-    @Override
-    @Transactional
-    public FavoriteBotSnapshot favoriteBot(String userId, String botId) {
-        String normalizedUserId = requireUserId(userId);
-        String normalizedBotId = requireBotId(botId);
-
-        springDataUserRepository.findByUserId(normalizedUserId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + normalizedUserId));
-        springDataBotRepository.findByBotId(normalizedBotId)
-                .orElseThrow(() -> new IllegalArgumentException("Bot not found with id: " + normalizedBotId));
-
-        BotFavoriteEntity entity = botFavoriteRepository.findByUserIdAndBotId(normalizedUserId, normalizedBotId)
-                .orElseGet(BotFavoriteEntity::new);
-        entity.setUserId(normalizedUserId);
-        entity.setBotId(normalizedBotId);
-        botFavoriteRepository.save(entity);
-
-        return new FavoriteBotSnapshot(normalizedBotId, true);
     }
 
     @Override
@@ -598,11 +574,6 @@ public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
         String normalizedAsset = asset.toLowerCase(Locale.ROOT);
         if (bot.getTradingPair() != null && bot.getTradingPair().toLowerCase(Locale.ROOT).contains(normalizedAsset)) {
             return true;
-        }
-        if (bot.getAssetPairs() != null) {
-            return bot.getAssetPairs().stream()
-                    .filter(pair -> pair != null)
-                    .anyMatch(pair -> pair.toLowerCase(Locale.ROOT).contains(normalizedAsset));
         }
         return false;
     }

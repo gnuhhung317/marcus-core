@@ -56,13 +56,6 @@ public interface BotDiscoveryReadPort {
 
     }
 
-    record FavoriteBotSnapshot(
-            String botId,
-            boolean favorited
-            ) {
-
-    }
-
     record TradeLogSnapshot(
             LocalDateTime timestamp,
             String assetPair,
@@ -124,8 +117,6 @@ public interface BotDiscoveryReadPort {
     BotDetailSnapshot getBotDetail(String botId);
 
     BotDiscoveryPageSnapshot listPublicBots(String q, String asset, String risk, String sort, int page, int size);
-
-    FavoriteBotSnapshot favoriteBot(String userId, String botId);
 
     TradeLogPageSnapshot listBotTrades(String botId, int page, int size, String asset);
 

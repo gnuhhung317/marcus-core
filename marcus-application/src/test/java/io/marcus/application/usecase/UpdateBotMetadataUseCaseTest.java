@@ -13,7 +13,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,8 +50,7 @@ class UpdateBotMetadataUseCaseTest {
                 "BTCUSDT",
                 "binance",
                 BigDecimal.TEN,
-                "HIGH",
-                List.of("BTCUSDT", "ETHUSDT")
+                "HIGH"
         );
 
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("dev_1"));
@@ -67,7 +65,6 @@ class UpdateBotMetadataUseCaseTest {
         assertThat(updated.getExchangeId()).isEqualTo("binance");
         assertThat(updated.getPrice()).isEqualTo(BigDecimal.TEN);
         assertThat(updated.getRiskLevel()).isEqualTo("HIGH");
-        assertThat(updated.getAssetPairs()).containsExactly("BTCUSDT", "ETHUSDT");
 
         verify(botRepository).save(bot);
     }
@@ -75,7 +72,7 @@ class UpdateBotMetadataUseCaseTest {
     @Test
     void shouldThrowWhenNoAuthenticatedUser() {
         UpdateBotMetadataRequest request = new UpdateBotMetadataRequest(
-                "New Name", null, null, null, null, null, null
+                "New Name", null, null, null, null, null
         );
         when(identityService.getCurrentUserId()).thenReturn(Optional.empty());
 
@@ -89,7 +86,7 @@ class UpdateBotMetadataUseCaseTest {
     @Test
     void shouldThrowWhenBotNotFound() {
         UpdateBotMetadataRequest request = new UpdateBotMetadataRequest(
-                "New Name", null, null, null, null, null, null
+                "New Name", null, null, null, null, null
         );
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("dev_1"));
         when(botRepository.findByBotId("bot_1")).thenReturn(Optional.empty());
@@ -105,7 +102,7 @@ class UpdateBotMetadataUseCaseTest {
     void shouldThrowWhenUserIsNotDeveloperOwner() {
         Bot bot = Bot.builder().botId("bot_1").developerId("dev_other").name("Old Name").build();
         UpdateBotMetadataRequest request = new UpdateBotMetadataRequest(
-                "New Name", null, null, null, null, null, null
+                "New Name", null, null, null, null, null
         );
 
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("dev_1"));

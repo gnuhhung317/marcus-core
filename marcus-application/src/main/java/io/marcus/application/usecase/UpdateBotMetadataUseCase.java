@@ -52,9 +52,6 @@ public class UpdateBotMetadataUseCase {
         if (request.riskLevel() != null) {
             bot.setRiskLevel(request.riskLevel());
         }
-        if (request.assetPairs() != null) {
-            bot.setAssetPairs(request.assetPairs());
-        }
 
         return botRepository.save(bot);
     }

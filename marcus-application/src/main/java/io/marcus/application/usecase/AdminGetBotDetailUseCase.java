@@ -38,7 +38,6 @@ public class AdminGetBotDetailUseCase {
                 bot.getExchangeId(),
                 bot.getPrice(),
                 bot.getRiskLevel(),
-                bot.getAssetPairs(),
                 bot.getCreatedAt(),
                 bot.getUpdatedAt(),
                 adminSubscriptionPort.countByBotIdAndStatus(bot.getBotId(), SubscriptionStatus.ACTIVE),

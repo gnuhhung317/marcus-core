@@ -43,7 +43,6 @@ public class AdminListBotSubscribersUseCase {
                             user != null ? user.getEmail() : null,
                             sub.getStatus(),
                             sub.isExecutorConnected(),
-                            sub.getPackageId(),
                             sub.getStartDate(),
                             sub.getEndDate(),
                             sub.getCanceledByAdminId(),

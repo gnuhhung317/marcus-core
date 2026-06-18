@@ -1,3 +1,5 @@
+-- Legacy migration retained for history.
+-- The runtime schema drops this table in V19__drop_legacy_subscription_and_favorite_artifacts.sql.
 CREATE TABLE bot_favorites (
     id VARCHAR(255) PRIMARY KEY,
     user_id VARCHAR(255) NOT NULL,

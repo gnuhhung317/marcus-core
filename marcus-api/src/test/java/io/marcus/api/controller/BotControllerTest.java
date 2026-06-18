@@ -20,7 +20,6 @@ import io.marcus.application.usecase.GetBotCredentialsUseCase;
 import io.marcus.application.usecase.GetBotAnalyticsUseCase;
 import io.marcus.application.usecase.GetLatestBotDryRunUseCase;
 import io.marcus.application.usecase.GetLatestBotTelemetryUseCase;
-import io.marcus.application.usecase.FavoriteBotUseCase;
 import io.marcus.application.usecase.ListDeveloperBotsUseCase;
 import io.marcus.application.usecase.ListBotTradesUseCase;
 import io.marcus.application.usecase.ListPublicBotsUseCase;
@@ -104,9 +103,6 @@ class BotControllerTest {
 
     @MockBean
     private ListBotTradesUseCase listBotTradesUseCase;
-
-    @MockBean
-    private FavoriteBotUseCase favoriteBotUseCase;
 
     @MockBean
     private SyncBotTelemetryUseCase syncBotTelemetryUseCase;
@@ -269,7 +265,7 @@ class BotControllerTest {
 
     @Test
     void shouldUpdateMetadata() throws Exception {
-        UpdateBotMetadataRequest request = new UpdateBotMetadataRequest("New Name", "New Desc", "BTCUSDT", null, null, null, null);
+        UpdateBotMetadataRequest request = new UpdateBotMetadataRequest("New Name", "New Desc", "BTCUSDT", null, null, null);
         Bot response = Bot.builder().botId("bot_123").name("New Name").description("New Desc").tradingPair("BTCUSDT").build();
 
         when(updateBotMetadataUseCase.execute(eq("bot_123"), any(UpdateBotMetadataRequest.class))).thenReturn(response);
@@ -351,17 +347,6 @@ class BotControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].assetPair").value("BTCUSDT"))
                 .andExpect(jsonPath("$.totalElements").value(1));
-    }
-
-    @Test
-    void shouldFavoriteBot() throws Exception {
-        when(favoriteBotUseCase.execute("bot_123"))
-                .thenReturn(new BotDiscoveryReadPort.FavoriteBotSnapshot("bot_123", true));
-
-        mockMvc.perform(post("/api/v1/bots/bot_123/favorite"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.botId").value("bot_123"))
-                .andExpect(jsonPath("$.favorited").value(true));
     }
 
     @Test
