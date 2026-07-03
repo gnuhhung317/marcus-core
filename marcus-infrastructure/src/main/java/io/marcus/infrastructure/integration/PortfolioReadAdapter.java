@@ -26,7 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.NoSuchElementException;
@@ -51,37 +53,36 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
             throw new IllegalArgumentException("userId must not be blank");
         }
 
-        LocalDateTime from = switch (range != null ? range.toUpperCase() : "7D") {
-            case "1D" -> LocalDateTime.now().minusDays(1);
-            case "7D" -> LocalDateTime.now().minusDays(7);
-            case "30D" -> LocalDateTime.now().minusDays(30);
-            case "ALL" -> LocalDateTime.now().minusYears(10);
-            default -> LocalDateTime.now().minusDays(7);
-        };
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime from = resolveRangeStart(range, now);
 
         List<io.marcus.infrastructure.persistence.entity.PortfolioAggregateHistoryEntity> history =
                 springDataPortfolioAggregateHistoryRepository.findByUserIdAndSnapshotAtAfterOrderBySnapshotAtAsc(userId, from);
+        UserPortfolioEntity portfolio = currentPortfolioState(userId);
+        double currentEquity = SignalMetricsCalculator.round4(safeDouble(portfolio.getTotalCapital(), 10000.0));
 
-        if (history.size() < 2) {
-            double currentEquity;
-            LocalDateTime lastTime;
-            if (history.isEmpty()) {
-                UserPortfolioEntity portfolio = currentPortfolioState(userId);
-                currentEquity = safeDouble(portfolio.getTotalCapital(), 10000.0);
-                lastTime = LocalDateTime.now();
-            } else {
-                currentEquity = history.get(0).getTotal().doubleValue();
-                lastTime = history.get(0).getSnapshotAt();
-            }
+        if (history.isEmpty()) {
             return List.of(
                 new TimeSeriesPointSnapshot(from, SignalMetricsCalculator.round4(currentEquity)),
-                new TimeSeriesPointSnapshot(lastTime, SignalMetricsCalculator.round4(currentEquity))
+                new TimeSeriesPointSnapshot(now, SignalMetricsCalculator.round4(currentEquity))
             );
         }
 
-        return history.stream()
+        List<TimeSeriesPointSnapshot> points = history.stream()
                 .map(h -> new TimeSeriesPointSnapshot(h.getSnapshotAt(), SignalMetricsCalculator.round4(h.getTotal().doubleValue())))
                 .collect(Collectors.toList());
+
+        TimeSeriesPointSnapshot firstPoint = points.get(0);
+        if (firstPoint.timestamp().isAfter(from)) {
+            points.add(0, new TimeSeriesPointSnapshot(from, firstPoint.value()));
+        }
+
+        TimeSeriesPointSnapshot lastPoint = points.get(points.size() - 1);
+        if (lastPoint.timestamp().isBefore(now)) {
+            points.add(new TimeSeriesPointSnapshot(now, currentEquity));
+        }
+
+        return resampleDashboardEquitySeries(points, range);
     }
 
     @Override
@@ -553,6 +554,99 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
         List<SignalMetricsCalculator.SignalData> signalDataList = signals.stream().map(this::toSignalData).toList();
         double totalCapital = safeDouble(portfolio.getTotalCapital(), 10000.0);
         return PortfolioAnalyzerService.calculateCurrentPnL(signalDataList, totalCapital);
+    }
+
+    private LocalDateTime resolveRangeStart(String range, LocalDateTime now) {
+        return switch (range != null ? range.trim().toUpperCase(Locale.ROOT) : "7D") {
+            case "1D" -> now.minusDays(1);
+            case "7D", "1W" -> now.minusDays(7);
+            case "30D", "1M" -> now.minusDays(30);
+            case "ALL" -> now.minusYears(10);
+            default -> now.minusDays(7);
+        };
+    }
+
+    private List<TimeSeriesPointSnapshot> resampleDashboardEquitySeries(List<TimeSeriesPointSnapshot> points, String range) {
+        if (points.size() <= 3) {
+            return points;
+        }
+
+        Duration bucketSize = resolveDashboardEquityBucketSize(range);
+        long bucketMillis = bucketSize.toMillis();
+        if (bucketMillis <= 0) {
+            return points;
+        }
+
+        LocalDateTime firstTimestamp = points.get(0).timestamp();
+        Map<Long, List<TimeSeriesPointSnapshot>> buckets = new LinkedHashMap<>();
+        for (TimeSeriesPointSnapshot point : points) {
+            long offsetMillis = Math.max(0, Duration.between(firstTimestamp, point.timestamp()).toMillis());
+            long bucketKey = offsetMillis / bucketMillis;
+            buckets.computeIfAbsent(bucketKey, ignored -> new ArrayList<>()).add(point);
+        }
+
+        List<TimeSeriesPointSnapshot> sampled = new ArrayList<>();
+        for (List<TimeSeriesPointSnapshot> bucket : buckets.values()) {
+            appendBucketShape(sampled, bucket);
+        }
+
+        TimeSeriesPointSnapshot firstPoint = points.get(0);
+        if (sampled.isEmpty() || !sampled.get(0).timestamp().equals(firstPoint.timestamp())) {
+            sampled.add(0, firstPoint);
+        }
+
+        TimeSeriesPointSnapshot lastPoint = points.get(points.size() - 1);
+        appendDistinctPoint(sampled, lastPoint);
+
+        return sampled;
+    }
+
+    private Duration resolveDashboardEquityBucketSize(String range) {
+        return switch (range != null ? range.trim().toUpperCase(Locale.ROOT) : "7D") {
+            case "1D" -> Duration.ofHours(1);
+            case "7D", "1W" -> Duration.ofHours(4);
+            case "30D", "1M" -> Duration.ofDays(1);
+            case "ALL" -> Duration.ofDays(30);
+            default -> Duration.ofHours(4);
+        };
+    }
+
+    private void appendBucketShape(List<TimeSeriesPointSnapshot> sampled, List<TimeSeriesPointSnapshot> bucket) {
+        if (bucket.isEmpty()) {
+            return;
+        }
+
+        TimeSeriesPointSnapshot firstPoint = bucket.get(0);
+        TimeSeriesPointSnapshot lastPoint = bucket.get(bucket.size() - 1);
+        TimeSeriesPointSnapshot minPoint = firstPoint;
+        TimeSeriesPointSnapshot maxPoint = firstPoint;
+
+        for (TimeSeriesPointSnapshot point : bucket) {
+            if (point.value() < minPoint.value()) {
+                minPoint = point;
+            }
+            if (point.value() > maxPoint.value()) {
+                maxPoint = point;
+            }
+        }
+
+        List.of(firstPoint, minPoint, maxPoint, lastPoint).stream()
+                .sorted(Comparator.comparing(TimeSeriesPointSnapshot::timestamp))
+                .forEach(point -> appendDistinctPoint(sampled, point));
+    }
+
+    private void appendDistinctPoint(List<TimeSeriesPointSnapshot> sampled, TimeSeriesPointSnapshot point) {
+        if (sampled.isEmpty()) {
+            sampled.add(point);
+            return;
+        }
+
+        int lastIndex = sampled.size() - 1;
+        if (sampled.get(lastIndex).timestamp().equals(point.timestamp())) {
+            sampled.set(lastIndex, point);
+        } else {
+            sampled.add(point);
+        }
     }
 
     private int daysSinceSubscribed(UserSubscriptionEntity subscription) {

@@ -4,28 +4,30 @@ import io.marcus.domain.port.PortfolioReadPort.ExecutionLogPageSnapshot;
 import io.marcus.domain.port.PortfolioReadPort.ExecutionLogItemSnapshot;
 import io.marcus.domain.port.PortfolioReadPort.BotIntegrationHealthSnapshot;
 import io.marcus.infrastructure.persistence.entity.BotEntity;
-import io.marcus.infrastructure.persistence.entity.SignalEntity;
 import io.marcus.infrastructure.persistence.entity.PortfolioAggregateHistoryEntity;
+import io.marcus.infrastructure.persistence.entity.SignalEntity;
 import io.marcus.infrastructure.persistence.SpringDataBotRepository;
+import io.marcus.infrastructure.persistence.SpringDataPortfolioAggregateHistoryRepository;
 import io.marcus.infrastructure.persistence.SpringDataRawEventRepository;
 import io.marcus.infrastructure.persistence.SpringDataSignalRepository;
-import io.marcus.infrastructure.persistence.SpringDataUserPortfolioRepository;
 import io.marcus.infrastructure.persistence.SpringDataUserSubscriptionRepository;
-import io.marcus.infrastructure.persistence.SpringDataPortfolioAggregateHistoryRepository;
+import io.marcus.infrastructure.persistence.SpringDataUserPortfolioRepository;
 import io.marcus.infrastructure.persistence.entity.RawEventEntity;
+import io.marcus.infrastructure.persistence.entity.UserPortfolioEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import java.util.Optional;
-import java.util.NoSuchElementException;
-import java.time.LocalDateTime;
-import java.math.BigDecimal;
 
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -311,6 +313,7 @@ class PortfolioReadAdapterTest {
 
     @Test
     void listDashboardEquitySeries_usesAggregateHistory() {
+        LocalDateTime nowBefore = LocalDateTime.now();
         when(springDataPortfolioAggregateHistoryRepository.findByUserIdAndSnapshotAtAfterOrderBySnapshotAtAsc(eq("usr-1"), any()))
                 .thenReturn(List.of(
                         PortfolioAggregateHistoryEntity.builder()
@@ -322,11 +325,143 @@ class PortfolioReadAdapterTest {
                                 .total(new BigDecimal("15000"))
                                 .build()
                 ));
+        when(springDataUserPortfolioRepository.findByUserId("usr-1"))
+                .thenReturn(Optional.of(UserPortfolioEntity.builder()
+                        .userId("usr-1")
+                        .totalCapital(new BigDecimal("15000"))
+                        .build()));
+
+        var series = adapter.listDashboardEquitySeries("usr-1", "1D");
+        LocalDateTime nowAfter = LocalDateTime.now();
+
+        assertEquals(3, series.size());
+        assertEquals(LocalDateTime.of(2026, 5, 1, 10, 0), series.get(0).timestamp());
+        assertEquals(10000.0, series.get(0).value());
+        assertEquals(LocalDateTime.of(2026, 5, 1, 10, 5), series.get(1).timestamp());
+        assertEquals(15000.0, series.get(1).value());
+        assertRange(series.get(2).timestamp(), nowBefore, nowAfter);
+        assertEquals(15000.0, series.get(2).value());
+    }
+
+    @Test
+    void listDashboardEquitySeries_withoutHistory_returnsFlatSeriesToNow() {
+        LocalDateTime nowBefore = LocalDateTime.now();
+        when(springDataPortfolioAggregateHistoryRepository.findByUserIdAndSnapshotAtAfterOrderBySnapshotAtAsc(eq("usr-1"), any()))
+                .thenReturn(List.of());
+        when(springDataUserPortfolioRepository.findByUserId("usr-1"))
+                .thenReturn(Optional.of(UserPortfolioEntity.builder()
+                        .userId("usr-1")
+                        .totalCapital(new BigDecimal("12345"))
+                        .build()));
+
+        var series = adapter.listDashboardEquitySeries("usr-1", "7D");
+        LocalDateTime nowAfter = LocalDateTime.now();
+
+        assertEquals(2, series.size());
+        assertRange(series.get(0).timestamp(), nowBefore.minusDays(7), nowAfter.minusDays(7));
+        assertEquals(12345.0, series.get(0).value());
+        assertRange(series.get(1).timestamp(), nowBefore, nowAfter);
+        assertEquals(12345.0, series.get(1).value());
+    }
+
+    @Test
+    void listDashboardEquitySeries_withSingleHistoricalPoint_prependsRangeAndAppendsSyntheticNow() {
+        LocalDateTime historicalSnapshot = LocalDateTime.now().minusDays(2);
+        LocalDateTime nowBefore = LocalDateTime.now();
+        when(springDataPortfolioAggregateHistoryRepository.findByUserIdAndSnapshotAtAfterOrderBySnapshotAtAsc(eq("usr-1"), any()))
+                .thenReturn(List.of(
+                        PortfolioAggregateHistoryEntity.builder()
+                                .snapshotAt(historicalSnapshot)
+                                .total(new BigDecimal("10000"))
+                                .build()
+                ));
+        when(springDataUserPortfolioRepository.findByUserId("usr-1"))
+                .thenReturn(Optional.of(UserPortfolioEntity.builder()
+                        .userId("usr-1")
+                        .totalCapital(new BigDecimal("12000"))
+                        .build()));
+
+        var series = adapter.listDashboardEquitySeries("usr-1", "7D");
+        LocalDateTime nowAfter = LocalDateTime.now();
+
+        assertEquals(3, series.size());
+        assertRange(series.get(0).timestamp(), nowBefore.minusDays(7), nowAfter.minusDays(7));
+        assertEquals(10000.0, series.get(0).value());
+        assertEquals(historicalSnapshot, series.get(1).timestamp());
+        assertEquals(10000.0, series.get(1).value());
+        assertRange(series.get(2).timestamp(), nowBefore, nowAfter);
+        assertEquals(12000.0, series.get(2).value());
+    }
+
+    @Test
+    void listDashboardEquitySeries_doesNotAppendDuplicateWhenLatestPointAlreadyExtendsPastNow() {
+        LocalDateTime nowBefore = LocalDateTime.now();
+        LocalDateTime futurePoint = nowBefore.plusMinutes(1);
+        when(springDataPortfolioAggregateHistoryRepository.findByUserIdAndSnapshotAtAfterOrderBySnapshotAtAsc(eq("usr-1"), any()))
+                .thenReturn(List.of(
+                        PortfolioAggregateHistoryEntity.builder()
+                                .snapshotAt(nowBefore.minusHours(2))
+                                .total(new BigDecimal("10000"))
+                                .build(),
+                        PortfolioAggregateHistoryEntity.builder()
+                                .snapshotAt(futurePoint)
+                                .total(new BigDecimal("12000"))
+                                .build()
+                ));
+        when(springDataUserPortfolioRepository.findByUserId("usr-1"))
+                .thenReturn(Optional.of(UserPortfolioEntity.builder()
+                        .userId("usr-1")
+                        .totalCapital(new BigDecimal("12000"))
+                        .build()));
 
         var series = adapter.listDashboardEquitySeries("usr-1", "1D");
 
-        assertEquals(2, series.size());
-        assertEquals(10000.0, series.get(0).value());
-        assertEquals(15000.0, series.get(1).value());
+        assertEquals(3, series.size());
+        assertTrue(series.get(series.size() - 1).timestamp().isAfter(nowBefore));
+        assertEquals(futurePoint, series.get(series.size() - 1).timestamp());
+        assertEquals(12000.0, series.get(series.size() - 1).value());
+    }
+
+    @Test
+    void listDashboardEquitySeries_resamplesDenseMonthlyHistoryAndKeepsExtremes() {
+        LocalDateTime nowBefore = LocalDateTime.now();
+        LocalDateTime firstHistoryPoint = nowBefore.minusDays(12);
+        List<PortfolioAggregateHistoryEntity> history = new ArrayList<>();
+
+        for (int i = 0; i < 96; i++) {
+            double total = 10000 + i;
+            if (i == 20) {
+                total = 15000;
+            } else if (i == 21) {
+                total = 9000;
+            }
+
+            history.add(PortfolioAggregateHistoryEntity.builder()
+                    .snapshotAt(firstHistoryPoint.plusHours(i * 3L))
+                    .total(BigDecimal.valueOf(total))
+                    .build());
+        }
+
+        when(springDataPortfolioAggregateHistoryRepository.findByUserIdAndSnapshotAtAfterOrderBySnapshotAtAsc(eq("usr-1"), any()))
+                .thenReturn(history);
+        when(springDataUserPortfolioRepository.findByUserId("usr-1"))
+                .thenReturn(Optional.of(UserPortfolioEntity.builder()
+                        .userId("usr-1")
+                        .totalCapital(new BigDecimal("11111"))
+                        .build()));
+
+        var series = adapter.listDashboardEquitySeries("usr-1", "1M");
+        LocalDateTime nowAfter = LocalDateTime.now();
+
+        assertTrue(series.size() < history.size(), "Expected dense raw history to be bucketed for monthly timeframe");
+        assertRange(series.get(0).timestamp(), nowBefore.minusDays(30), nowAfter.minusDays(30));
+        assertRange(series.get(series.size() - 1).timestamp(), nowBefore, nowAfter);
+        assertTrue(series.stream().anyMatch(point -> point.value() == 15000.0), "Expected resampling to preserve peak");
+        assertTrue(series.stream().anyMatch(point -> point.value() == 9000.0), "Expected resampling to preserve drawdown");
+    }
+
+    private void assertRange(LocalDateTime actual, LocalDateTime minInclusive, LocalDateTime maxInclusive) {
+        assertFalse(actual.isBefore(minInclusive), "Expected timestamp >= " + minInclusive + " but was " + actual);
+        assertFalse(actual.isAfter(maxInclusive), "Expected timestamp <= " + maxInclusive + " but was " + actual);
     }
 }
