@@ -19,6 +19,8 @@ import io.marcus.infrastructure.persistence.executor.ExecutionStateEntity;
 import io.marcus.infrastructure.persistence.executor.ExecutionStateRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.marcus.infrastructure.cache.RedisCacheFacade;
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,11 +28,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -58,12 +62,16 @@ class BotDiscoveryReadAdapterTest {
     private ExecutionStateRepository executionStateRepository;
     @Mock
     private ExecutionEventRepository executionEventRepository;
+    @Mock
+    private RedisCacheFacade cacheFacade;
 
     private BotDiscoveryReadAdapter adapter;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
+        lenient().when(cacheFacade.getOrLoad(anyString(), any(Duration.class), any(TypeReference.class), any(Supplier.class)))
+                .thenAnswer(invocation -> invocation.<Supplier<?>>getArgument(3).get());
         adapter = new BotDiscoveryReadAdapter(
                 springDataBotRepository,
                 springDataSignalRepository,
@@ -74,7 +82,8 @@ class BotDiscoveryReadAdapterTest {
                 botHistoricalClosedTradeRepository,
                 identityService,
                 executionStateRepository,
-                executionEventRepository
+                executionEventRepository,
+                cacheFacade
         );
     }
 

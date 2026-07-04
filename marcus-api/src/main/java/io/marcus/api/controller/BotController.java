@@ -1,5 +1,6 @@
 package io.marcus.api.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.marcus.application.dto.BotSummaryResult;
 import io.marcus.application.dto.BacktestUploadRequest;
 import io.marcus.application.dto.BacktestUploadResponse;
@@ -31,9 +32,12 @@ import io.marcus.domain.port.PortfolioReadPort;
 import io.marcus.domain.model.Bot;
 import io.marcus.domain.model.BotDryRunState;
 import io.marcus.application.usecase.BotHeartbeatUseCase;
+import io.marcus.infrastructure.cache.RedisCacheFacade;
+import io.marcus.infrastructure.cache.RedisCacheInvalidator;
 import io.marcus.infrastructure.security.RequireBotSignature;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -47,12 +51,20 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Duration;
 import java.util.List;
+import java.util.function.Supplier;
 
 @RestController
 @RequestMapping({"/bots", "/api/bots", "/api/v1/bots"})
 @RequiredArgsConstructor
 public class BotController {
+
+    private static final Duration BOT_ANALYTICS_TTL = Duration.ofSeconds(30);
+    private static final TypeReference<BotAnalyticsDtos.GroupedMetricsResponse> BOT_ANALYTICS_METRICS_TYPE =
+            new TypeReference<>() {};
+    private static final TypeReference<BotAnalyticsDtos.PerformanceSeriesResponse> BOT_ANALYTICS_SERIES_TYPE =
+            new TypeReference<>() {};
 
     private final RegisterBotUseCase registerBotUseCase;
     private final ListPublicBotsUseCase listPublicBotsUseCase;
@@ -72,10 +84,18 @@ public class BotController {
     private final BotHeartbeatUseCase botHeartbeatUseCase;
     private final ListBotTradesUseCase listBotTradesUseCase;
 
+    @Autowired(required = false)
+    private RedisCacheFacade cacheFacade;
+
+    @Autowired(required = false)
+    private RedisCacheInvalidator cacheInvalidator;
+
     @PostMapping({"", "/register"})
     public ResponseEntity<BotRegistrationResult> registerBot(@Valid @RequestBody RegisterBotRequest botRequest) {
+        BotRegistrationResult result = registerBotUseCase.execute(botRequest);
+        evictBotCatalog(result.botId());
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(registerBotUseCase.execute(botRequest));
+                .body(result);
     }
 
     @GetMapping
@@ -114,7 +134,12 @@ public class BotController {
 
     @GetMapping("/{botId}/analytics/metrics")
     public ResponseEntity<BotAnalyticsDtos.GroupedMetricsResponse> getBotAnalyticsMetrics(@PathVariable String botId) {
-        return ResponseEntity.ok(getBotAnalyticsUseCase.getMetrics(botId));
+        return ResponseEntity.ok(cacheOrLoad(
+                "bot-analytics:metrics:" + RedisCacheFacade.keyPart(botId),
+                BOT_ANALYTICS_TTL,
+                BOT_ANALYTICS_METRICS_TYPE,
+                () -> getBotAnalyticsUseCase.getMetrics(botId)
+        ));
     }
 
     @GetMapping("/{botId}/analytics/performance-series")
@@ -122,7 +147,15 @@ public class BotController {
             @PathVariable String botId,
             @RequestParam(required = false, defaultValue = "ALL") String range
     ) {
-        return ResponseEntity.ok(getBotAnalyticsUseCase.getPerformanceSeries(botId, range));
+        return ResponseEntity.ok(cacheOrLoad(
+                "bot-analytics:series:%s:%s".formatted(
+                        RedisCacheFacade.keyPart(botId),
+                        RedisCacheFacade.keyPart(range)
+                ),
+                BOT_ANALYTICS_TTL,
+                BOT_ANALYTICS_SERIES_TYPE,
+                () -> getBotAnalyticsUseCase.getPerformanceSeries(botId, range)
+        ));
     }
 
     @GetMapping("/{botId}/trades")
@@ -142,8 +175,10 @@ public class BotController {
             @RequestHeader("X-Bot-Api-Key") String apiKey,
             @Valid @RequestBody BacktestUploadRequest request
     ) {
+        BacktestUploadResponse response = uploadBotBacktestResultUseCase.execute(botId, apiKey, request);
+        evictBotAnalyticsAndCatalog(botId);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(uploadBotBacktestResultUseCase.execute(botId, apiKey, request));
+                .body(response);
     }
 
     @PostMapping("/{botId}/dry-run/sync")
@@ -153,7 +188,9 @@ public class BotController {
             @RequestHeader("X-Bot-Api-Key") String apiKey,
             @Valid @RequestBody BotDryRunSyncRequest request
     ) {
-        return ResponseEntity.ok(toDryRunResponse(syncBotDryRunUseCase.execute(botId, apiKey, request)));
+        BotAnalyticsDtos.DryRunStateResponse response = toDryRunResponse(syncBotDryRunUseCase.execute(botId, apiKey, request));
+        evictBotAnalyticsAndCatalog(botId);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{botId}/dry-run/latest")
@@ -204,7 +241,9 @@ public class BotController {
             @PathVariable String botId,
             @RequestBody UpdateBotStatusRequest request
     ) {
-        return ResponseEntity.ok(updateBotStatusUseCase.execute(botId, request.status()));
+        Bot updated = updateBotStatusUseCase.execute(botId, request.status());
+        evictBotCatalog(botId);
+        return ResponseEntity.ok(updated);
     }
 
     @PatchMapping("/{botId}/metadata")
@@ -212,12 +251,15 @@ public class BotController {
             @PathVariable String botId,
             @RequestBody UpdateBotMetadataRequest request
     ) {
-        return ResponseEntity.ok(updateBotMetadataUseCase.execute(botId, request));
+        Bot updated = updateBotMetadataUseCase.execute(botId, request);
+        evictBotCatalog(botId);
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{botId}")
     public ResponseEntity<Void> deleteBot(@PathVariable String botId) {
         deleteBotUseCase.execute(botId);
+        evictBotCatalog(botId);
         return ResponseEntity.noContent().build();
     }
 
@@ -229,6 +271,25 @@ public class BotController {
     ) {
         botHeartbeatUseCase.execute(botId, apiKey);
         return ResponseEntity.ok().build();
+    }
+
+    private <T> T cacheOrLoad(String key, Duration ttl, TypeReference<T> typeReference, Supplier<T> loader) {
+        if (cacheFacade == null) {
+            return loader.get();
+        }
+        return cacheFacade.getOrLoad(key, ttl, typeReference, loader);
+    }
+
+    private void evictBotCatalog(String botId) {
+        if (cacheInvalidator != null) {
+            cacheInvalidator.evictBotCatalog(botId);
+        }
+    }
+
+    private void evictBotAnalyticsAndCatalog(String botId) {
+        if (cacheInvalidator != null) {
+            cacheInvalidator.evictBotAnalyticsAndCatalog(botId);
+        }
     }
 
     private BotAnalyticsDtos.DryRunStateResponse toDryRunResponse(BotDryRunState state) {

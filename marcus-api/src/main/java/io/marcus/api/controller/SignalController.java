@@ -4,9 +4,11 @@ import io.marcus.application.dto.CaptureSignalRequest;
 import io.marcus.application.usecase.CaptureSignalUseCase;
 import io.marcus.application.usecase.ListSignalsUseCase;
 import io.marcus.domain.port.PortfolioReadPort;
+import io.marcus.infrastructure.cache.RedisCacheInvalidator;
 import io.marcus.infrastructure.security.RequireBotSignature;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,12 +27,18 @@ public class SignalController {
     private final CaptureSignalUseCase captureSignalUseCase;
     private final ListSignalsUseCase listSignalsUseCase;
 
+    @Autowired(required = false)
+    private RedisCacheInvalidator cacheInvalidator;
+
     @RequireBotSignature
     @PostMapping
     public ResponseEntity<Void> captureSignal(
             @Valid @RequestBody CaptureSignalRequest request
     ) {
         captureSignalUseCase.execute(request);
+        if (cacheInvalidator != null) {
+            cacheInvalidator.evictSignalDerivedCatalog(request.botId());
+        }
         return ResponseEntity.ok().build();
     }
 

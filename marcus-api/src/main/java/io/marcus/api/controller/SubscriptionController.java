@@ -10,7 +10,9 @@ import io.marcus.application.usecase.ConnectExecutorToSubscriptionUseCase;
 import io.marcus.application.usecase.ListActiveSubscriptionsForBotUseCase;
 import io.marcus.application.usecase.GetSubscriptionDeliverySummaryUseCase;
 import io.marcus.domain.port.PortfolioReadPort;
+import io.marcus.infrastructure.cache.RedisCacheInvalidator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -38,15 +40,22 @@ public class SubscriptionController {
     private final ListActiveSubscriptionsForBotUseCase listActiveSubscriptionsForBotUseCase;
     private final GetSubscriptionDeliverySummaryUseCase getSubscriptionDeliverySummaryUseCase;
 
+    @Autowired(required = false)
+    private RedisCacheInvalidator cacheInvalidator;
+
     // User endpoints
     @PostMapping("/{botId}")
     public ResponseEntity<SubscribeBotResult> subscribeBot(@PathVariable String botId) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(subscribeBotUseCase.execute(botId));
+        SubscribeBotResult result = subscribeBotUseCase.execute(botId);
+        evictSubscriptionCatalog(botId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 
     @DeleteMapping("/{botId}")
     public ResponseEntity<BotSubscriptionResult> unsubscribeBot(@PathVariable String botId) {
-        return ResponseEntity.ok(unsubscribeFromBotUseCase.execute(botId));
+        BotSubscriptionResult result = unsubscribeFromBotUseCase.execute(botId);
+        evictSubscriptionCatalog(botId);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping({"", "/my-subscriptions"})
@@ -74,5 +83,11 @@ public class SubscriptionController {
     @GetMapping("/{subscriptionId}/delivery-summary")
     public ResponseEntity<PortfolioReadPort.SubscriptionDeliverySummarySnapshot> getDeliverySummary(@PathVariable String subscriptionId) {
         return ResponseEntity.ok(getSubscriptionDeliverySummaryUseCase.execute(subscriptionId));
+    }
+
+    private void evictSubscriptionCatalog(String botId) {
+        if (cacheInvalidator != null) {
+            cacheInvalidator.evictSubscriptionCatalog(botId);
+        }
     }
 }

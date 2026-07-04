@@ -9,7 +9,9 @@ import io.marcus.application.usecase.ListSignalsUseCase;
 import io.marcus.domain.port.PortfolioReadPort;
 import io.marcus.domain.vo.BotStatus;
 import io.marcus.domain.vo.SubscriptionStatus;
+import io.marcus.infrastructure.cache.RedisCacheInvalidator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -32,6 +34,9 @@ public class AdminBotController {
     private final AdminListBotSubscribersUseCase adminListBotSubscribersUseCase;
     private final ListSignalsUseCase listSignalsUseCase;
 
+    @Autowired(required = false)
+    private RedisCacheInvalidator cacheInvalidator;
+
     @GetMapping("/bots")
     public ResponseEntity<AdminDtos.PageResponse<AdminDtos.BotRow>> listBots(
             @RequestParam(required = false) String query,
@@ -53,7 +58,11 @@ public class AdminBotController {
             @PathVariable String botId,
             @RequestBody AdminDtos.UpdateBotStatusRequest request
     ) {
-        return ResponseEntity.ok(adminUpdateBotStatusUseCase.execute(botId, request));
+        AdminDtos.BotRow row = adminUpdateBotStatusUseCase.execute(botId, request);
+        if (cacheInvalidator != null) {
+            cacheInvalidator.evictBotCatalog(botId);
+        }
+        return ResponseEntity.ok(row);
     }
 
     @GetMapping("/bots/{botId}/signals")

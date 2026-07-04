@@ -39,6 +39,8 @@ import io.marcus.infrastructure.persistence.executor.ExecutionEventRepository;
 import io.marcus.infrastructure.persistence.executor.ExecutionStateEntity;
 import io.marcus.infrastructure.persistence.executor.ExecutionEventEntity;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.core.type.TypeReference;
+import io.marcus.infrastructure.cache.RedisCacheFacade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
@@ -46,6 +48,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.Instant;
+import java.time.Duration;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -62,6 +65,14 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
 
+    private static final Duration LEADERBOARD_TTL = Duration.ofSeconds(60);
+    private static final Duration MARKETPLACE_TTL = Duration.ofSeconds(120);
+    private static final TypeReference<BotDetailSnapshot> BOT_DETAIL_TYPE = new TypeReference<>() {};
+    private static final TypeReference<BotDiscoveryPageSnapshot> BOT_DISCOVERY_PAGE_TYPE = new TypeReference<>() {};
+    private static final TypeReference<LeaderboardBotsPageSnapshot> LEADERBOARD_BOTS_PAGE_TYPE = new TypeReference<>() {};
+    private static final TypeReference<LeaderboardFeaturedSnapshot> LEADERBOARD_FEATURED_TYPE = new TypeReference<>() {};
+    private static final TypeReference<List<BotSpotlightSnapshot>> BOT_SPOTLIGHTS_TYPE = new TypeReference<>() {};
+
     private final SpringDataBotRepository springDataBotRepository;
     private final SpringDataSignalRepository springDataSignalRepository;
     private final SpringDataUserSubscriptionRepository springDataUserSubscriptionRepository;
@@ -72,13 +83,22 @@ public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
     private final IdentityService identityService;
     private final ExecutionStateRepository executionStateRepository;
     private final ExecutionEventRepository executionEventRepository;
+    private final RedisCacheFacade cacheFacade;
 
 
     @Override
     @Transactional(readOnly = true)
     public BotDetailSnapshot getBotDetail(String botId) {
         String normalizedBotId = requireBotId(botId);
+        return cacheFacade.getOrLoad(
+                "marketplace:bot-detail:" + RedisCacheFacade.keyPart(normalizedBotId),
+                MARKETPLACE_TTL,
+                BOT_DETAIL_TYPE,
+                () -> getBotDetailUncached(normalizedBotId)
+        );
+    }
 
+    private BotDetailSnapshot getBotDetailUncached(String normalizedBotId) {
         BotEntity bot = springDataBotRepository.findByBotIdWithExchange(normalizedBotId)
                 .filter(b -> b.getStatus() != BotStatus.DELETED)
                 .orElseThrow(() -> new IllegalArgumentException("Bot not found with id: " + normalizedBotId));
@@ -116,6 +136,24 @@ public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
     @Override
     @Transactional(readOnly = true)
     public BotDiscoveryPageSnapshot listPublicBots(String q, String asset, String risk, String sort, int page,
+            int size) {
+        String key = "marketplace:bots:%s:%s:%s:%s:%d:%d".formatted(
+                RedisCacheFacade.keyPart(q),
+                RedisCacheFacade.keyPart(asset),
+                RedisCacheFacade.keyPart(risk),
+                RedisCacheFacade.keyPart(sort),
+                page,
+                size
+        );
+        return cacheFacade.getOrLoad(
+                key,
+                MARKETPLACE_TTL,
+                BOT_DISCOVERY_PAGE_TYPE,
+                () -> listPublicBotsUncached(q, asset, risk, sort, page, size)
+        );
+    }
+
+    private BotDiscoveryPageSnapshot listPublicBotsUncached(String q, String asset, String risk, String sort, int page,
             int size) {
         List<BotView> views = springDataBotRepository.findAllWithExchange().stream()
                 .filter(this::isDiscoverableBot)
@@ -331,6 +369,25 @@ public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
     public LeaderboardBotsPageSnapshot listLeaderboardBots(
             LeaderboardDataSource dataSource, String market, String asset, LeaderboardRankMetric rankMetric, int page,
             int size) {
+        String key = "leaderboard:bots:%s:%s:%s:%s:%d:%d".formatted(
+                dataSource.name(),
+                RedisCacheFacade.keyPart(market),
+                RedisCacheFacade.keyPart(asset),
+                rankMetric.name(),
+                page,
+                size
+        );
+        return cacheFacade.getOrLoad(
+                key,
+                LEADERBOARD_TTL,
+                LEADERBOARD_BOTS_PAGE_TYPE,
+                () -> listLeaderboardBotsUncached(dataSource, market, asset, rankMetric, page, size)
+        );
+    }
+
+    private LeaderboardBotsPageSnapshot listLeaderboardBotsUncached(
+            LeaderboardDataSource dataSource, String market, String asset, LeaderboardRankMetric rankMetric, int page,
+            int size) {
         String dataSourceStr = dataSource.name();
         String sortBy = rankMetric.name();
         long totalElementsLong = leaderboardMetricsRepository.countByDataSource(dataSourceStr);
@@ -359,6 +416,15 @@ public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
     @Override
     @Transactional(readOnly = true)
     public LeaderboardFeaturedSnapshot listLeaderboardFeatured() {
+        return cacheFacade.getOrLoad(
+                "leaderboard:featured",
+                LEADERBOARD_TTL,
+                LEADERBOARD_FEATURED_TYPE,
+                this::listLeaderboardFeaturedUncached
+        );
+    }
+
+    private LeaderboardFeaturedSnapshot listLeaderboardFeaturedUncached() {
         LeaderboardBotsPageSnapshot bots = listLeaderboardBots(LeaderboardDataSource.DRY_RUN, null, null,
                 LeaderboardRankMetric.CAGR, 0, 10);
         List<LeaderboardFeaturedItemSnapshot> featured = bots.items().stream()
@@ -370,6 +436,15 @@ public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
     @Override
     @Transactional(readOnly = true)
     public List<BotSpotlightSnapshot> listLeaderboardSpotlights() {
+        return cacheFacade.getOrLoad(
+                "leaderboard:spotlights",
+                LEADERBOARD_TTL,
+                BOT_SPOTLIGHTS_TYPE,
+                this::listLeaderboardSpotlightsUncached
+        );
+    }
+
+    private List<BotSpotlightSnapshot> listLeaderboardSpotlightsUncached() {
         LeaderboardBotsPageSnapshot bots = listLeaderboardBots(LeaderboardDataSource.DRY_RUN, null, null,
                 LeaderboardRankMetric.CAGR, 0, 5);
         return bots.items().stream()
