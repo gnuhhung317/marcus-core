@@ -3,6 +3,7 @@ package io.marcus.infrastructure.integration;
 import io.marcus.domain.port.PortfolioReadPort.ExecutionLogPageSnapshot;
 import io.marcus.domain.port.PortfolioReadPort.ExecutionLogItemSnapshot;
 import io.marcus.domain.port.PortfolioReadPort.BotIntegrationHealthSnapshot;
+import io.marcus.domain.port.PortfolioReadPort.ConnectivityHealthSnapshot;
 import io.marcus.infrastructure.persistence.entity.BotEntity;
 import io.marcus.infrastructure.persistence.entity.PortfolioAggregateHistoryEntity;
 import io.marcus.infrastructure.persistence.entity.SignalEntity;
@@ -309,6 +310,44 @@ class PortfolioReadAdapterTest {
         assertNotNull(snapshot);
         assertEquals("UP", snapshot.overallStatus());
         assertTrue(snapshot.message().contains("System is fully healthy"));
+    }
+
+    @Test
+    void getSystemConnectivityHealth_freshHeartbeat_returnsUp() {
+        RawEventEntity heartbeat = RawEventEntity.builder()
+                .type("heartbeat")
+                .receivedAt(Instant.now().minusSeconds(30))
+                .build();
+        when(springDataRawEventRepository.findLatestHeartbeat()).thenReturn(Optional.of(heartbeat));
+
+        ConnectivityHealthSnapshot snapshot = adapter.getSystemConnectivityHealth();
+
+        assertNotNull(snapshot);
+        assertEquals("UP", snapshot.overallStatus());
+    }
+
+    @Test
+    void getSystemConnectivityHealth_staleHeartbeat_returnsDegraded() {
+        RawEventEntity heartbeat = RawEventEntity.builder()
+                .type("heartbeat")
+                .receivedAt(Instant.now().minusSeconds(500))
+                .build();
+        when(springDataRawEventRepository.findLatestHeartbeat()).thenReturn(Optional.of(heartbeat));
+
+        ConnectivityHealthSnapshot snapshot = adapter.getSystemConnectivityHealth();
+
+        assertNotNull(snapshot);
+        assertEquals("DEGRADED", snapshot.overallStatus());
+    }
+
+    @Test
+    void getSystemConnectivityHealth_missingHeartbeat_returnsDown() {
+        when(springDataRawEventRepository.findLatestHeartbeat()).thenReturn(Optional.empty());
+
+        ConnectivityHealthSnapshot snapshot = adapter.getSystemConnectivityHealth();
+
+        assertNotNull(snapshot);
+        assertEquals("DOWN", snapshot.overallStatus());
     }
 
     @Test

@@ -210,8 +210,12 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ConnectivityHealthSnapshot getSystemConnectivityHealth() {
-        return new ConnectivityHealthSnapshot("UNKNOWN", LocalDateTime.now());
+        return new ConnectivityHealthSnapshot(
+                resolveHeartbeatStatus(springDataRawEventRepository.findLatestHeartbeat()),
+                LocalDateTime.now()
+        );
     }
 
     @Override
@@ -232,19 +236,7 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
                 .max(LocalDateTime::compareTo)
                 .orElse(null);
 
-        String wsStatus = "DOWN";
-        if (latestHeartbeatOpt.isPresent()) {
-            Instant receivedAt = latestHeartbeatOpt.get().getReceivedAt();
-            Duration heartbeatAge = Duration.between(receivedAt, Instant.now());
-            long ageSecs = heartbeatAge.getSeconds();
-            if (ageSecs <= 330) {
-                wsStatus = "UP";
-            } else if (ageSecs <= 900) {
-                wsStatus = "DEGRADED";
-            } else {
-                wsStatus = "DOWN";
-            }
-        }
+        String wsStatus = resolveHeartbeatStatus(latestHeartbeatOpt);
 
         String overall;
         String message;
@@ -390,6 +382,26 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
             // Fall through to default formatting
         }
         return "Event [" + type + "] processed. Correlation: " + entity.getCorrelationId() + ", EventID: " + entity.getEventId();
+    }
+
+    private String resolveHeartbeatStatus(Optional<RawEventEntity> heartbeatOpt) {
+        if (heartbeatOpt.isEmpty()) {
+            return "DOWN";
+        }
+
+        Instant receivedAt = heartbeatOpt.get().getReceivedAt();
+        if (receivedAt == null) {
+            return "DOWN";
+        }
+
+        long ageSecs = Duration.between(receivedAt, Instant.now()).getSeconds();
+        if (ageSecs <= 330) {
+            return "UP";
+        }
+        if (ageSecs <= 900) {
+            return "DEGRADED";
+        }
+        return "DOWN";
     }
 
     @Override

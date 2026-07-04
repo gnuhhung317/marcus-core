@@ -1852,6 +1852,9 @@ components:
         percentage:
           type: number
           format: double
+          minimum: 0
+          maximum: 100
+          example: 42.0
 
     StrategyDetailResponse:
       type: object

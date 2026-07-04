@@ -1,5 +1,6 @@
 package io.marcus.domain.port;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface MarketDataReadPort {
@@ -11,7 +12,8 @@ public interface MarketDataReadPort {
             int activeBots,
             int freshAccountsCount,
             int staleAccountsCount,
-            String dataFreshness
+            String dataFreshness,
+            LocalDateTime lastUpdated
     ) {}
 
     record ExchangeAllocationSnapshot(String exchange, double percentage) {}

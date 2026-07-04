@@ -76,7 +76,8 @@ public class StaticMarketDataReadAdapter implements MarketDataReadPort {
                 activeBots,
                 safeInt(portfolio.getFreshAccountsCount()),
                 safeInt(portfolio.getStaleAccountsCount()),
-                portfolio.getDataFreshness() != null ? portfolio.getDataFreshness() : "STALE"
+                portfolio.getDataFreshness() != null ? portfolio.getDataFreshness() : "STALE",
+                portfolio.getLastSyncAt()
         );
     }
 
@@ -117,7 +118,10 @@ public class StaticMarketDataReadAdapter implements MarketDataReadPort {
 
         return totalsByExchange.entrySet().stream()
                 .map(entry -> new ExchangeAllocationSnapshot(entry.getKey(),
-                        SignalMetricsCalculator.round2(entry.getValue().divide(total, 8, java.math.RoundingMode.HALF_UP).doubleValue())))
+                        SignalMetricsCalculator.round2(entry.getValue()
+                                .divide(total, 8, java.math.RoundingMode.HALF_UP)
+                                .multiply(BigDecimal.valueOf(100))
+                                .doubleValue())))
                 .sorted((left, right) -> Double.compare(right.percentage(), left.percentage()))
                 .toList();
     }

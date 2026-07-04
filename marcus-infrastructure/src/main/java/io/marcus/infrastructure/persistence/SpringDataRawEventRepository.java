@@ -102,4 +102,12 @@ public interface SpringDataRawEventRepository extends JpaRepository<RawEventEnti
             + "WHERE bot_id = :botId AND type = 'heartbeat' "
             + "ORDER BY received_at DESC LIMIT 1", nativeQuery = true)
     Optional<RawEventEntity> findLatestHeartbeatForBot(@Param("botId") String botId);
+
+    /**
+     * Find the most recent heartbeat raw event across all bots.
+     */
+    @Query(value = "SELECT * FROM raw_events "
+            + "WHERE type = 'heartbeat' "
+            + "ORDER BY received_at DESC LIMIT 1", nativeQuery = true)
+    Optional<RawEventEntity> findLatestHeartbeat();
 }

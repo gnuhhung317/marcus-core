@@ -75,13 +75,15 @@ class DashboardControllerTest {
 
     @Test
     void shouldGetDashboardOverview() throws Exception {
+        LocalDateTime lastUpdated = LocalDateTime.of(2026, 4, 3, 9, 15);
         when(getDashboardOverviewUseCase.execute())
-                .thenReturn(new MarketDataReadPort.DashboardOverviewSnapshot(12500.25, 132.4, 0.61, 3, 0, 0, "FRESH"));
+                .thenReturn(new MarketDataReadPort.DashboardOverviewSnapshot(12500.25, 132.4, 0.61, 3, 0, 0, "FRESH", lastUpdated));
 
         mockMvc.perform(get("/api/v1/dashboard/overview"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalEquity").value(12500.25))
-                .andExpect(jsonPath("$.activeBots").value(3));
+                .andExpect(jsonPath("$.activeBots").value(3))
+                .andExpect(jsonPath("$.lastUpdated").value("2026-04-03T09:15:00"));
     }
 
     @Test
@@ -100,11 +102,12 @@ class DashboardControllerTest {
     @Test
     void shouldGetDashboardExchangeAllocation() throws Exception {
         when(getDashboardExchangeAllocationUseCase.execute())
-                .thenReturn(List.of(new MarketDataReadPort.ExchangeAllocationSnapshot("BINANCE", 0.42)));
+                .thenReturn(List.of(new MarketDataReadPort.ExchangeAllocationSnapshot("BINANCE", 42.0)));
 
         mockMvc.perform(get("/api/v1/dashboard/exchange-allocation"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].exchange").value("BINANCE"));
+                .andExpect(jsonPath("$[0].exchange").value("BINANCE"))
+                .andExpect(jsonPath("$[0].percentage").value(42.0));
     }
 
     @Test
