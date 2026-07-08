@@ -67,6 +67,10 @@ public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
 
     private static final Duration LEADERBOARD_TTL = Duration.ofSeconds(60);
     private static final Duration MARKETPLACE_TTL = Duration.ofSeconds(120);
+    private static final String SOURCE_AUTO = "AUTO";
+    private static final String SOURCE_DRY_RUN = "DRY_RUN";
+    private static final String SOURCE_HISTORICAL = "HISTORICAL";
+    private static final String SOURCE_SIGNAL_BASED = "SIGNAL_BASED";
     private static final TypeReference<BotDetailSnapshot> BOT_DETAIL_TYPE = new TypeReference<>() {};
     private static final TypeReference<BotDiscoveryPageSnapshot> BOT_DISCOVERY_PAGE_TYPE = new TypeReference<>() {};
     private static final TypeReference<LeaderboardBotsPageSnapshot> LEADERBOARD_BOTS_PAGE_TYPE = new TypeReference<>() {};
@@ -88,24 +92,27 @@ public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
 
     @Override
     @Transactional(readOnly = true)
-    public BotDetailSnapshot getBotDetail(String botId) {
+    public BotDetailSnapshot getBotDetail(String botId, String source) {
         String normalizedBotId = requireBotId(botId);
+        String normalizedSource = normalizePerformanceSource(source);
         return cacheFacade.getOrLoad(
-                "marketplace:bot-detail:" + RedisCacheFacade.keyPart(normalizedBotId),
+                "marketplace:bot-detail:%s:%s".formatted(
+                        RedisCacheFacade.keyPart(normalizedBotId),
+                        RedisCacheFacade.keyPart(normalizedSource)
+                ),
                 MARKETPLACE_TTL,
                 BOT_DETAIL_TYPE,
-                () -> getBotDetailUncached(normalizedBotId)
+                () -> getBotDetailUncached(normalizedBotId, normalizedSource)
         );
     }
 
-    private BotDetailSnapshot getBotDetailUncached(String normalizedBotId) {
+    private BotDetailSnapshot getBotDetailUncached(String normalizedBotId, String normalizedSource) {
         BotEntity bot = springDataBotRepository.findByBotIdWithExchange(normalizedBotId)
                 .filter(b -> b.getStatus() != BotStatus.DELETED)
                 .orElseThrow(() -> new IllegalArgumentException("Bot not found with id: " + normalizedBotId));
 
-        List<SignalEntity> signals = springDataSignalRepository
-                .findByBotIdAndGeneratedTimestampIsNotNullOrderByGeneratedTimestampAsc(normalizedBotId);
-        SignalMetricsCalculator.MetricsResult metrics = calculateMetrics(signals);
+        ResolvedPerformance resolvedPerformance = resolvePerformance(bot, normalizedSource);
+        SignalMetricsCalculator.MetricsResult metrics = resolvedPerformance.metrics();
 
         BotPerformanceSnapshot performance = new BotPerformanceSnapshot(
                 metrics.annualReturn(),
@@ -122,6 +129,7 @@ public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
                 bot.getStatus() != null ? bot.getStatus().name() : "INACTIVE",
                 bot.getTradingPair(),
                 resolveExchangeLabel(bot),
+                resolvedPerformance.performanceSource(),
                 bot.getDeveloperId(),
                 bot.getApiKey(),
                 bot.getCreatedAt(),
@@ -453,35 +461,68 @@ public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
     }
 
     private BotView toBotView(BotEntity bot) {
-        MarketplaceMetrics metrics = resolveMarketplaceMetrics(bot);
+        ResolvedPerformance resolvedPerformance = resolvePerformance(bot, SOURCE_AUTO);
         long subscribers = springDataUserSubscriptionRepository
                 .findByBotIdAndStatusOrderByCreatedAtDesc(bot.getBotId(), SubscriptionStatus.ACTIVE).size();
-        return new BotView(bot, metrics.metrics(), subscribers, metrics.hasData());
+        return new BotView(
+                bot,
+                resolvedPerformance.metrics(),
+                subscribers,
+                resolvedPerformance.hasPerformanceData(),
+                resolvedPerformance.performanceSource()
+        );
     }
 
-    private MarketplaceMetrics resolveMarketplaceMetrics(BotEntity bot) {
+    private ResolvedPerformance resolvePerformance(BotEntity bot, String requestedSource) {
+        String normalizedSource = normalizePerformanceSource(requestedSource);
+
+        if (SOURCE_DRY_RUN.equals(normalizedSource)) {
+            ResolvedPerformance dryRun = resolveLeaderboardPerformance(bot, SOURCE_DRY_RUN);
+            return dryRun.hasPerformanceData() ? dryRun : resolvePerformance(bot, SOURCE_AUTO);
+        }
+
+        if (SOURCE_HISTORICAL.equals(normalizedSource)) {
+            ResolvedPerformance historical = resolveLeaderboardPerformance(bot, SOURCE_HISTORICAL);
+            return historical.hasPerformanceData() ? historical : resolvePerformance(bot, SOURCE_AUTO);
+        }
+
+        ResolvedPerformance dryRun = resolveLeaderboardPerformance(bot, SOURCE_DRY_RUN);
+        if (dryRun.hasPerformanceData()) {
+            return dryRun;
+        }
+
+        ResolvedPerformance historical = resolveLeaderboardPerformance(bot, SOURCE_HISTORICAL);
+        if (historical.hasPerformanceData()) {
+            return historical;
+        }
+
+        return resolveSignalPerformance(bot);
+    }
+
+    private ResolvedPerformance resolveLeaderboardPerformance(BotEntity bot, String source) {
         String botId = bot.getBotId();
-        Optional<BotLeaderboardMetricsEntity> dryRunMetrics = leaderboardMetricsRepository
-                .findById(new BotLeaderboardMetricsId(botId, LeaderboardDataSource.DRY_RUN.name()));
-        if (dryRunMetrics.isPresent()) {
-            return new MarketplaceMetrics(
-                    toMarketplaceMetrics(dryRunMetrics.get(), tradeStatsFor(botId, LeaderboardDataSource.DRY_RUN.name())),
-                    true
+        Optional<BotLeaderboardMetricsEntity> leaderboardMetrics = leaderboardMetricsRepository
+                .findById(new BotLeaderboardMetricsId(botId, source));
+        if (leaderboardMetrics.isPresent()) {
+            return new ResolvedPerformance(
+                    toMarketplaceMetrics(leaderboardMetrics.get(), tradeStatsFor(botId, source)),
+                    true,
+                    source
             );
         }
 
-        Optional<BotLeaderboardMetricsEntity> historicalMetrics = leaderboardMetricsRepository
-                .findById(new BotLeaderboardMetricsId(botId, LeaderboardDataSource.HISTORICAL.name()));
-        if (historicalMetrics.isPresent()) {
-            return new MarketplaceMetrics(
-                    toMarketplaceMetrics(historicalMetrics.get(), tradeStatsFor(botId, LeaderboardDataSource.HISTORICAL.name())),
-                    true
-            );
-        }
+        return new ResolvedPerformance(calculateMetrics(List.of()), false, null);
+    }
 
+    private ResolvedPerformance resolveSignalPerformance(BotEntity bot) {
+        String botId = bot.getBotId();
         List<SignalEntity> signals = springDataSignalRepository
                 .findByBotIdAndGeneratedTimestampIsNotNullOrderByGeneratedTimestampAsc(botId);
-        return new MarketplaceMetrics(calculateMetrics(signals), !signals.isEmpty());
+        if (signals.isEmpty()) {
+            return new ResolvedPerformance(calculateMetrics(List.of()), false, null);
+        }
+
+        return new ResolvedPerformance(calculateMetrics(signals), true, SOURCE_SIGNAL_BASED);
     }
 
     private SignalMetricsCalculator.MetricsResult toMarketplaceMetrics(BotLeaderboardMetricsEntity metrics, TradeStats tradeStats) {
@@ -547,6 +588,7 @@ public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
                     null,
                     null,
                     null,
+                    view.performanceSource(),
                     (int) view.subscribers());
         }
         return new BotDiscoverySnapshot(
@@ -558,6 +600,7 @@ public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
                 metrics.annualReturn(),
                 metrics.maxDrawdown(),
                 metrics.winRate(),
+                view.performanceSource(),
                 (int) view.subscribers());
     }
 
@@ -745,6 +788,19 @@ public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
         return botId.trim();
     }
 
+    private String normalizePerformanceSource(String source) {
+        if (source == null || source.isBlank()) {
+            return SOURCE_AUTO;
+        }
+
+        String normalizedSource = source.trim().toUpperCase(Locale.ROOT);
+        if (SOURCE_DRY_RUN.equals(normalizedSource) || SOURCE_HISTORICAL.equals(normalizedSource)) {
+            return normalizedSource;
+        }
+
+        return SOURCE_AUTO;
+    }
+
     private String requireUserId(String userId) {
         if (userId == null || userId.isBlank()) {
             throw new IllegalArgumentException("userId must not be blank");
@@ -752,11 +808,18 @@ public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
         return userId.trim();
     }
 
-    private record BotView(BotEntity bot, SignalMetricsCalculator.MetricsResult metrics, long subscribers,
-            boolean hasPerformanceData) {
+    private record BotView(
+            BotEntity bot,
+            SignalMetricsCalculator.MetricsResult metrics,
+            long subscribers,
+            boolean hasPerformanceData,
+            String performanceSource) {
     }
 
-    private record MarketplaceMetrics(SignalMetricsCalculator.MetricsResult metrics, boolean hasData) {
+    private record ResolvedPerformance(
+            SignalMetricsCalculator.MetricsResult metrics,
+            boolean hasPerformanceData,
+            String performanceSource) {
     }
 
     private record TradeView(

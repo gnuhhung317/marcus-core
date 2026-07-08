@@ -4,7 +4,15 @@ import io.marcus.domain.port.PortfolioReadPort.ExecutionLogPageSnapshot;
 import io.marcus.domain.port.PortfolioReadPort.ExecutionLogItemSnapshot;
 import io.marcus.domain.port.PortfolioReadPort.BotIntegrationHealthSnapshot;
 import io.marcus.domain.port.PortfolioReadPort.ConnectivityHealthSnapshot;
+import io.marcus.domain.port.PortfolioReadPort.SubscriptionDecisionSnapshot;
+import io.marcus.domain.vo.BotStatus;
+import io.marcus.domain.vo.MarketType;
+import io.marcus.domain.vo.OrderType;
+import io.marcus.domain.vo.SignalAction;
+import io.marcus.domain.vo.SignalStatus;
+import io.marcus.domain.vo.SubscriptionStatus;
 import io.marcus.infrastructure.persistence.entity.BotEntity;
+import io.marcus.infrastructure.persistence.entity.ExchangeEntity;
 import io.marcus.infrastructure.persistence.entity.PortfolioAggregateHistoryEntity;
 import io.marcus.infrastructure.persistence.entity.SignalEntity;
 import io.marcus.infrastructure.persistence.SpringDataBotRepository;
@@ -15,6 +23,7 @@ import io.marcus.infrastructure.persistence.SpringDataUserSubscriptionRepository
 import io.marcus.infrastructure.persistence.SpringDataUserPortfolioRepository;
 import io.marcus.infrastructure.persistence.entity.RawEventEntity;
 import io.marcus.infrastructure.persistence.entity.UserPortfolioEntity;
+import io.marcus.infrastructure.persistence.entity.UserSubscriptionEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -499,8 +508,184 @@ class PortfolioReadAdapterTest {
         assertTrue(series.stream().anyMatch(point -> point.value() == 9000.0), "Expected resampling to preserve drawdown");
     }
 
+    @Test
+    void listDashboardEquitySeries_allRangeResamplingDoesNotIntroduceZeroValues() {
+        LocalDateTime nowBefore = LocalDateTime.now();
+        LocalDateTime firstHistoryPoint = nowBefore.minusDays(220);
+        List<PortfolioAggregateHistoryEntity> history = new ArrayList<>();
+
+        for (int i = 0; i < 120; i++) {
+            LocalDateTime timestamp = firstHistoryPoint.plusHours(i * 36L);
+            double total = 10000 + (i * 17);
+            if (i == 18) {
+                total = 14800;
+            } else if (i == 19) {
+                total = 9100;
+            } else if (i == 40) {
+                total = 15125;
+            } else if (i == 41) {
+                total = 9250;
+            }
+
+            history.add(PortfolioAggregateHistoryEntity.builder()
+                    .snapshotAt(timestamp)
+                    .total(BigDecimal.valueOf(total))
+                    .build());
+        }
+
+        history.add(PortfolioAggregateHistoryEntity.builder()
+                .snapshotAt(firstHistoryPoint.plusDays(60))
+                .total(BigDecimal.valueOf(11999))
+                .build());
+        history.add(PortfolioAggregateHistoryEntity.builder()
+                .snapshotAt(firstHistoryPoint.plusDays(60))
+                .total(BigDecimal.valueOf(12654))
+                .build());
+
+        when(springDataPortfolioAggregateHistoryRepository.findByUserIdAndSnapshotAtAfterOrderBySnapshotAtAsc(eq("usr-1"), any()))
+                .thenReturn(history);
+        when(springDataUserPortfolioRepository.findByUserId("usr-1"))
+                .thenReturn(Optional.of(UserPortfolioEntity.builder()
+                        .userId("usr-1")
+                        .totalCapital(new BigDecimal("13333"))
+                        .build()));
+
+        var series = adapter.listDashboardEquitySeries("usr-1", "ALL");
+        LocalDateTime nowAfter = LocalDateTime.now();
+
+        assertTrue(series.size() < history.size(), "Expected ALL range to be bucketed");
+        assertRange(series.get(0).timestamp(), nowBefore.minusYears(10), nowAfter.minusYears(10));
+        assertRange(series.get(series.size() - 1).timestamp(), nowBefore, nowAfter);
+        assertEquals(13333.0, series.get(series.size() - 1).value());
+        assertTrue(series.stream().noneMatch(point -> point.value() == 0.0), "Unexpected zero value introduced during ALL resampling");
+        assertTrue(series.stream().mapToDouble(point -> point.value()).max().orElseThrow() >= 14800.0,
+                "Expected ALL resampling to preserve a major peak");
+        assertTrue(series.stream().mapToDouble(point -> point.value()).min().orElseThrow() <= 9100.0,
+                "Expected ALL resampling to preserve a major drawdown");
+        assertEquals(12654.0, series.stream()
+                .filter(point -> point.timestamp().equals(firstHistoryPoint.plusDays(60)))
+                .reduce((first, second) -> second)
+                .orElseThrow()
+                .value());
+    }
+
+    @Test
+    void listDashboardEquitySeries_allRangeDuplicateTimestampKeepsLastSourceValue() {
+        LocalDateTime nowBefore = LocalDateTime.now();
+        LocalDateTime duplicateTimestamp = nowBefore.minusDays(45);
+        when(springDataPortfolioAggregateHistoryRepository.findByUserIdAndSnapshotAtAfterOrderBySnapshotAtAsc(eq("usr-1"), any()))
+                .thenReturn(List.of(
+                        PortfolioAggregateHistoryEntity.builder()
+                                .snapshotAt(nowBefore.minusDays(120))
+                                .total(new BigDecimal("10000"))
+                                .build(),
+                        PortfolioAggregateHistoryEntity.builder()
+                                .snapshotAt(duplicateTimestamp)
+                                .total(new BigDecimal("11888"))
+                                .build(),
+                        PortfolioAggregateHistoryEntity.builder()
+                                .snapshotAt(duplicateTimestamp)
+                                .total(new BigDecimal("12654"))
+                                .build()
+                ));
+        when(springDataUserPortfolioRepository.findByUserId("usr-1"))
+                .thenReturn(Optional.of(UserPortfolioEntity.builder()
+                        .userId("usr-1")
+                        .totalCapital(new BigDecimal("12777"))
+                        .build()));
+
+        var series = adapter.listDashboardEquitySeries("usr-1", "ALL");
+
+        assertEquals(12777.0, series.get(series.size() - 1).value());
+        assertEquals(12654.0, series.stream()
+                .filter(point -> point.timestamp().equals(duplicateTimestamp))
+                .reduce((first, second) -> second)
+                .orElseThrow()
+                .value());
+    }
+
+    @Test
+    void getSubscriptionDecisions_filtersActiveAndAtRiskPortfolioViews() {
+        UserPortfolioEntity portfolio = UserPortfolioEntity.builder()
+                .userId("usr-1")
+                .totalCapital(new BigDecimal("10000"))
+                .availableBalance(new BigDecimal("8200"))
+                .maxDrawdownThreshold(new BigDecimal("0.1000"))
+                .mediumRiskThreshold(new BigDecimal("0.0500"))
+                .build();
+
+        List<UserSubscriptionEntity> subscriptions = List.of(
+                subscription("sub-solid", "usr-1", "bot-solid"),
+                subscription("sub-slip", "usr-1", "bot-slip"),
+                subscription("sub-review", "usr-1", "bot-review"),
+                subscription("sub-risk", "usr-1", "bot-risk")
+        );
+
+        when(springDataUserSubscriptionRepository.findByUserIdAndStatus("usr-1", SubscriptionStatus.ACTIVE))
+                .thenReturn(subscriptions);
+        when(springDataUserPortfolioRepository.findByUserId("usr-1")).thenReturn(Optional.of(portfolio));
+
+        stubDecisionBot("bot-solid", "SOL Trend", "OKX", List.of(signal("bot-solid", 1, 100, 110, 95)));
+        stubDecisionBot("bot-slip", "ADA Drift", "BINANCE", List.of(signal("bot-slip", 10, 100, 104, 96)));
+        stubDecisionBot("bot-review", "ETH Momentum", "BYBIT", List.of(signal("bot-review", 1, 100, 92, 95)));
+        stubDecisionBot("bot-risk", "BTC Sentinel", "BINANCE", List.of(signal("bot-risk", 1, 100, 85, 90)));
+
+        List<SubscriptionDecisionSnapshot> all = adapter.getSubscriptionDecisions("usr-1", "ALL");
+        List<SubscriptionDecisionSnapshot> active = adapter.getSubscriptionDecisions("usr-1", "ACTIVE");
+        List<SubscriptionDecisionSnapshot> atRisk = adapter.getSubscriptionDecisions("usr-1", "AT_RISK");
+
+        assertEquals(4, all.size());
+        assertEquals(List.of("bot-slip", "bot-solid"), active.stream().map(SubscriptionDecisionSnapshot::botId).sorted().toList());
+        assertEquals(List.of("bot-review", "bot-risk"), atRisk.stream().map(SubscriptionDecisionSnapshot::botId).sorted().toList());
+        verify(springDataUserSubscriptionRepository, times(3)).findByUserIdAndStatus("usr-1", SubscriptionStatus.ACTIVE);
+    }
+
     private void assertRange(LocalDateTime actual, LocalDateTime minInclusive, LocalDateTime maxInclusive) {
         assertFalse(actual.isBefore(minInclusive), "Expected timestamp >= " + minInclusive + " but was " + actual);
         assertFalse(actual.isAfter(maxInclusive), "Expected timestamp <= " + maxInclusive + " but was " + actual);
+    }
+
+    private void stubDecisionBot(String botId, String name, String exchangeId, List<SignalEntity> signals) {
+        when(springDataBotRepository.findByBotId(botId)).thenReturn(Optional.of(
+                BotEntity.builder()
+                        .botId(botId)
+                        .name(name)
+                        .developerId("dev-1")
+                        .status(BotStatus.ACTIVE)
+                        .tradingPair("BTCUSDT")
+                        .exchange(ExchangeEntity.builder().exchangeId(exchangeId).name(exchangeId).build())
+                        .build()
+        ));
+        when(springDataSignalRepository.findByBotIdAndCreatedAtAfter(eq(botId), any(LocalDateTime.class)))
+                .thenReturn(signals);
+    }
+
+    private UserSubscriptionEntity subscription(String id, String userId, String botId) {
+        return UserSubscriptionEntity.builder()
+                .id(id)
+                .userSubscriptionId(id)
+                .userId(userId)
+                .botId(botId)
+                .wsToken("ws-" + botId)
+                .status(SubscriptionStatus.ACTIVE)
+                .startDate(LocalDateTime.now().minusDays(10))
+                .build();
+    }
+
+    private SignalEntity signal(String botId, long hoursAgo, double entry, double takeProfit, double stopLoss) {
+        LocalDateTime generatedAt = LocalDateTime.now().minusHours(hoursAgo);
+        return SignalEntity.builder()
+                .signalId(botId + "-" + hoursAgo)
+                .botId(botId)
+                .symbol("BTCUSDT")
+                .action(SignalAction.OPEN_LONG)
+                .marketType(MarketType.SPOT)
+                .orderType(OrderType.LIMIT)
+                .entry(BigDecimal.valueOf(entry))
+                .takeProfit(BigDecimal.valueOf(takeProfit))
+                .stopLoss(BigDecimal.valueOf(stopLoss))
+                .status(SignalStatus.DISPATCHED)
+                .generatedTimestamp(generatedAt)
+                .build();
     }
 }

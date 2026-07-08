@@ -77,7 +77,7 @@ public class DashboardController {
                 decisions,
                 new PortfolioDecisionsResponse.Summary(
                         decisions.size(),
-                        (int) decisions.stream().filter(d -> "ACTIVE".equals(d.status())).count(),
+                        (int) decisions.stream().filter(d -> !isAtRiskReason(d.reason())).count(),
                         (int) decisions.stream()
                                 .filter(d -> d.reason() == PortfolioReadPort.DecisionReason.NEEDS_REVIEW).count(),
                         (int) decisions.stream()
@@ -113,5 +113,10 @@ public class DashboardController {
                 ) {
 
         }
+    }
+
+    private boolean isAtRiskReason(PortfolioReadPort.DecisionReason reason) {
+        return reason == PortfolioReadPort.DecisionReason.NEEDS_REVIEW
+                || reason == PortfolioReadPort.DecisionReason.HIGH_RISK;
     }
 }

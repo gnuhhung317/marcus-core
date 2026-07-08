@@ -2,6 +2,7 @@ package io.marcus.api.controller;
 
 import io.marcus.api.exception.GlobalExceptionsHandler;
 import io.marcus.api.security.JwtAuthenticationFilter;
+import io.marcus.application.dto.BotSubscriptionResult;
 import io.marcus.application.dto.MySubscriptionsResult;
 import io.marcus.application.dto.SubscribeBotResult;
 import io.marcus.application.dto.SubscriptionSummaryResult;
@@ -14,6 +15,7 @@ import io.marcus.application.usecase.ListMySubscriptionsUseCase;
 import io.marcus.application.usecase.SubscribeBotUseCase;
 import io.marcus.application.usecase.UnsubscribeFromBotUseCase;
 import io.marcus.domain.exception.BotNotFoundException;
+import io.marcus.domain.exception.ResourceConflictException;
 import io.marcus.infrastructure.security.BotSignatureInterceptor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -32,6 +34,7 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -115,6 +118,28 @@ class SubscriptionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.wsToken").value("ws_abc"))
                 .andExpect(jsonPath("$.subscriptions[0].botId").value("bot_1"));
+    }
+
+    @Test
+    void shouldUnsubscribeBotSuccessfully() throws Exception {
+        when(unsubscribeFromBotUseCase.execute("bot_1"))
+                .thenReturn(new BotSubscriptionResult("bot_1", "", "UNSUBSCRIBED"));
+
+        mockMvc.perform(delete("/api/v1/subscriptions/bot_1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.botId").value("bot_1"))
+                .andExpect(jsonPath("$.status").value("UNSUBSCRIBED"));
+    }
+
+    @Test
+    void shouldReturnConflictWhenNoActiveSubscriptionExists() throws Exception {
+        when(unsubscribeFromBotUseCase.execute("bot_1"))
+                .thenThrow(new ResourceConflictException("No active subscription found for bot: bot_1"));
+
+        mockMvc.perform(delete("/api/v1/subscriptions/bot_1"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONFLICT"))
+                .andExpect(jsonPath("$.message").value("No active subscription found for bot: bot_1"));
     }
 
     @Test

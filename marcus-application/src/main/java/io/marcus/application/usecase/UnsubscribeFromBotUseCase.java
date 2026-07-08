@@ -3,6 +3,7 @@ package io.marcus.application.usecase;
 import io.marcus.application.dto.BotSubscriptionResult;
 import io.marcus.application.exception.ForbiddenOperationException;
 import io.marcus.application.exception.UnauthenticatedException;
+import io.marcus.domain.exception.ResourceConflictException;
 import io.marcus.domain.port.UserSubscriptionPersistencePort;
 import io.marcus.domain.repository.UserRepository;
 import io.marcus.domain.service.IdentityService;
@@ -29,6 +30,9 @@ public class UnsubscribeFromBotUseCase {
         }
 
         String normalizedBotId = normalizeBotId(botId);
+        if (userSubscriptionPersistencePort.findActiveByUserIdAndBotId(currentUserId, normalizedBotId).isEmpty()) {
+            throw new ResourceConflictException("No active subscription found for bot: " + normalizedBotId);
+        }
         userSubscriptionPersistencePort.cancelActiveByUserIdAndBotId(currentUserId, normalizedBotId);
 
         return new BotSubscriptionResult(normalizedBotId, "", "UNSUBSCRIBED");

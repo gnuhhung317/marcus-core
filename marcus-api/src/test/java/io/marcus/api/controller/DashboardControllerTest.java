@@ -29,6 +29,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -149,5 +150,47 @@ class DashboardControllerTest {
         mockMvc.perform(get("/api/v1/dashboard/trades"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void shouldGetPortfolioDecisionsWithRiskSummary() throws Exception {
+        when(getPortfolioDecisionsUseCase.execute("ALL"))
+                .thenReturn(List.of(
+                        new PortfolioReadPort.SubscriptionDecisionSnapshot(
+                                "sub-risk", "bot-risk", "BTC Sentinel", "", "ACTIVE",
+                                -120.0, -0.03, -0.22, 0.42, 12, 5,
+                                PortfolioReadPort.DecisionReason.HIGH_RISK,
+                                "Critical drawdown", 0.91, 10, 3, LocalDateTime.of(2026, 4, 3, 10, 0), "BINANCE"
+                        ),
+                        new PortfolioReadPort.SubscriptionDecisionSnapshot(
+                                "sub-review", "bot-review", "ETH Momentum", "", "ACTIVE",
+                                80.0, 0.02, -0.08, 0.55, 16, 9,
+                                PortfolioReadPort.DecisionReason.NEEDS_REVIEW,
+                                "Needs review", 0.58, 7, 1, LocalDateTime.of(2026, 4, 3, 11, 0), "BYBIT"
+                        ),
+                        new PortfolioReadPort.SubscriptionDecisionSnapshot(
+                                "sub-solid", "bot-solid", "SOL Trend", "", "ACTIVE",
+                                220.0, 0.06, -0.02, 0.74, 22, 17,
+                                PortfolioReadPort.DecisionReason.SOLID_PERFORMER,
+                                "Stable execution", 0.14, 30, 0, LocalDateTime.of(2026, 4, 3, 12, 0), "OKX"
+                        )
+                ));
+
+        mockMvc.perform(get("/api/v1/dashboard/portfolio/decisions"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.summary.totalCount").value(3))
+                .andExpect(jsonPath("$.summary.activeCount").value(1))
+                .andExpect(jsonPath("$.summary.reviewNeededCount").value(1))
+                .andExpect(jsonPath("$.summary.highRiskCount").value(1));
+    }
+
+    @Test
+    void shouldPassPortfolioDecisionStatusFilter() throws Exception {
+        when(getPortfolioDecisionsUseCase.execute("AT_RISK")).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/dashboard/portfolio/decisions").param("status", "AT_RISK"))
+                .andExpect(status().isOk());
+
+        verify(getPortfolioDecisionsUseCase).execute("AT_RISK");
     }
 }

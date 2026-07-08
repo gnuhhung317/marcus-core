@@ -82,7 +82,7 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
             points.add(new TimeSeriesPointSnapshot(now, currentEquity));
         }
 
-        return resampleDashboardEquitySeries(points, range);
+        return resampleDashboardEquitySeries(normalizeDashboardEquitySeries(points), range);
     }
 
     @Override
@@ -453,12 +453,13 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
     @Override
     @Transactional(readOnly = true)
     public List<SubscriptionDecisionSnapshot> getSubscriptionDecisions(String userId, String statusFilter) {
-        SubscriptionStatus status = parseStatusFilter(statusFilter);
+        DecisionDashboardFilter filter = parseDecisionFilter(statusFilter);
         List<UserSubscriptionEntity> subscriptions = springDataUserSubscriptionRepository
-                .findByUserIdAndStatus(userId, status);
+                .findByUserIdAndStatus(userId, SubscriptionStatus.ACTIVE);
 
         return subscriptions.stream()
                 .map(this::enrichSubscriptionWithDecisionReason)
+                .filter(snapshot -> matchesDashboardFilter(snapshot, filter))
                 .sorted(
                         Comparator.comparingInt((SubscriptionDecisionSnapshot snap) -> reasonPriority(snap.reason()))
                                 .thenComparing(SubscriptionDecisionSnapshot::riskScore, Comparator.reverseOrder())
@@ -613,6 +614,22 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
         return sampled;
     }
 
+    private List<TimeSeriesPointSnapshot> normalizeDashboardEquitySeries(List<TimeSeriesPointSnapshot> points) {
+        if (points.isEmpty()) {
+            return List.of();
+        }
+
+        List<TimeSeriesPointSnapshot> normalized = new ArrayList<>();
+        points.stream()
+                .filter(point -> point != null
+                        && point.timestamp() != null
+                        && Double.isFinite(point.value()))
+                .sorted(Comparator.comparing(TimeSeriesPointSnapshot::timestamp))
+                .forEach(point -> appendDistinctPoint(normalized, point));
+
+        return normalized;
+    }
+
     private Duration resolveDashboardEquityBucketSize(String range) {
         return switch (range != null ? range.trim().toUpperCase(Locale.ROOT) : "7D") {
             case "1D" -> Duration.ofHours(1);
@@ -680,19 +697,28 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
         return losingSignals > 0 ? 1 : 0;
     }
 
-    private SubscriptionStatus parseStatusFilter(String statusFilter) {
-        if (statusFilter == null) {
-            return null;
+    private DecisionDashboardFilter parseDecisionFilter(String statusFilter) {
+        if (statusFilter == null || statusFilter.isBlank()) {
+            return DecisionDashboardFilter.ALL;
         }
-        String normalized = statusFilter.trim().toUpperCase();
-        if (normalized.isEmpty() || "ALL".equals(normalized)) {
-            return null;
-        }
+
         try {
-            return SubscriptionStatus.valueOf(normalized);
+            return DecisionDashboardFilter.valueOf(statusFilter.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
-            return null;
+            return DecisionDashboardFilter.ALL;
         }
+    }
+
+    private boolean matchesDashboardFilter(SubscriptionDecisionSnapshot snapshot, DecisionDashboardFilter filter) {
+        return switch (filter) {
+            case ALL -> true;
+            case ACTIVE -> !isAtRiskReason(snapshot.reason());
+            case AT_RISK -> isAtRiskReason(snapshot.reason());
+        };
+    }
+
+    private boolean isAtRiskReason(DecisionReason reason) {
+        return reason == DecisionReason.NEEDS_REVIEW || reason == DecisionReason.HIGH_RISK;
     }
 
     private int reasonPriority(DecisionReason reason) {
@@ -754,5 +780,11 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
             return Boolean.parseBoolean((String) simulationVal);
         }
         return false;
+    }
+
+    private enum DecisionDashboardFilter {
+        ALL,
+        ACTIVE,
+        AT_RISK
     }
 }

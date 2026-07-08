@@ -117,9 +117,10 @@ public class BotController {
 
     @GetMapping("/{botId}")
     public ResponseEntity<BotDiscoveryReadPort.BotDetailSnapshot> getBotDetail(
-            @PathVariable String botId
+            @PathVariable String botId,
+            @RequestParam(required = false, defaultValue = "AUTO") String source
     ) {
-        return ResponseEntity.ok(getBotDetailUseCase.execute(botId));
+        return ResponseEntity.ok(getBotDetailUseCase.execute(botId, source));
     }
 
     @GetMapping("/{botId}/integration-health")

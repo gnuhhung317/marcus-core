@@ -172,6 +172,9 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.POST, "/subscriptions/**",
                                                                 "/api/subscriptions/**", "/api/v1/subscriptions/**")
                                                 .hasRole(Role.TRADER.name())
+                                                .requestMatchers(HttpMethod.DELETE, "/subscriptions/**",
+                                                                "/api/subscriptions/**", "/api/v1/subscriptions/**")
+                                                .hasRole(Role.TRADER.name())
                                                 .requestMatchers(HttpMethod.GET, "/subscriptions/*/delivery-summary",
                                                                 "/api/subscriptions/*/delivery-summary",
                                                                 "/api/v1/subscriptions/*/delivery-summary")

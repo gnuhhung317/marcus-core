@@ -15,6 +15,7 @@ public interface BotDiscoveryReadPort {
             String status,
             String tradingPair,
             String exchange,
+            String performanceSource,
             String developerId,
             String apiKey,
             LocalDateTime createdAt,
@@ -44,6 +45,7 @@ public interface BotDiscoveryReadPort {
             Double annualReturn,
             Double maxDrawdown,
             Double winRate,
+            String performanceSource,
             int subscribers
             ) {
 
@@ -114,7 +116,7 @@ public interface BotDiscoveryReadPort {
 
     }
 
-    BotDetailSnapshot getBotDetail(String botId);
+    BotDetailSnapshot getBotDetail(String botId, String source);
 
     BotDiscoveryPageSnapshot listPublicBots(String q, String asset, String risk, String sort, int page, int size);
 

@@ -10,6 +10,7 @@ import io.marcus.domain.vo.SignalAction;
 import io.marcus.domain.service.IdentityService;
 import io.marcus.infrastructure.persistence.*;
 import io.marcus.infrastructure.persistence.entity.BotEntity;
+import io.marcus.infrastructure.persistence.entity.BotLeaderboardMetricsEntity;
 import io.marcus.infrastructure.persistence.entity.BotLeaderboardMetricsEntity.BotLeaderboardMetricsId;
 import io.marcus.infrastructure.persistence.entity.SignalEntity;
 import io.marcus.infrastructure.persistence.entity.UserSubscriptionEntity;
@@ -30,6 +31,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
@@ -118,10 +120,51 @@ class BotDiscoveryReadAdapterTest {
         when(springDataSignalRepository.findByBotIdAndGeneratedTimestampIsNotNullOrderByGeneratedTimestampAsc("bot-paused"))
                 .thenReturn(List.of());
 
-        BotDetailSnapshot detail = adapter.getBotDetail("bot-paused");
+        BotDetailSnapshot detail = adapter.getBotDetail("bot-paused", "AUTO");
 
         assertEquals("bot-paused", detail.botId());
         assertEquals("PAUSED", detail.status());
+    }
+
+    @Test
+    void listPublicBots_and_detail_shareDryRunMetricsWhenAuto() {
+        BotEntity activeBot = bot("bot-active", BotStatus.ACTIVE);
+        BotLeaderboardMetricsEntity dryRunMetrics = leaderboardMetrics("bot-active", "DRY_RUN", 0.42, -0.08, 1.7);
+
+        when(springDataBotRepository.findAllWithExchange()).thenReturn(List.of(activeBot));
+        when(springDataBotRepository.findByBotIdWithExchange("bot-active")).thenReturn(Optional.of(activeBot));
+        when(leaderboardMetricsRepository.findById(new BotLeaderboardMetricsId("bot-active", "DRY_RUN")))
+                .thenReturn(Optional.of(dryRunMetrics));
+        when(botDryRunClosedTradeRepository.findByBotIdOrderByExitTimestampAsc("bot-active")).thenReturn(List.of());
+        when(springDataUserSubscriptionRepository.findByBotIdAndStatusOrderByCreatedAtDesc("bot-active", SubscriptionStatus.ACTIVE))
+                .thenReturn(List.of());
+
+        BotDiscoveryPageSnapshot page = adapter.listPublicBots(null, null, "ALL", "-return", 0, 20);
+        BotDetailSnapshot detail = adapter.getBotDetail("bot-active", "AUTO");
+
+        assertEquals("DRY_RUN", page.items().get(0).performanceSource());
+        assertEquals("DRY_RUN", detail.performanceSource());
+        assertEquals(page.items().get(0).annualReturn(), detail.performance().annualReturn());
+        assertEquals(page.items().get(0).maxDrawdown(), detail.performance().maxDrawdown());
+    }
+
+    @Test
+    void getBotDetail_fallsBackToAutoWhenRequestedSourceMissing() {
+        BotEntity activeBot = bot("bot-active", BotStatus.ACTIVE);
+        BotLeaderboardMetricsEntity dryRunMetrics = leaderboardMetrics("bot-active", "DRY_RUN", 0.31, -0.05, 1.3);
+
+        when(springDataBotRepository.findByBotIdWithExchange("bot-active")).thenReturn(Optional.of(activeBot));
+        when(leaderboardMetricsRepository.findById(new BotLeaderboardMetricsId("bot-active", "DRY_RUN")))
+                .thenReturn(Optional.of(dryRunMetrics));
+        when(leaderboardMetricsRepository.findById(new BotLeaderboardMetricsId("bot-active", "HISTORICAL")))
+                .thenReturn(Optional.empty());
+        when(botDryRunClosedTradeRepository.findByBotIdOrderByExitTimestampAsc("bot-active")).thenReturn(List.of());
+
+        BotDetailSnapshot detail = adapter.getBotDetail("bot-active", "HISTORICAL");
+
+        assertEquals("DRY_RUN", detail.performanceSource());
+        assertEquals(0.31, detail.performance().annualReturn());
+        assertEquals(0.05, detail.performance().maxDrawdown());
     }
 
     @Test
@@ -242,5 +285,17 @@ class BotDiscoveryReadAdapterTest {
         bot.setDescription(botId + " description");
         bot.setStatus(status);
         return bot;
+    }
+
+    private BotLeaderboardMetricsEntity leaderboardMetrics(String botId, String source, double cagr, double maxDrawdown, double sharpe) {
+        return BotLeaderboardMetricsEntity.builder()
+                .botId(botId)
+                .dataSource(source)
+                .cagr(cagr)
+                .maxDrawdown(maxDrawdown)
+                .sharpe(sharpe)
+                .sampleDays(30)
+                .lastCalculatedAt(LocalDateTime.now())
+                .build();
     }
 }

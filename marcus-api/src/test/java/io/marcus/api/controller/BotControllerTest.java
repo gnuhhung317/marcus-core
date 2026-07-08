@@ -193,6 +193,33 @@ class BotControllerTest {
     }
 
     @Test
+    void shouldReturnBotDetailWithRequestedSource() throws Exception {
+        BotDiscoveryReadPort.BotDetailSnapshot detail = new BotDiscoveryReadPort.BotDetailSnapshot(
+                "bot_123",
+                "Momentum Bot",
+                "Description",
+                "ACTIVE",
+                "BTCUSDT",
+                "binance",
+                "HISTORICAL",
+                "dev_123",
+                "ak_123",
+                LocalDateTime.of(2026, 1, 2, 0, 0),
+                LocalDateTime.of(2026, 1, 3, 0, 0),
+                new BotDiscoveryReadPort.BotPerformanceSnapshot(0.2, 0.1, 1.5, 0.6, 0.2, 1.0)
+        );
+        when(getBotDetailUseCase.execute("bot_123", "HISTORICAL")).thenReturn(detail);
+
+        mockMvc.perform(get("/api/v1/bots/bot_123").param("source", "HISTORICAL"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.botId").value("bot_123"))
+                .andExpect(jsonPath("$.performanceSource").value("HISTORICAL"))
+                .andExpect(jsonPath("$.performance.annualReturn").value(0.2));
+
+        verify(getBotDetailUseCase).execute("bot_123", "HISTORICAL");
+    }
+
+    @Test
     void shouldReturnCreatedWhenRegisterBotSuccessfully() throws Exception {
         RegisterBotRequest request = new RegisterBotRequest("Scalp strategy", "BTCUSDT", "Scalp Bot", "binance");
         BotRegistrationResult response = new BotRegistrationResult(
