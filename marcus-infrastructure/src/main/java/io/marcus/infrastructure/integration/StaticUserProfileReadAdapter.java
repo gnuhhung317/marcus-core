@@ -1,9 +1,11 @@
 package io.marcus.infrastructure.integration;
 
 import io.marcus.domain.exception.ResourceConflictException;
+import io.marcus.domain.exception.InvalidCurrentPasswordException;
 import io.marcus.domain.port.UserProfileReadPort;
 import io.marcus.infrastructure.persistence.SpringDataUserRepository;
 import io.marcus.infrastructure.persistence.entity.UserEntity;
+import io.marcus.domain.port.PasswordHashPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +17,7 @@ import java.util.NoSuchElementException;
 public class StaticUserProfileReadAdapter implements UserProfileReadPort {
 
     private final SpringDataUserRepository springDataUserRepository;
+    private final PasswordHashPort passwordHashPort;
 
     @Override
     @Transactional(readOnly = true)
@@ -62,6 +65,35 @@ public class StaticUserProfileReadAdapter implements UserProfileReadPort {
             }
             user.setEmail(newEmail);
         }
+
+        UserEntity savedUser = springDataUserRepository.save(user);
+
+        return new UserProfileSnapshot(
+                savedUser.getUserId(),
+                savedUser.getUsername(),
+                savedUser.getEmail(),
+                savedUser.getRole() != null ? savedUser.getRole().name() : "TRADER"
+        );
+    }
+
+    @Override
+    @Transactional
+    public UserProfileSnapshot changeCurrentUserPassword(String userId, UserPasswordUpdateSnapshot request) {
+        if (userId == null || userId.isBlank()) {
+            throw new IllegalArgumentException("userId must not be blank");
+        }
+        if (request == null) {
+            throw new IllegalArgumentException("Request body must not be null");
+        }
+
+        UserEntity user = springDataUserRepository.findByUserId(userId)
+                .orElseThrow(() -> new NoSuchElementException("User profile not found for ID: " + userId));
+
+        if (!passwordHashPort.matches(request.currentPassword(), user.getPasswordHash())) {
+            throw new InvalidCurrentPasswordException("Current password is incorrect");
+        }
+
+        user.setPasswordHash(passwordHashPort.encode(request.newPassword()));
 
         UserEntity savedUser = springDataUserRepository.save(user);
 

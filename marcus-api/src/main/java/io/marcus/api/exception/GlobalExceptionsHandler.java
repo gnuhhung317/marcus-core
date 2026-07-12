@@ -2,6 +2,7 @@ package io.marcus.api.exception;
 
 import io.marcus.application.exception.ForbiddenOperationException;
 import io.marcus.domain.exception.ResourceConflictException;
+import io.marcus.domain.exception.InvalidCurrentPasswordException;
 import io.marcus.application.exception.UnauthenticatedException;
 import io.marcus.domain.exception.BotNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,6 +10,7 @@ import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -56,8 +58,23 @@ public class GlobalExceptionsHandler {
         return buildErrorResponse(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), request);
     }
 
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex, HttpServletRequest request) {
+        return buildErrorResponse(
+                HttpStatus.CONFLICT,
+                "CONFLICT",
+                "A data conflict occurred while saving the request",
+                request
+        );
+    }
+
     @ExceptionHandler(UnauthenticatedException.class)
     public ResponseEntity<ErrorResponse> handleUnauthenticated(UnauthenticatedException ex, HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(InvalidCurrentPasswordException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCurrentPassword(InvalidCurrentPasswordException ex, HttpServletRequest request) {
         return buildErrorResponse(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", ex.getMessage(), request);
     }
 
@@ -102,6 +119,38 @@ public class GlobalExceptionsHandler {
         ))
                 .toList();
 
+        return buildValidationErrorResponse(
+                HttpStatus.UNPROCESSABLE_ENTITY,
+                "VALIDATION_FAILED",
+                "Validation failed",
+                errors,
+                request
+        );
+    }
+
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<ValidationErrorResponse> handleHttpMessageNotReadable(
+            org.springframework.http.converter.HttpMessageNotReadableException ex,
+            HttpServletRequest request
+    ) {
+        String fieldName = "payload";
+        String message = "Malformed JSON request or invalid fields";
+        
+        Throwable cause = ex.getCause();
+        if (cause instanceof com.fasterxml.jackson.databind.exc.InvalidFormatException ife) {
+            if (ife.getPath() != null && !ife.getPath().isEmpty()) {
+                fieldName = ife.getPath().get(ife.getPath().size() - 1).getFieldName();
+            }
+            message = String.format("Invalid value: '%s'", ife.getValue());
+        } else if (cause instanceof com.fasterxml.jackson.databind.JsonMappingException jme) {
+            if (jme.getPath() != null && !jme.getPath().isEmpty()) {
+                fieldName = jme.getPath().get(jme.getPath().size() - 1).getFieldName();
+            }
+            message = jme.getOriginalMessage();
+        }
+        
+        List<FieldValidationError> errors = List.of(new FieldValidationError(fieldName, message));
+        
         return buildValidationErrorResponse(
                 HttpStatus.UNPROCESSABLE_ENTITY,
                 "VALIDATION_FAILED",

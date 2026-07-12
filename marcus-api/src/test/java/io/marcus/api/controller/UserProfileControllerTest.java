@@ -3,7 +3,9 @@ package io.marcus.api.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.marcus.api.exception.GlobalExceptionsHandler;
 import io.marcus.api.security.JwtAuthenticationFilter;
+import io.marcus.application.dto.ChangeCurrentUserPasswordRequest;
 import io.marcus.application.dto.UpdateUserProfileRequest;
+import io.marcus.application.usecase.ChangeCurrentUserPasswordUseCase;
 import io.marcus.application.usecase.GetCurrentUserProfileUseCase;
 import io.marcus.application.usecase.UpdateCurrentUserProfileUseCase;
 import io.marcus.domain.port.UserProfileReadPort;
@@ -43,6 +45,9 @@ class UserProfileControllerTest {
 
     @MockBean
     private UpdateCurrentUserProfileUseCase updateCurrentUserProfileUseCase;
+
+    @MockBean
+    private ChangeCurrentUserPasswordUseCase changeCurrentUserPasswordUseCase;
 
     @MockBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -85,5 +90,18 @@ class UserProfileControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("trader_2"))
                 .andExpect(jsonPath("$.email").value("trader2@marcus.local"));
+    }
+
+    @Test
+    void shouldChangeCurrentUserPassword() throws Exception {
+        ChangeCurrentUserPasswordRequest request = new ChangeCurrentUserPasswordRequest("current-pass", "new-pass-123");
+        when(changeCurrentUserPasswordUseCase.execute(any(ChangeCurrentUserPasswordRequest.class)))
+                .thenReturn(new UserProfileReadPort.UserProfileSnapshot("usr_1", "trader_1", "trader@marcus.local", "TRADER"));
+
+        mockMvc.perform(put("/api/v1/users/me/password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value("usr_1"));
     }
 }

@@ -8,6 +8,8 @@ public interface UserProfileReadPort {
 
     record UserProfileUpdateSnapshot(String username, String email) {}
 
+    record UserPasswordUpdateSnapshot(String currentPassword, String newPassword) {}
+
     record OffsetPaginationMetaSnapshot(
             int page,
             int size,
@@ -19,4 +21,6 @@ public interface UserProfileReadPort {
     UserProfileSnapshot getCurrentUserProfile(String userId);
 
     UserProfileSnapshot updateCurrentUserProfile(String userId, UserProfileUpdateSnapshot request);
+
+    UserProfileSnapshot changeCurrentUserPassword(String userId, UserPasswordUpdateSnapshot request);
 }
