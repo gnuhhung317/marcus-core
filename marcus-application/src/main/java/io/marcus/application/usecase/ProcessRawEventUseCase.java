@@ -52,7 +52,8 @@ public class ProcessRawEventUseCase {
                             request.status(),
                             request.generatedTimestamp(),
                             request.timeframe(),
-                            request.metadata()
+                            request.metadata(),
+                            request.policies()
                     );
                 }
 

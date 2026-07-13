@@ -30,6 +30,8 @@ import javax.crypto.spec.SecretKeySpec;
 
 import io.marcus.domain.port.RawEventPersistencePort;
 import io.marcus.domain.model.RawEvent;
+import io.marcus.domain.executor.ExecutionEventPort;
+import io.marcus.domain.executor.ExecutionEvent;
 import java.util.UUID;
 
 @Component
@@ -46,6 +48,7 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
     private final SignalRepository signalRepository;
     private final ExecutorOnlineStatusPort executorOnlineStatusPort;
     private final RawEventPersistencePort rawEventPersistencePort;
+    private final ExecutionEventPort executionEventPort;
     @Lazy
     private final ExecutorEventEventHandler executorEventEventHandler;
     @Lazy
@@ -129,6 +132,11 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
 
             if ("signal_ack".equals(frameType)) {
                 handleSignalAck(session, root);
+                return;
+            }
+
+            if ("replay-request".equals(frameType)) {
+                handleReplayRequest(session, root);
                 return;
             }
 
@@ -278,6 +286,59 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
         } catch (Exception ex) {
             throw new IOException("Failed to sign handshake", ex);
         }
+    }
+
+    private void handleReplayRequest(WebSocketSession session, JsonNode root) throws IOException {
+        JsonNode payload = root.path("payload");
+        String signalId = payload.path("signalId").asText(payload.path("signal_id").asText(""));
+        int fromSequence = payload.path("fromSequence").asInt(payload.path("from_sequence").asInt(0));
+        String botId = root.path("botId").asText(root.path("bot_id").asText(""));
+
+        log.info("[WebSocket] Received replay-request for botId={}, signalId={}, fromSequence={}", botId, signalId, fromSequence);
+
+        if (signalId.isBlank()) {
+            sendFrame(session, buildErrorFrame("invalid_request", "Missing signalId in replay-request"));
+            return;
+        }
+
+        // Query events from ExecutionEventPort
+        java.util.List<ExecutionEvent> events = 
+                executionEventPort.findBySignalIdAndSequenceRange(signalId, fromSequence, Integer.MAX_VALUE);
+
+        // Map events to JSON structure expected by the python client (all uppercase type values)
+        java.util.List<Map<String, Object>> serializedEvents = new java.util.ArrayList<>();
+        for (ExecutionEvent event : events) {
+            Map<String, Object> eventMap = new HashMap<>();
+            eventMap.put("eventId", event.getEventId());
+            eventMap.put("signalId", event.getSignalId());
+            eventMap.put("sequence", event.getSequence());
+            eventMap.put("eventType", event.getEventType().name()); // Enum name yields uppercase: e.g. ORDER_PLACED
+            eventMap.put("sentAt", event.getSentAt().toString());
+            if (event.getExchangeTime() != null) {
+                eventMap.put("exchangeTime", event.getExchangeTime().toString());
+            } else {
+                eventMap.put("exchangeTime", null);
+            }
+            eventMap.put("payload", event.getPayload());
+            serializedEvents.add(eventMap);
+        }
+
+        // Build the replay-response frame
+        Map<String, Object> responseFrame = new HashMap<>();
+        responseFrame.put("type", "replay-response");
+        if (!botId.isBlank()) {
+            responseFrame.put("botId", botId);
+        } else {
+            responseFrame.put("botId", session.getAttributes().get("botId"));
+        }
+
+        Map<String, Object> responsePayload = new HashMap<>();
+        responsePayload.put("signalId", signalId);
+        responsePayload.put("events", serializedEvents);
+        responseFrame.put("payload", responsePayload);
+
+        log.info("[WebSocket] Sending replay-response with {} events for signalId={}", serializedEvents.size(), signalId);
+        sendFrame(session, responseFrame);
     }
 
     private void handleSignalAck(WebSocketSession session, JsonNode root) {

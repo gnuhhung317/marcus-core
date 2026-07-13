@@ -153,9 +153,10 @@ public class GetBotAnalyticsUseCase {
         }
 
         long sampleDays = Math.max(1, ChronoUnit.DAYS.between(points.get(0).timestamp(), points.get(points.size() - 1).timestamp()) + 1);
-        double totalReturn = (points.get(points.size() - 1).value() - points.get(0).value()) / 100.0;
-        double annualReturn = totalReturn * (365.0 / sampleDays);
-        double maxDrawdown = maxDrawdown(points) / 100.0;
+        double startingEquity = normalizedEquity(points.get(0).value());
+        double endingEquity = normalizedEquity(points.get(points.size() - 1).value());
+        double annualReturn = calculateCagr(startingEquity, endingEquity, sampleDays);
+        double maxDrawdown = maxDrawdown(points);
         double volatility = volatility(points);
         double sharpe = volatility == 0.0d ? 0.0d : annualReturn / volatility;
         double sortino = sharpe;
@@ -178,13 +179,33 @@ public class GetBotAnalyticsUseCase {
     }
 
     private double maxDrawdown(List<CurvePoint> points) {
-        double peak = points.get(0).value();
-        double max = 0.0d;
+        double peakEquity = normalizedEquity(points.get(0).value());
+        double maxDrawdown = 0.0d;
         for (CurvePoint point : points) {
-            peak = Math.max(peak, point.value());
-            max = Math.max(max, peak - point.value());
+            double equity = normalizedEquity(point.value());
+            peakEquity = Math.max(peakEquity, equity);
+            if (peakEquity > 0.0d) {
+                double drawdown = (peakEquity - equity) / peakEquity;
+                maxDrawdown = Math.max(maxDrawdown, drawdown);
+            }
         }
-        return max;
+        return maxDrawdown;
+    }
+
+    private double normalizedEquity(double returnPercent) {
+        return 1.0d + (returnPercent / 100.0d);
+    }
+
+    private double calculateCagr(double startingEquity, double endingEquity, long sampleDays) {
+        if (startingEquity <= 0.0d || sampleDays <= 0) {
+            return 0.0d;
+        }
+
+        if (endingEquity <= 0.0d) {
+            return -1.0d;
+        }
+
+        return Math.pow((endingEquity / startingEquity), (365.0d / sampleDays)) - 1.0d;
     }
 
     private double volatility(List<CurvePoint> points) {

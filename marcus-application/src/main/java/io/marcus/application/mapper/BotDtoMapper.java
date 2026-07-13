@@ -5,10 +5,12 @@ import io.marcus.application.dto.BotRegistrationResult;
 import io.marcus.application.dto.RegisterBotRequest;
 import io.marcus.domain.model.Bot;
 import io.marcus.domain.vo.BotStatus;
+import io.marcus.domain.port.BotDiscoveryReadPort;
 import org.springframework.stereotype.Component;
 
 @Component
 public class BotDtoMapper {
+
 
     public Bot toDomain(RegisterBotRequest request) {
         if (request == null) {
@@ -41,8 +43,26 @@ public class BotDtoMapper {
     }
 
     public BotSummaryResult toSummaryResult(Bot bot, boolean includeApiKey) {
+        return toSummaryResult(bot, includeApiKey, null);
+    }
+
+    public BotSummaryResult toSummaryResult(Bot bot, boolean includeApiKey, BotDiscoveryReadPort.BotDetailSnapshot detail) {
         if (bot == null) {
             return null;
+        }
+
+        Double annualReturn = null;
+        Double maxDrawdown = null;
+        Double winRate = null;
+        String performanceSource = null;
+
+        if (detail != null) {
+            performanceSource = detail.performanceSource();
+            if (detail.performance() != null) {
+                annualReturn = detail.performance().annualReturn();
+                maxDrawdown = detail.performance().maxDrawdown();
+                winRate = detail.performance().winRate();
+            }
         }
 
         return BotSummaryResult.builder()
@@ -53,6 +73,10 @@ public class BotDtoMapper {
                 .tradingPair(bot.getTradingPair())
                 .exchange(bot.getExchangeId())
                 .apiKey(includeApiKey ? bot.getApiKey() : null)
+                .annualReturn(annualReturn)
+                .maxDrawdown(maxDrawdown)
+                .winRate(winRate)
+                .performanceSource(performanceSource)
                 .build();
     }
 }

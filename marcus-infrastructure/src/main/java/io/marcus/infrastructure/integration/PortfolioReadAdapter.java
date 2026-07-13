@@ -2,14 +2,17 @@ package io.marcus.infrastructure.integration;
 
 import io.marcus.domain.port.PortfolioReadPort;
 import io.marcus.domain.service.SignalMetricsCalculator;
-import io.marcus.domain.service.PortfolioAnalyzerService;
 import io.marcus.domain.vo.SubscriptionStatus;
 import io.marcus.infrastructure.persistence.SpringDataBotRepository;
+import io.marcus.infrastructure.persistence.SpringDataPortfolioAccountRepository;
 import io.marcus.infrastructure.persistence.SpringDataSignalRepository;
 import io.marcus.infrastructure.persistence.SpringDataUserSubscriptionRepository;
 import io.marcus.infrastructure.persistence.SpringDataUserPortfolioRepository;
 import io.marcus.infrastructure.persistence.entity.BotEntity;
+import io.marcus.infrastructure.persistence.entity.PortfolioAccountEntity;
+import io.marcus.infrastructure.persistence.entity.PortfolioBalanceHistoryEntity;
 import io.marcus.infrastructure.persistence.entity.SignalEntity;
+import io.marcus.infrastructure.persistence.SpringDataPortfolioHistoryRepository;
 import io.marcus.infrastructure.persistence.SpringDataRawEventRepository;
 import io.marcus.infrastructure.persistence.SpringDataPortfolioAggregateHistoryRepository;
 import io.marcus.infrastructure.persistence.entity.RawEventEntity;
@@ -39,10 +42,14 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PortfolioReadAdapter implements PortfolioReadPort {
 
+    private static final int STALE_HOURS = 24;
+
     private final SpringDataBotRepository springDataBotRepository;
     private final SpringDataSignalRepository springDataSignalRepository;
     private final SpringDataUserSubscriptionRepository springDataUserSubscriptionRepository;
     private final SpringDataUserPortfolioRepository springDataUserPortfolioRepository;
+    private final SpringDataPortfolioAccountRepository springDataPortfolioAccountRepository;
+    private final SpringDataPortfolioHistoryRepository springDataPortfolioHistoryRepository;
     private final SpringDataRawEventRepository springDataRawEventRepository;
     private final SpringDataPortfolioAggregateHistoryRepository springDataPortfolioAggregateHistoryRepository;
 
@@ -101,17 +108,7 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
         }
 
         return signals.stream()
-                .map(signal -> new SignalItemSnapshot(
-                        signal.getSignalId(),
-                        signal.getBotId(),
-                        resolveExchangeForSignal(signal.getBotId()),
-                        signal.getSymbol(),
-                        signal.getAction() != null ? signal.getAction().name() : "",
-                        signal.getEntry() != null ? signal.getEntry().doubleValue() : 0.0,
-                        signal.getStatus() != null ? signal.getStatus().name() : "",
-                        signal.getGeneratedTimestamp(),
-                        isSimulated(signal)
-                ))
+                .map(this::toSignalItemSnapshot)
                 .toList();
     }
 
@@ -135,17 +132,7 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
         }
 
         return signals.stream()
-                .map(signal -> new SignalItemSnapshot(
-                        signal.getSignalId(),
-                        signal.getBotId(),
-                        resolveExchangeForSignal(signal.getBotId()),
-                        signal.getSymbol(),
-                        signal.getAction() != null ? signal.getAction().name() : "",
-                        signal.getEntry() != null ? signal.getEntry().doubleValue() : 0.0,
-                        signal.getStatus() != null ? signal.getStatus().name() : "",
-                        signal.getGeneratedTimestamp(),
-                        isSimulated(signal)
-                ))
+                .map(this::toSignalItemSnapshot)
                 .toList();
     }
 
@@ -156,17 +143,7 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
             return List.of();
         }
         return springDataSignalRepository.findBySignalId(signalId)
-                .map(signal -> new SignalItemSnapshot(
-                        signal.getSignalId(),
-                        signal.getBotId(),
-                        resolveExchangeForSignal(signal.getBotId()),
-                        signal.getSymbol(),
-                        signal.getAction() != null ? signal.getAction().name() : "",
-                        signal.getEntry() != null ? signal.getEntry().doubleValue() : 0.0,
-                        signal.getStatus() != null ? signal.getStatus().name() : "",
-                        signal.getGeneratedTimestamp(),
-                        isSimulated(signal)
-                ))
+                .map(this::toSignalItemSnapshot)
                 .map(List::of)
                 .orElse(List.of());
     }
@@ -425,12 +402,11 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
                 : SignalMetricsCalculator.round4((double) successfulSignals / allSignals24h.size());
 
         int atRiskCount = (int) activeSubscriptions.stream()
-                .filter(sub -> calculateDrawdown(sub) < -Math.abs(safeDouble(portfolio.getMaxDrawdownThreshold(), 0.1000)))
+                .map(this::enrichSubscriptionWithDecisionReason)
+                .filter(snapshot -> isAtRiskReason(snapshot.reason()))
                 .count();
 
-        double aggregateOpenPnL = activeSubscriptions.stream()
-                .mapToDouble(sub -> calculateCurrentPnL(sub, portfolio))
-                .sum();
+        double aggregateOpenPnL = safeDouble(portfolio.getUnrealizedPnl(), 0.0);
 
         double liveEquity = safeDouble(portfolio.getTotalCapital(), 0.0);
         double freeBalance = safeDouble(portfolio.getAvailableBalance(), liveEquity);
@@ -477,25 +453,21 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
 
     private SubscriptionDecisionSnapshot enrichSubscriptionWithDecisionReason(UserSubscriptionEntity subscription) {
         UserPortfolioEntity portfolio = currentPortfolioState(subscription.getUserId());
+        SubscriptionTelemetry telemetry = resolveSubscriptionTelemetry(subscription);
+        SubscriptionActivity activity = resolveSubscriptionActivity(subscription);
+        LocalDateTime freshnessCutoff = LocalDateTime.now().minusHours(STALE_HOURS);
+        boolean hasTelemetry = telemetry.hasTelemetry();
+        boolean isFresh = telemetry.lastSyncAt() != null && !telemetry.lastSyncAt().isBefore(freshnessCutoff);
 
-        LocalDateTime yesterday = LocalDateTime.now().minusHours(24);
-        List<SignalEntity> signals24h = springDataSignalRepository.findByBotIdAndCreatedAtAfter(
-                subscription.getBotId(),
-                yesterday
+        DecisionReason reason = determineReason(
+                telemetry.drawdownPercent(),
+                isFresh,
+                hasTelemetry,
+                activity.hasRecentSignals(),
+                portfolio
         );
-
-        long successfulSignals = signals24h.stream()
-                .filter(signal -> SignalMetricsCalculator.deriveReturn(toSignalData(signal)) > 0)
-                .count();
-        double winRate = signals24h.isEmpty() ? 0.0
-                : SignalMetricsCalculator.round4((double) successfulSignals / signals24h.size());
-        double drawdown = calculateDrawdown(subscription);
-        double currentPnL = calculateCurrentPnL(subscription, portfolio);
-        double failureRate = signals24h.isEmpty() ? 0.0 : 1.0 - winRate;
-
-        DecisionReason reason = determineReason(winRate, drawdown, signals24h, failureRate, portfolio);
-        String explanation = generateReasonExplanation(reason, winRate, drawdown);
-        double riskScore = Math.max(0.0, Math.min(1.0, 1.0 + drawdown));
+        String explanation = generateReasonExplanation(reason, telemetry, isFresh, hasTelemetry, activity.hasRecentSignals());
+        double riskScore = calculateRiskScore(reason, telemetry.drawdownPercent(), isFresh, hasTelemetry, portfolio);
 
         BotEntity bot = springDataBotRepository.findByBotId(subscription.getBotId())
                 .orElseThrow(() -> new NoSuchElementException("Bot not found: " + subscription.getBotId()));
@@ -506,67 +478,205 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
                 bot.getName(),
                 "",
                 subscription.getStatus().name(),
-                currentPnL,
-                currentPnL / Math.max(1.0, safeDouble(portfolio.getTotalCapital(), 10000.0)),
-                drawdown,
-                winRate,
-                signals24h.size(),
-                (int) successfulSignals,
+                telemetry.currentPnL(),
+                telemetry.pnlPercent(),
+                telemetry.drawdownPercent(),
                 reason,
                 explanation,
                 riskScore,
                 daysSinceSubscribed(subscription),
-                daysInNegative(subscription),
-                signals24h.isEmpty() ? null : signals24h.get(0).getGeneratedTimestamp(),
+                telemetry.lastSyncAt(),
+                telemetry.syncFreshness(),
+                activity.lastSignalAt(),
                 resolveExchangeLabel(bot)
         );
     }
 
     private DecisionReason determineReason(
-            double winRate,
-            double drawdown,
-            List<SignalEntity> signals,
-            double failureRate,
+            Double drawdown,
+            boolean isFresh,
+            boolean hasTelemetry,
+            boolean hasRecentSignals,
             UserPortfolioEntity portfolio
     ) {
         double maxDrawdownThreshold = safeDouble(portfolio.getMaxDrawdownThreshold(), 0.1000);
         double mediumRiskThreshold = safeDouble(portfolio.getMediumRiskThreshold(), 0.0500);
-        LocalDateTime fourHoursAgo = LocalDateTime.now().minusHours(4);
-        boolean hasRecentSignals = !signals.isEmpty() && signals.stream()
-                .anyMatch(s -> s.getGeneratedTimestamp() != null && s.getGeneratedTimestamp().isAfter(fourHoursAgo));
+        if (!hasTelemetry || !isFresh) {
+            return DecisionReason.NEEDS_REVIEW;
+        }
+        if (drawdown != null && drawdown < -Math.abs(maxDrawdownThreshold)) {
+            return DecisionReason.HIGH_RISK;
+        }
+        if (drawdown != null && drawdown < -Math.abs(mediumRiskThreshold)) {
+            return DecisionReason.NEEDS_REVIEW;
+        }
+        if (!hasRecentSignals) {
+            return DecisionReason.SLIPPING;
+        }
+        return DecisionReason.SOLID_PERFORMER;
+    }
 
-        return PortfolioAnalyzerService.determineReason(
-                winRate,
-                drawdown,
-                hasRecentSignals,
-                failureRate,
-                maxDrawdownThreshold,
-                mediumRiskThreshold
+    private String generateReasonExplanation(
+            DecisionReason reason,
+            SubscriptionTelemetry telemetry,
+            boolean isFresh,
+            boolean hasTelemetry,
+            boolean hasRecentSignals
+    ) {
+        if (!hasTelemetry) {
+            return "No subscription telemetry has been synced yet.";
+        }
+        if (!isFresh) {
+            return "Subscription telemetry is stale and needs a fresh sync.";
+        }
+        if (reason == DecisionReason.HIGH_RISK && telemetry.drawdownPercent() != null) {
+            return String.format("Critical %.1f%% subscription drawdown.", telemetry.drawdownPercent() * 100);
+        }
+        if (reason == DecisionReason.NEEDS_REVIEW && telemetry.drawdownPercent() != null) {
+            return String.format("Subscription drawdown reached %.1f%%.", telemetry.drawdownPercent() * 100);
+        }
+        if (!hasRecentSignals) {
+            return "Telemetry is fresh, but no bot signals were seen in the last 24 hours.";
+        }
+        return "Subscription telemetry is fresh and within configured risk limits.";
+    }
+
+    private double calculateRiskScore(
+            DecisionReason reason,
+            Double drawdown,
+            boolean isFresh,
+            boolean hasTelemetry,
+            UserPortfolioEntity portfolio
+    ) {
+        if (!hasTelemetry) {
+            return 1.0;
+        }
+        double maxDrawdownThreshold = Math.max(Math.abs(safeDouble(portfolio.getMaxDrawdownThreshold(), 0.1000)), 0.0001);
+        double drawdownMagnitude = drawdown == null ? 0.0 : Math.abs(Math.min(drawdown, 0.0));
+        double score = Math.min(1.0, drawdownMagnitude / maxDrawdownThreshold);
+        if (!isFresh) {
+            score = Math.max(score, 0.75);
+        }
+        if (reason == DecisionReason.SLIPPING) {
+            score = Math.max(score, 0.45);
+        }
+        if (reason == DecisionReason.SOLID_PERFORMER) {
+            score = Math.min(score, 0.35);
+        }
+        return SignalMetricsCalculator.round4(score);
+    }
+
+    private SubscriptionTelemetry resolveSubscriptionTelemetry(UserSubscriptionEntity subscription) {
+        LocalDateTime subscriptionStart = resolveSubscriptionStart(subscription);
+        List<PortfolioBalanceHistoryEntity> history = springDataPortfolioHistoryRepository
+                .findByUserSubscriptionIdAndSnapshotAtAfterOrderBySnapshotAtAsc(subscription.getUserSubscriptionId(), subscriptionStart);
+        if (history.isEmpty()) {
+            history = springDataPortfolioHistoryRepository.findByUserSubscriptionIdOrderBySnapshotAtAsc(subscription.getUserSubscriptionId());
+        }
+
+        Optional<PortfolioAccountEntity> latestAccount = springDataPortfolioAccountRepository
+                .findTopByUserSubscriptionIdOrderByLastSyncAtDesc(subscription.getUserSubscriptionId());
+
+        if (history.isEmpty() && latestAccount.isEmpty()) {
+            return new SubscriptionTelemetry(null, null, null, null, "NEVER_SYNCED");
+        }
+
+        if (history.isEmpty()) {
+            LocalDateTime lastSyncAt = latestAccount.map(PortfolioAccountEntity::getLastSyncAt).orElse(null);
+            return new SubscriptionTelemetry(null, null, null, lastSyncAt, resolveSyncFreshness(lastSyncAt));
+        }
+
+        final List<PortfolioBalanceHistoryEntity> resolvedHistory = history;
+        final Optional<PortfolioAccountEntity> resolvedLatestAccount = latestAccount;
+
+        double baselineTotal = safeDouble(resolvedHistory.get(0).getTotal(), 0.0);
+        double latestTotal = resolvedLatestAccount
+                .map(PortfolioAccountEntity::getTotal)
+                .or(() -> resolvedHistory.stream().reduce((first, second) -> second).map(PortfolioBalanceHistoryEntity::getTotal))
+                .map(value -> safeDouble(value, 0.0))
+                .orElse(baselineTotal);
+        Double currentPnL = SignalMetricsCalculator.round2(latestTotal - baselineTotal);
+        Double pnlPercent = baselineTotal > 0
+                ? SignalMetricsCalculator.round4((latestTotal / baselineTotal) - 1.0)
+                : null;
+        Double drawdownPercent = calculateTelemetryDrawdown(resolvedHistory, latestTotal, resolvedLatestAccount.map(PortfolioAccountEntity::getLastSyncAt).orElse(null));
+        LocalDateTime lastSyncAt = resolvedLatestAccount
+                .map(PortfolioAccountEntity::getLastSyncAt)
+                .orElseGet(() -> resolvedHistory.get(resolvedHistory.size() - 1).getSnapshotAt());
+
+        return new SubscriptionTelemetry(
+                currentPnL,
+                pnlPercent,
+                drawdownPercent,
+                lastSyncAt,
+                resolveSyncFreshness(lastSyncAt)
         );
     }
 
-    private String generateReasonExplanation(DecisionReason reason, double winRate, double drawdown) {
-        return PortfolioAnalyzerService.generateReasonExplanation(reason, winRate, drawdown);
+    private Double calculateTelemetryDrawdown(
+            List<PortfolioBalanceHistoryEntity> history,
+            double latestTotal,
+            LocalDateTime latestSyncAt
+    ) {
+        List<Double> totals = history.stream()
+                .map(PortfolioBalanceHistoryEntity::getTotal)
+                .filter(Objects::nonNull)
+                .map(java.math.BigDecimal::doubleValue)
+                .collect(Collectors.toCollection(ArrayList::new));
+        if (totals.isEmpty()) {
+            return null;
+        }
+        LocalDateTime lastHistoryAt = history.get(history.size() - 1).getSnapshotAt();
+        if (latestSyncAt != null && (lastHistoryAt == null || latestSyncAt.isAfter(lastHistoryAt))) {
+            totals.add(latestTotal);
+        }
+
+        double peak = totals.get(0);
+        double maxDrawdown = 0.0;
+        for (double total : totals) {
+            if (total <= 0.0) {
+                continue;
+            }
+            peak = Math.max(peak, total);
+            if (peak <= 0.0) {
+                continue;
+            }
+            double drawdown = (peak - total) / peak;
+            maxDrawdown = Math.max(maxDrawdown, drawdown);
+        }
+        return SignalMetricsCalculator.round4(-maxDrawdown);
     }
 
-    private double calculateDrawdown(UserSubscriptionEntity subscription) {
-        LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
-        List<SignalEntity> signals = springDataSignalRepository.findByBotIdAndCreatedAtAfter(
+    private SubscriptionActivity resolveSubscriptionActivity(UserSubscriptionEntity subscription) {
+        LocalDateTime yesterday = LocalDateTime.now().minusHours(24);
+        List<SignalEntity> signals24h = springDataSignalRepository.findByBotIdAndCreatedAtAfter(
                 subscription.getBotId(),
-                sevenDaysAgo
+                yesterday
         );
-        List<SignalMetricsCalculator.SignalData> signalDataList = signals.stream().map(this::toSignalData).toList();
-        return PortfolioAnalyzerService.calculateDrawdown(signalDataList);
+        LocalDateTime lastSignalAt = springDataSignalRepository
+                .findByBotIdOrderByGeneratedTimestampDesc(subscription.getBotId(), PageRequest.of(0, 1))
+                .stream()
+                .findFirst()
+                .map(SignalEntity::getGeneratedTimestamp)
+                .orElse(null);
+        return new SubscriptionActivity(!signals24h.isEmpty(), lastSignalAt);
     }
 
-    private double calculateCurrentPnL(UserSubscriptionEntity subscription, UserPortfolioEntity portfolio) {
-        List<SignalEntity> signals = springDataSignalRepository.findByBotIdAndCreatedAtAfter(
-                subscription.getBotId(),
-                LocalDateTime.now().minusDays(30)
-        );
-        List<SignalMetricsCalculator.SignalData> signalDataList = signals.stream().map(this::toSignalData).toList();
-        double totalCapital = safeDouble(portfolio.getTotalCapital(), 10000.0);
-        return PortfolioAnalyzerService.calculateCurrentPnL(signalDataList, totalCapital);
+    private LocalDateTime resolveSubscriptionStart(UserSubscriptionEntity subscription) {
+        if (subscription.getStartDate() != null) {
+            return subscription.getStartDate();
+        }
+        if (subscription.getCreatedAt() != null) {
+            return subscription.getCreatedAt();
+        }
+        return LocalDateTime.now().minusHours(STALE_HOURS);
+    }
+
+    private String resolveSyncFreshness(LocalDateTime lastSyncAt) {
+        if (lastSyncAt == null) {
+            return "NEVER_SYNCED";
+        }
+        return lastSyncAt.isBefore(LocalDateTime.now().minusHours(STALE_HOURS)) ? "STALE" : "FRESH";
     }
 
     private LocalDateTime resolveRangeStart(String range, LocalDateTime now) {
@@ -685,18 +795,6 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
         return (int) java.time.Duration.between(subscription.getCreatedAt(), LocalDateTime.now()).toDays();
     }
 
-    private int daysInNegative(UserSubscriptionEntity subscription) {
-        LocalDateTime yesterday = LocalDateTime.now().minusHours(24);
-        List<SignalEntity> recentSignals = springDataSignalRepository.findByBotIdAndCreatedAtAfter(
-                subscription.getBotId(),
-                yesterday
-        );
-        long losingSignals = recentSignals.stream()
-                .filter(s -> SignalMetricsCalculator.deriveReturn(toSignalData(s)) < 0)
-                .count();
-        return losingSignals > 0 ? 1 : 0;
-    }
-
     private DecisionDashboardFilter parseDecisionFilter(String statusFilter) {
         if (statusFilter == null || statusFilter.isBlank()) {
             return DecisionDashboardFilter.ALL;
@@ -732,7 +830,18 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
 
     private UserPortfolioEntity currentPortfolioState(String userId) {
         return springDataUserPortfolioRepository.findByUserId(userId)
-                .orElseThrow(() -> new NoSuchElementException("Portfolio not found for user: " + userId));
+                .orElseGet(() -> UserPortfolioEntity.builder()
+                        .userId(userId)
+                        .totalCapital(java.math.BigDecimal.ZERO)
+                        .availableBalance(java.math.BigDecimal.ZERO)
+                        .realizedPnl(java.math.BigDecimal.ZERO)
+                        .unrealizedPnl(java.math.BigDecimal.ZERO)
+                        .maxDrawdownThreshold(new java.math.BigDecimal("0.1000"))
+                        .mediumRiskThreshold(new java.math.BigDecimal("0.0500"))
+                        .freshAccountsCount(0)
+                        .staleAccountsCount(0)
+                        .dataFreshness("STALE")
+                        .build());
     }
 
     private double safeDouble(java.math.BigDecimal value, double fallback) {
@@ -780,6 +889,75 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
             return Boolean.parseBoolean((String) simulationVal);
         }
         return false;
+    }
+
+    private SignalItemSnapshot toSignalItemSnapshot(SignalEntity signal) {
+        return new SignalItemSnapshot(
+                signal.getSignalId(),
+                signal.getBotId(),
+                resolveExchangeForSignal(signal.getBotId()),
+                signal.getSymbol(),
+                signal.getAction() != null ? signal.getAction().name() : "",
+                signal.getEntry() != null ? signal.getEntry().doubleValue() : 0.0,
+                signal.getStatus() != null ? signal.getStatus().name() : "",
+                signal.getGeneratedTimestamp(),
+                isSimulated(signal),
+                signal.getLeverage(),
+                signal.getMarketType() != null ? signal.getMarketType().name() : null,
+                signal.getReduceOnly(),
+                signal.getAmount() != null ? signal.getAmount().doubleValue() : null,
+                signal.getTakeProfit() != null ? signal.getTakeProfit().doubleValue() : null,
+                signal.getStopLoss() != null ? signal.getStopLoss().doubleValue() : null,
+                signal.getMetadata(),
+                buildRawPayload(signal)
+        );
+    }
+
+    private Map<String, Object> buildRawPayload(SignalEntity signal) {
+        if (signal == null) {
+            return null;
+        }
+        Optional<RawEventEntity> rawEventOpt = springDataRawEventRepository.findByEventId(signal.getSignalId());
+        if (rawEventOpt.isPresent() && rawEventOpt.get().getPayload() != null) {
+            return rawEventOpt.get().getPayload();
+        }
+
+        java.util.Map<String, Object> fallback = new java.util.HashMap<>();
+        fallback.put("signalId", signal.getSignalId());
+        fallback.put("botId", signal.getBotId());
+        fallback.put("symbol", signal.getSymbol());
+        fallback.put("action", signal.getAction() != null ? signal.getAction().name() : null);
+        fallback.put("marketType", signal.getMarketType() != null ? signal.getMarketType().name() : null);
+        fallback.put("orderType", signal.getOrderType() != null ? signal.getOrderType().name() : null);
+        fallback.put("price", signal.getEntry() != null ? signal.getEntry().doubleValue() : null);
+        fallback.put("entry", signal.getEntry() != null ? signal.getEntry().doubleValue() : null);
+        fallback.put("stopLoss", signal.getStopLoss() != null ? signal.getStopLoss().doubleValue() : null);
+        fallback.put("takeProfit", signal.getTakeProfit() != null ? signal.getTakeProfit().doubleValue() : null);
+        fallback.put("amount", signal.getAmount() != null ? signal.getAmount().doubleValue() : null);
+        fallback.put("leverage", signal.getLeverage());
+        fallback.put("marginMode", signal.getMarginMode() != null ? signal.getMarginMode().name() : null);
+        fallback.put("reduceOnly", signal.getReduceOnly());
+        fallback.put("status", signal.getStatus() != null ? signal.getStatus().name() : null);
+        fallback.put("generatedTimestamp", signal.getGeneratedTimestamp() != null ? signal.getGeneratedTimestamp().toString() : null);
+        fallback.put("timeframe", signal.getTimeframe());
+        fallback.put("metadata", signal.getMetadata());
+        fallback.put("policies", signal.getPolicies());
+        return fallback;
+    }
+
+    private record SubscriptionTelemetry(
+            Double currentPnL,
+            Double pnlPercent,
+            Double drawdownPercent,
+            LocalDateTime lastSyncAt,
+            String syncFreshness
+    ) {
+        private boolean hasTelemetry() {
+            return currentPnL != null || pnlPercent != null || drawdownPercent != null;
+        }
+    }
+
+    private record SubscriptionActivity(boolean hasRecentSignals, LocalDateTime lastSignalAt) {
     }
 
     private enum DecisionDashboardFilter {

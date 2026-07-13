@@ -4,6 +4,7 @@ import io.marcus.domain.port.PortfolioReadPort.ExecutionLogPageSnapshot;
 import io.marcus.domain.port.PortfolioReadPort.ExecutionLogItemSnapshot;
 import io.marcus.domain.port.PortfolioReadPort.BotIntegrationHealthSnapshot;
 import io.marcus.domain.port.PortfolioReadPort.ConnectivityHealthSnapshot;
+import io.marcus.domain.port.PortfolioReadPort;
 import io.marcus.domain.port.PortfolioReadPort.SubscriptionDecisionSnapshot;
 import io.marcus.domain.vo.BotStatus;
 import io.marcus.domain.vo.MarketType;
@@ -13,10 +14,14 @@ import io.marcus.domain.vo.SignalStatus;
 import io.marcus.domain.vo.SubscriptionStatus;
 import io.marcus.infrastructure.persistence.entity.BotEntity;
 import io.marcus.infrastructure.persistence.entity.ExchangeEntity;
+import io.marcus.infrastructure.persistence.entity.PortfolioAccountEntity;
 import io.marcus.infrastructure.persistence.entity.PortfolioAggregateHistoryEntity;
+import io.marcus.infrastructure.persistence.entity.PortfolioBalanceHistoryEntity;
 import io.marcus.infrastructure.persistence.entity.SignalEntity;
 import io.marcus.infrastructure.persistence.SpringDataBotRepository;
+import io.marcus.infrastructure.persistence.SpringDataPortfolioAccountRepository;
 import io.marcus.infrastructure.persistence.SpringDataPortfolioAggregateHistoryRepository;
+import io.marcus.infrastructure.persistence.SpringDataPortfolioHistoryRepository;
 import io.marcus.infrastructure.persistence.SpringDataRawEventRepository;
 import io.marcus.infrastructure.persistence.SpringDataSignalRepository;
 import io.marcus.infrastructure.persistence.SpringDataUserSubscriptionRepository;
@@ -57,6 +62,10 @@ class PortfolioReadAdapterTest {
     private SpringDataRawEventRepository springDataRawEventRepository;
     @Mock
     private SpringDataPortfolioAggregateHistoryRepository springDataPortfolioAggregateHistoryRepository;
+    @Mock
+    private SpringDataPortfolioAccountRepository springDataPortfolioAccountRepository;
+    @Mock
+    private SpringDataPortfolioHistoryRepository springDataPortfolioHistoryRepository;
 
     private PortfolioReadAdapter adapter;
 
@@ -67,6 +76,8 @@ class PortfolioReadAdapterTest {
                 springDataSignalRepository,
                 springDataUserSubscriptionRepository,
                 springDataUserPortfolioRepository,
+                springDataPortfolioAccountRepository,
+                springDataPortfolioHistoryRepository,
                 springDataRawEventRepository,
                 springDataPortfolioAggregateHistoryRepository
         );
@@ -610,6 +621,7 @@ class PortfolioReadAdapterTest {
                 .userId("usr-1")
                 .totalCapital(new BigDecimal("10000"))
                 .availableBalance(new BigDecimal("8200"))
+                .unrealizedPnl(new BigDecimal("275"))
                 .maxDrawdownThreshold(new BigDecimal("0.1000"))
                 .mediumRiskThreshold(new BigDecimal("0.0500"))
                 .build();
@@ -626,9 +638,32 @@ class PortfolioReadAdapterTest {
         when(springDataUserPortfolioRepository.findByUserId("usr-1")).thenReturn(Optional.of(portfolio));
 
         stubDecisionBot("bot-solid", "SOL Trend", "OKX", List.of(signal("bot-solid", 1, 100, 110, 95)));
-        stubDecisionBot("bot-slip", "ADA Drift", "BINANCE", List.of(signal("bot-slip", 10, 100, 104, 96)));
+        stubDecisionBot("bot-slip", "ADA Drift", "BINANCE", List.of());
         stubDecisionBot("bot-review", "ETH Momentum", "BYBIT", List.of(signal("bot-review", 1, 100, 92, 95)));
         stubDecisionBot("bot-risk", "BTC Sentinel", "BINANCE", List.of(signal("bot-risk", 1, 100, 85, 90)));
+
+        stubTelemetry("sub-solid",
+                portfolioAccount("sub-solid", "bot-solid", 10600, 0, LocalDateTime.now().minusHours(1)),
+                balanceHistory("usr-1", "sub-solid", "bot-solid", 10000, LocalDateTime.now().minusDays(3)),
+                balanceHistory("usr-1", "sub-solid", "bot-solid", 10400, LocalDateTime.now().minusDays(2)),
+                balanceHistory("usr-1", "sub-solid", "bot-solid", 10600, LocalDateTime.now().minusHours(2))
+        );
+        stubTelemetry("sub-slip",
+                portfolioAccount("sub-slip", "bot-slip", 10100, 0, LocalDateTime.now().minusHours(1)),
+                balanceHistory("usr-1", "sub-slip", "bot-slip", 10000, LocalDateTime.now().minusDays(2)),
+                balanceHistory("usr-1", "sub-slip", "bot-slip", 10100, LocalDateTime.now().minusHours(3))
+        );
+        stubTelemetry("sub-review",
+                portfolioAccount("sub-review", "bot-review", 9600, 0, LocalDateTime.now().minusHours(1)),
+                balanceHistory("usr-1", "sub-review", "bot-review", 10000, LocalDateTime.now().minusDays(4)),
+                balanceHistory("usr-1", "sub-review", "bot-review", 9400, LocalDateTime.now().minusDays(2)),
+                balanceHistory("usr-1", "sub-review", "bot-review", 9600, LocalDateTime.now().minusHours(3))
+        );
+        stubTelemetry("sub-risk",
+                portfolioAccount("sub-risk", "bot-risk", 8500, 0, LocalDateTime.now().minusHours(1)),
+                balanceHistory("usr-1", "sub-risk", "bot-risk", 10000, LocalDateTime.now().minusDays(3)),
+                balanceHistory("usr-1", "sub-risk", "bot-risk", 8500, LocalDateTime.now().minusHours(2))
+        );
 
         List<SubscriptionDecisionSnapshot> all = adapter.getSubscriptionDecisions("usr-1", "ALL");
         List<SubscriptionDecisionSnapshot> active = adapter.getSubscriptionDecisions("usr-1", "ACTIVE");
@@ -638,6 +673,167 @@ class PortfolioReadAdapterTest {
         assertEquals(List.of("bot-slip", "bot-solid"), active.stream().map(SubscriptionDecisionSnapshot::botId).sorted().toList());
         assertEquals(List.of("bot-review", "bot-risk"), atRisk.stream().map(SubscriptionDecisionSnapshot::botId).sorted().toList());
         verify(springDataUserSubscriptionRepository, times(3)).findByUserIdAndStatus("usr-1", SubscriptionStatus.ACTIVE);
+    }
+
+    @Test
+    void getSubscriptionDecisions_usesSubscriptionTelemetryForPnlAndDrawdown() {
+        UserPortfolioEntity portfolio = UserPortfolioEntity.builder()
+                .userId("usr-1")
+                .totalCapital(new BigDecimal("10000"))
+                .availableBalance(new BigDecimal("7000"))
+                .unrealizedPnl(new BigDecimal("150"))
+                .maxDrawdownThreshold(new BigDecimal("0.1000"))
+                .mediumRiskThreshold(new BigDecimal("0.0500"))
+                .build();
+        UserSubscriptionEntity subscription = subscription("sub-telemetry", "usr-1", "bot-telemetry");
+        when(springDataUserSubscriptionRepository.findByUserIdAndStatus("usr-1", SubscriptionStatus.ACTIVE))
+                .thenReturn(List.of(subscription));
+        when(springDataUserPortfolioRepository.findByUserId("usr-1")).thenReturn(Optional.of(portfolio));
+
+        stubDecisionBot("bot-telemetry", "Telemetry Bot", "BINANCE", List.of(signal("bot-telemetry", 1, 100, 110, 95)));
+        stubTelemetry("sub-telemetry",
+                portfolioAccount("sub-telemetry", "bot-telemetry", 10500, 0, LocalDateTime.now().minusHours(1)),
+                balanceHistory("usr-1", "sub-telemetry", "bot-telemetry", 10000, LocalDateTime.now().minusDays(3)),
+                balanceHistory("usr-1", "sub-telemetry", "bot-telemetry", 11000, LocalDateTime.now().minusDays(2)),
+                balanceHistory("usr-1", "sub-telemetry", "bot-telemetry", 9000, LocalDateTime.now().minusDays(1)),
+                balanceHistory("usr-1", "sub-telemetry", "bot-telemetry", 10200, LocalDateTime.now().minusHours(6))
+        );
+
+        SubscriptionDecisionSnapshot snapshot = adapter.getSubscriptionDecisions("usr-1", "ALL").get(0);
+
+        assertEquals(500.0, snapshot.currentPnL(), 0.0001);
+        assertEquals(0.05, snapshot.pnlPercent(), 0.0001);
+        assertEquals(-0.1818, snapshot.drawdownPercent(), 0.0001);
+        assertEquals("FRESH", snapshot.syncFreshness());
+        assertNotNull(snapshot.lastSyncAt());
+    }
+
+    @Test
+    void getSubscriptionDecisions_withoutTelemetry_marksSubscriptionUnsyncedForReview() {
+        UserPortfolioEntity portfolio = UserPortfolioEntity.builder()
+                .userId("usr-1")
+                .totalCapital(new BigDecimal("10000"))
+                .availableBalance(new BigDecimal("10000"))
+                .unrealizedPnl(BigDecimal.ZERO)
+                .maxDrawdownThreshold(new BigDecimal("0.1000"))
+                .mediumRiskThreshold(new BigDecimal("0.0500"))
+                .build();
+        UserSubscriptionEntity subscription = subscription("sub-empty", "usr-1", "bot-empty");
+        when(springDataUserSubscriptionRepository.findByUserIdAndStatus("usr-1", SubscriptionStatus.ACTIVE))
+                .thenReturn(List.of(subscription));
+        when(springDataUserPortfolioRepository.findByUserId("usr-1")).thenReturn(Optional.of(portfolio));
+
+        stubDecisionBot("bot-empty", "Empty Bot", "OKX", List.of());
+        stubTelemetry("sub-empty", null);
+
+        SubscriptionDecisionSnapshot snapshot = adapter.getSubscriptionDecisions("usr-1", "ALL").get(0);
+
+        assertNull(snapshot.currentPnL());
+        assertNull(snapshot.pnlPercent());
+        assertNull(snapshot.drawdownPercent());
+        assertEquals(PortfolioReadPort.DecisionReason.NEEDS_REVIEW, snapshot.reason());
+        assertEquals("NEVER_SYNCED", snapshot.syncFreshness());
+        assertTrue(snapshot.reasonExplanation().contains("No subscription telemetry"));
+    }
+
+    @Test
+    void getSubscriptionDecisions_withStaleSync_marksNeedsReview() {
+        UserPortfolioEntity portfolio = UserPortfolioEntity.builder()
+                .userId("usr-1")
+                .totalCapital(new BigDecimal("10000"))
+                .availableBalance(new BigDecimal("9500"))
+                .unrealizedPnl(new BigDecimal("50"))
+                .maxDrawdownThreshold(new BigDecimal("0.1000"))
+                .mediumRiskThreshold(new BigDecimal("0.0500"))
+                .build();
+        UserSubscriptionEntity subscription = subscription("sub-stale", "usr-1", "bot-stale");
+        when(springDataUserSubscriptionRepository.findByUserIdAndStatus("usr-1", SubscriptionStatus.ACTIVE))
+                .thenReturn(List.of(subscription));
+        when(springDataUserPortfolioRepository.findByUserId("usr-1")).thenReturn(Optional.of(portfolio));
+
+        stubDecisionBot("bot-stale", "Stale Bot", "BYBIT", List.of(signal("bot-stale", 1, 100, 110, 95)));
+        stubTelemetry("sub-stale",
+                portfolioAccount("sub-stale", "bot-stale", 10100, 0, LocalDateTime.now().minusHours(30)),
+                balanceHistory("usr-1", "sub-stale", "bot-stale", 10000, LocalDateTime.now().minusDays(4)),
+                balanceHistory("usr-1", "sub-stale", "bot-stale", 10100, LocalDateTime.now().minusHours(30))
+        );
+
+        SubscriptionDecisionSnapshot snapshot = adapter.getSubscriptionDecisions("usr-1", "ALL").get(0);
+
+        assertEquals(PortfolioReadPort.DecisionReason.NEEDS_REVIEW, snapshot.reason());
+        assertEquals("STALE", snapshot.syncFreshness());
+        assertTrue(snapshot.reasonExplanation().contains("stale"));
+    }
+
+    @Test
+    void getSubscriptionDecisions_withFreshSyncButNoRecentSignals_marksSlipping() {
+        UserPortfolioEntity portfolio = UserPortfolioEntity.builder()
+                .userId("usr-1")
+                .totalCapital(new BigDecimal("10000"))
+                .availableBalance(new BigDecimal("9400"))
+                .unrealizedPnl(new BigDecimal("20"))
+                .maxDrawdownThreshold(new BigDecimal("0.1000"))
+                .mediumRiskThreshold(new BigDecimal("0.0500"))
+                .build();
+        UserSubscriptionEntity subscription = subscription("sub-slip", "usr-1", "bot-slip");
+        when(springDataUserSubscriptionRepository.findByUserIdAndStatus("usr-1", SubscriptionStatus.ACTIVE))
+                .thenReturn(List.of(subscription));
+        when(springDataUserPortfolioRepository.findByUserId("usr-1")).thenReturn(Optional.of(portfolio));
+
+        stubDecisionBot("bot-slip", "Slip Bot", "BINANCE", List.of());
+        stubTelemetry("sub-slip",
+                portfolioAccount("sub-slip", "bot-slip", 10150, 0, LocalDateTime.now().minusHours(1)),
+                balanceHistory("usr-1", "sub-slip", "bot-slip", 10000, LocalDateTime.now().minusDays(4)),
+                balanceHistory("usr-1", "sub-slip", "bot-slip", 10150, LocalDateTime.now().minusHours(3))
+        );
+
+        SubscriptionDecisionSnapshot snapshot = adapter.getSubscriptionDecisions("usr-1", "ALL").get(0);
+
+        assertEquals(PortfolioReadPort.DecisionReason.SLIPPING, snapshot.reason());
+        assertEquals("FRESH", snapshot.syncFreshness());
+        assertTrue(snapshot.reasonExplanation().contains("last 24 hours"));
+    }
+
+    @Test
+    void getPortfolioOverview_usesRealUnrealizedPnlInsteadOfSignalDerivedSum() {
+        UserPortfolioEntity portfolio = UserPortfolioEntity.builder()
+                .userId("usr-1")
+                .totalCapital(new BigDecimal("15000"))
+                .availableBalance(new BigDecimal("12000"))
+                .unrealizedPnl(new BigDecimal("321.5"))
+                .maxDrawdownThreshold(new BigDecimal("0.1000"))
+                .mediumRiskThreshold(new BigDecimal("0.0500"))
+                .freshAccountsCount(1)
+                .staleAccountsCount(1)
+                .dataFreshness("PARTIAL")
+                .lastSyncAt(LocalDateTime.now().minusMinutes(5))
+                .build();
+        List<UserSubscriptionEntity> subscriptions = List.of(
+                subscription("sub-1", "usr-1", "bot-1"),
+                subscription("sub-2", "usr-1", "bot-2")
+        );
+        when(springDataUserSubscriptionRepository.findByUserIdAndStatus("usr-1", SubscriptionStatus.ACTIVE))
+                .thenReturn(subscriptions);
+        when(springDataUserPortfolioRepository.findByUserId("usr-1")).thenReturn(Optional.of(portfolio));
+
+        stubDecisionBot("bot-1", "Bot 1", "BINANCE", List.of(signal("bot-1", 1, 100, 110, 95)));
+        stubDecisionBot("bot-2", "Bot 2", "OKX", List.of());
+        stubTelemetry("sub-1",
+                portfolioAccount("sub-1", "bot-1", 10500, 0, LocalDateTime.now().minusHours(1)),
+                balanceHistory("usr-1", "sub-1", "bot-1", 10000, LocalDateTime.now().minusDays(2)),
+                balanceHistory("usr-1", "sub-1", "bot-1", 10500, LocalDateTime.now().minusHours(2))
+        );
+        stubTelemetry("sub-2",
+                portfolioAccount("sub-2", "bot-2", 9800, 0, LocalDateTime.now().minusHours(30)),
+                balanceHistory("usr-1", "sub-2", "bot-2", 10000, LocalDateTime.now().minusDays(2)),
+                balanceHistory("usr-1", "sub-2", "bot-2", 9800, LocalDateTime.now().minusHours(30))
+        );
+
+        PortfolioReadPort.PortfolioOverviewSnapshot snapshot = adapter.getPortfolioOverview("usr-1");
+
+        assertEquals(321.5, snapshot.aggregateOpenPnL(), 0.0001);
+        assertEquals(1, snapshot.atRiskSubscriptionCount());
+        assertEquals("PARTIAL", snapshot.dataFreshness());
     }
 
     private void assertRange(LocalDateTime actual, LocalDateTime minInclusive, LocalDateTime maxInclusive) {
@@ -658,6 +854,61 @@ class PortfolioReadAdapterTest {
         ));
         when(springDataSignalRepository.findByBotIdAndCreatedAtAfter(eq(botId), any(LocalDateTime.class)))
                 .thenReturn(signals);
+        when(springDataSignalRepository.findByBotIdOrderByGeneratedTimestampDesc(eq(botId), any()))
+                .thenReturn(signals.stream()
+                        .sorted((a, b) -> {
+                            LocalDateTime aTs = a.getGeneratedTimestamp();
+                            LocalDateTime bTs = b.getGeneratedTimestamp();
+                            if (aTs == null && bTs == null) return 0;
+                            if (aTs == null) return 1;
+                            if (bTs == null) return -1;
+                            return bTs.compareTo(aTs);
+                        })
+                        .toList());
+    }
+
+    private void stubTelemetry(String subscriptionId, PortfolioAccountEntity account, PortfolioBalanceHistoryEntity... history) {
+        when(springDataPortfolioAccountRepository.findTopByUserSubscriptionIdOrderByLastSyncAtDesc(subscriptionId))
+                .thenReturn(Optional.ofNullable(account));
+        when(springDataPortfolioHistoryRepository.findByUserSubscriptionIdAndSnapshotAtAfterOrderBySnapshotAtAsc(eq(subscriptionId), any(LocalDateTime.class)))
+                .thenReturn(List.of(history));
+        lenient().when(springDataPortfolioHistoryRepository.findByUserSubscriptionIdOrderBySnapshotAtAsc(subscriptionId))
+                .thenReturn(List.of(history));
+    }
+
+    private PortfolioAccountEntity portfolioAccount(String subscriptionId, String botId, double total, double unrealizedPnl, LocalDateTime lastSyncAt) {
+        return PortfolioAccountEntity.builder()
+                .userId("usr-1")
+                .userSubscriptionId(subscriptionId)
+                .botId(botId)
+                .total(BigDecimal.valueOf(total))
+                .free(BigDecimal.valueOf(total))
+                .used(BigDecimal.ZERO)
+                .realizedPnl(BigDecimal.ZERO)
+                .unrealizedPnl(BigDecimal.valueOf(unrealizedPnl))
+                .lastSyncAt(lastSyncAt)
+                .active(true)
+                .build();
+    }
+
+    private PortfolioBalanceHistoryEntity balanceHistory(
+            String userId,
+            String subscriptionId,
+            String botId,
+            double total,
+            LocalDateTime snapshotAt
+    ) {
+        return PortfolioBalanceHistoryEntity.builder()
+                .userId(userId)
+                .userSubscriptionId(subscriptionId)
+                .botId(botId)
+                .total(BigDecimal.valueOf(total))
+                .free(BigDecimal.valueOf(total))
+                .used(BigDecimal.ZERO)
+                .unrealizedPnl(BigDecimal.ZERO)
+                .active(true)
+                .snapshotAt(snapshotAt)
+                .build();
     }
 
     private UserSubscriptionEntity subscription(String id, String userId, String botId) {
@@ -684,7 +935,7 @@ class PortfolioReadAdapterTest {
                 .entry(BigDecimal.valueOf(entry))
                 .takeProfit(BigDecimal.valueOf(takeProfit))
                 .stopLoss(BigDecimal.valueOf(stopLoss))
-                .status(SignalStatus.DISPATCHED)
+                .status(SignalStatus.ACKNOWLEDGED)
                 .generatedTimestamp(generatedAt)
                 .build();
     }

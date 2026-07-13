@@ -13,4 +13,6 @@ public interface SpringDataPortfolioAccountRepository extends JpaRepository<Port
     Optional<PortfolioAccountEntity> findByUserSubscriptionId(String userSubscriptionId);
 
     List<PortfolioAccountEntity> findByUserId(String userId);
+
+    Optional<PortfolioAccountEntity> findTopByUserSubscriptionIdOrderByLastSyncAtDesc(String userSubscriptionId);
 }

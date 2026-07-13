@@ -102,6 +102,7 @@ class BotSignalDispatchFlowIntegrationTest {
         SignalRepository signalReposistory = new InMemorySignalRepository();
         io.marcus.domain.port.ExecutorOnlineStatusPort executorOnlineStatusPort = mock(io.marcus.domain.port.ExecutorOnlineStatusPort.class);
         io.marcus.domain.port.RawEventPersistencePort rawEventPersistencePort = mock(io.marcus.domain.port.RawEventPersistencePort.class);
+        io.marcus.domain.executor.ExecutionEventPort executionEventPort = mock(io.marcus.domain.executor.ExecutionEventPort.class);
         ExecutorWebSocketHandler webSocketHandler = new ExecutorWebSocketHandler(
                 objectMapper,
                 sessionRegistry,
@@ -109,6 +110,7 @@ class BotSignalDispatchFlowIntegrationTest {
                 signalReposistory,
                 executorOnlineStatusPort,
                 rawEventPersistencePort,
+                executionEventPort,
                 executorEventEventHandler,
                 auditPushEventHandler);
 
@@ -155,7 +157,7 @@ class BotSignalDispatchFlowIntegrationTest {
         io.marcus.application.dto.CaptureSignalRequest request = new io.marcus.application.dto.CaptureSignalRequest(
                 "sig_1",
                 botId,
-                "BTC/USDT",
+                "BTCUSDT",
                 SignalAction.OPEN_LONG,
                 null,
                 null,
@@ -169,7 +171,8 @@ class BotSignalDispatchFlowIntegrationTest {
                 SignalStatus.RECEIVED,
                 LocalDateTime.parse("2026-05-01T00:00:00"),
                 null,
-                Map.of("strategy", "momentum")
+                Map.of("strategy", "momentum"),
+                Map.of("maxSizePercent", 0.1, "cancelOrderAfter", 1_800)
         );
 
         captureSignalUseCase.execute(request);
@@ -188,8 +191,11 @@ class BotSignalDispatchFlowIntegrationTest {
         assertThat(frames.get(1)).contains("\"type\":\"signal\"");
         assertThat(frames.get(1)).contains("\"signal_id\":\"sig_1\"");
         assertThat(frames.get(1)).contains("\"bot_id\":\"" + botId + "\"");
-        assertThat(frames.get(1)).contains("\"symbol\":\"BTC/USDT\"");
+        assertThat(frames.get(1)).contains("\"symbol\":\"BTCUSDT\"");
         assertThat(frames.get(1)).contains("\"action\":\"OPEN_LONG\"");
+        assertThat(frames.get(1)).contains("\"policies\"")
+                .contains("\"maxSizePercent\":0.1")
+                .contains("\"cancelOrderAfter\":1800");
     }
 
     private static final class InMemorySignalRepository implements SignalRepository {

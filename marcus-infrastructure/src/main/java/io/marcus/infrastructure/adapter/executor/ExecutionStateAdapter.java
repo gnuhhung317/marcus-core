@@ -29,7 +29,7 @@ public class ExecutionStateAdapter implements ExecutionStatePort {
     }
 
     @Override
-    public ExecutionState acceptSignal(String signalId) {
+    public ExecutionState acceptSignal(String signalId, int newLastSequence, Instant sentAt) {
         if (executionStateRepository.existsBySignalId(signalId)) {
             throw new IllegalArgumentException("Signal already has a state: " + signalId);
         }
@@ -39,8 +39,8 @@ public class ExecutionStateAdapter implements ExecutionStatePort {
                 "ACCEPTED",
                 "NONE",
                 "NONE",
-                -1,
-                null,
+                newLastSequence,
+                sentAt,
                 null
         );
 
@@ -180,6 +180,30 @@ public class ExecutionStateAdapter implements ExecutionStatePort {
         return executionStateRepository.findBySignalId(signalId)
                 .map(ExecutionStateEntity::getLastSequence)
                 .orElse(-1);
+    }
+
+    @Override
+    public ExecutionState upsertState(ExecutionState state) {
+        ExecutionStateEntity entity = executionStateRepository.findBySignalId(state.getSignalId())
+                .orElseGet(() -> new ExecutionStateEntity(
+                        state.getSignalId(),
+                        state.getSignalState().name(),
+                        state.getOrderState().name(),
+                        state.getPositionState().name(),
+                        state.getLastSequence(),
+                        state.getLastEventTime(),
+                        state.getClosedAt()
+                ));
+
+        entity.setSignalState(state.getSignalState().name());
+        entity.setOrderState(state.getOrderState().name());
+        entity.setPositionState(state.getPositionState().name());
+        entity.setLastSequence(state.getLastSequence());
+        entity.setLastEventTime(state.getLastEventTime());
+        entity.setClosedAt(state.getClosedAt());
+
+        ExecutionStateEntity saved = executionStateRepository.save(entity);
+        return mapToDomain(saved);
     }
 
     /**

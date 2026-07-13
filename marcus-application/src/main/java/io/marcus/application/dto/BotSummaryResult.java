@@ -10,7 +10,11 @@ public record BotSummaryResult(
         String status,
         String tradingPair,
         String exchange,
-        String apiKey
+        String apiKey,
+        Double annualReturn,
+        Double maxDrawdown,
+        Double winRate,
+        String performanceSource
         ) {
 
 }

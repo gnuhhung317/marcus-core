@@ -66,6 +66,7 @@ public class CaptureSignalUseCase {
         signal.setGeneratedTimestamp(request.generatedTimestamp());
         signal.setTimeframe(request.timeframe());
         signal.setMetadata(request.metadata());
+        signal.setPolicies(request.policies());
 
         // 1. Persist to PostgreSQL first
         signalRepository.save(signal);

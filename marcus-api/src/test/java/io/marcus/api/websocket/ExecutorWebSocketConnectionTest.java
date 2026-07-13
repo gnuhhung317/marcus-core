@@ -59,6 +59,9 @@ class ExecutorWebSocketConnectionTest {
     @Mock
     private WebSocketSession session;
 
+    @Mock
+    private io.marcus.domain.executor.ExecutionEventPort executionEventPort;
+
     @InjectMocks
     private ExecutorWebSocketHandler handler;
 
@@ -110,6 +113,49 @@ class ExecutorWebSocketConnectionTest {
         assertTrue(payload.contains("\"ack_type\":\"subscribe\""));
         assertTrue(payload.contains("\"status\":\"ok\""));
         assertTrue(payload.contains("\"bot_id\":\"bot-1\""));
+    }
+
+    @Test
+    void shouldHandleReplayRequestAndSendReplayResponse() throws Exception {
+        String signalId = "sig-123";
+        int fromSequence = 0;
+        String botId = "bot-1";
+
+        java.time.Instant now = java.time.Instant.now();
+        io.marcus.domain.executor.ExecutionEvent event = io.marcus.domain.executor.ExecutionEvent.create(
+                "evt-1", signalId, 0, io.marcus.domain.executor.ExecutionEventType.SIGNAL_ACCEPTED,
+                now, null, Map.of("status", "accepted")
+        );
+
+        when(executionEventPort.findBySignalIdAndSequenceRange(eq(signalId), eq(fromSequence), eq(Integer.MAX_VALUE)))
+                .thenReturn(java.util.List.of(event));
+
+        Map<String, Object> attributes = new HashMap<>();
+        attributes.put("botId", botId);
+        org.mockito.Mockito.lenient().when(session.getAttributes()).thenReturn(attributes);
+
+        handler.handleTextMessage(session, new TextMessage("""
+                {
+                  "type": "replay-request",
+                  "botId": "bot-1",
+                  "payload": {
+                    "signalId": "sig-123",
+                    "fromSequence": 0
+                  }
+                }
+                """));
+
+        org.mockito.ArgumentCaptor<TextMessage> messageCaptor = org.mockito.ArgumentCaptor.forClass(TextMessage.class);
+        verify(session).sendMessage(messageCaptor.capture());
+        String payload = messageCaptor.getValue().getPayload();
+        
+        assertTrue(payload.contains("\"type\":\"replay-response\""));
+        assertTrue(payload.contains("\"botId\":\"bot-1\""));
+        assertTrue(payload.contains("\"signalId\":\"sig-123\""));
+        assertTrue(payload.contains("\"events\""));
+        assertTrue(payload.contains("\"eventId\":\"evt-1\""));
+        assertTrue(payload.contains("\"sequence\":0"));
+        assertTrue(payload.contains("\"eventType\":\"SIGNAL_ACCEPTED\""));
     }
 
     @Test

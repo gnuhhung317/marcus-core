@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -76,6 +77,15 @@ class GlobalExceptionsHandlerTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("CONFLICT"))
                 .andExpect(jsonPath("$.message").value("Lifecycle transition is not allowed"))
+                .andExpect(jsonPath("$.traceId").isNotEmpty());
+    }
+
+    @Test
+    void shouldReturnConflictPayloadForDataIntegrityViolation() throws Exception {
+        mockMvc.perform(get("/api/v1/test-errors/data-integrity"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONFLICT"))
+                .andExpect(jsonPath("$.message").value("A data conflict occurred while saving the request"))
                 .andExpect(jsonPath("$.traceId").isNotEmpty());
     }
 
@@ -155,6 +165,11 @@ class GlobalExceptionsHandlerTest {
         @GetMapping("/illegal-state")
         String illegalState() {
             throw new IllegalStateException("Lifecycle transition is not allowed");
+        }
+
+        @GetMapping("/data-integrity")
+        String dataIntegrity() {
+            throw new DataIntegrityViolationException("duplicate key");
         }
 
         @GetMapping("/unauthorized")

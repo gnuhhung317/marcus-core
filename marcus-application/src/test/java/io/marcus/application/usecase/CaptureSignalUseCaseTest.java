@@ -21,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -53,6 +54,10 @@ class CaptureSignalUseCaseTest {
     @Test
     @DisplayName("Should save and publish signal when validations pass")
     void shouldSaveAndPublishSignalWhenValid() {
+        Map<String, Object> policies = Map.of(
+                "maxSizePercent", 0.1,
+                "cancelOrderAfter", 1_800
+        );
         CaptureSignalRequest request = new CaptureSignalRequest(
                 "signal-1",
                 "bot-1",
@@ -70,7 +75,8 @@ class CaptureSignalUseCaseTest {
                 SignalStatus.RECEIVED,
                 LocalDateTime.now(),
                 "1h",
-                new HashMap<>()
+                new HashMap<>(),
+                policies
         );
 
         when(botRepository.findByBotId("bot-1"))
@@ -91,6 +97,7 @@ class CaptureSignalUseCaseTest {
         assertEquals(new BigDecimal("49000"), savedSignal.getStopLoss());
         assertEquals(new BigDecimal("55000"), savedSignal.getTakeProfit());
         assertEquals(SignalStatus.RECEIVED, savedSignal.getStatus());
+        assertEquals(policies, savedSignal.getPolicies());
 
         verify(signalPublisherPort).publish(savedSignal);
     }
@@ -118,7 +125,8 @@ class CaptureSignalUseCaseTest {
                 SignalStatus.RECEIVED,
                 LocalDateTime.now(),
                 "1h",
-                metadata
+                metadata,
+                null
         );
 
         when(botRepository.findByBotId("bot-1"))
@@ -164,7 +172,8 @@ class CaptureSignalUseCaseTest {
                 SignalStatus.RECEIVED,
                 LocalDateTime.now(),
                 "1h",
-                new HashMap<>()
+                new HashMap<>(),
+                null
         );
 
         when(botRepository.findByBotId("bot-missing"))
@@ -197,7 +206,8 @@ class CaptureSignalUseCaseTest {
                 SignalStatus.RECEIVED,
                 LocalDateTime.now(),
                 "1h",
-                new HashMap<>()
+                new HashMap<>(),
+                null
         );
 
         when(botRepository.findByBotId("bot-1"))
@@ -235,7 +245,8 @@ class CaptureSignalUseCaseTest {
                 SignalStatus.RECEIVED,
                 LocalDateTime.now(),
                 "1h",
-                new HashMap<>()
+                new HashMap<>(),
+                null
         );
 
         when(botRepository.findByBotId("bot-1"))

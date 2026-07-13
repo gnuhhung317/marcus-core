@@ -25,7 +25,7 @@ public interface ExecutionStatePort {
      * @return the new execution state
      * @throws IllegalArgumentException if signal already has a state
      */
-    ExecutionState acceptSignal(String signalId);
+    ExecutionState acceptSignal(String signalId, int newLastSequence, java.time.Instant sentAt);
 
     /**
      * Create a new execution state for a rejected signal (terminal).
@@ -122,4 +122,9 @@ public interface ExecutionStatePort {
      * @return last accepted sequence or -1
      */
     int getLastSequence(String signalId);
+
+    /**
+     * Upsert a reconciled state reconstructed from persisted execution events.
+     */
+    ExecutionState upsertState(ExecutionState state);
 }

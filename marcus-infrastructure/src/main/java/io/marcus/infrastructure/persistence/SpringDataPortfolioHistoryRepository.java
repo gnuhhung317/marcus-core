@@ -12,4 +12,11 @@ public interface SpringDataPortfolioHistoryRepository extends JpaRepository<Port
 
     List<PortfolioBalanceHistoryEntity> findByUserIdAndSnapshotAtAfterOrderBySnapshotAtAsc(String userId, LocalDateTime from);
 
+    List<PortfolioBalanceHistoryEntity> findByUserSubscriptionIdAndSnapshotAtAfterOrderBySnapshotAtAsc(
+            String userSubscriptionId,
+            LocalDateTime from
+    );
+
+    List<PortfolioBalanceHistoryEntity> findByUserSubscriptionIdOrderBySnapshotAtAsc(String userSubscriptionId);
+
 }

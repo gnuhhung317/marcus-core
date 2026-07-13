@@ -22,7 +22,6 @@ import java.time.LocalDateTime;
 @Table(
         name = "subscriptions",
         uniqueConstraints = {
-            @UniqueConstraint(name = "uk_subscriptions_user_bot_status", columnNames = {"user_id", "bot_id", "status"}),
             @UniqueConstraint(name = "uk_subscriptions_user_subscription_id", columnNames = {"user_subscription_id"})
         }
 )

@@ -278,6 +278,81 @@ class BotDiscoveryReadAdapterTest {
         assertEquals(1500.0, item.netPnl());
     }
 
+    @Test
+    void listBotTrades_subscribed_acceptsCanonicalLowercaseEventTypes() {
+        String botId = "bot-1";
+        String userId = "user-1";
+        BotEntity bot = new BotEntity();
+        bot.setBotId(botId);
+
+        when(springDataBotRepository.findByBotId(botId)).thenReturn(Optional.of(bot));
+        when(identityService.getCurrentUserId()).thenReturn(Optional.of(userId));
+        when(springDataUserSubscriptionRepository.findByUserIdAndBotIdAndStatus(userId, botId, SubscriptionStatus.ACTIVE))
+                .thenReturn(Optional.of(new UserSubscriptionEntity()));
+
+        ExecutionStateEntity es = new ExecutionStateEntity(
+                "sig-lower",
+                "CLOSED",
+                "FILLED",
+                "CLOSED",
+                3,
+                Instant.parse("2026-06-10T12:00:00Z"),
+                Instant.parse("2026-06-10T12:00:00Z")
+        );
+
+        SignalEntity s = new SignalEntity();
+        s.setSignalId("sig-lower");
+        s.setSymbol("BTC/USDT");
+        s.setAction(SignalAction.OPEN_LONG);
+        s.setAmount(BigDecimal.valueOf(1.5));
+        s.setEntry(BigDecimal.valueOf(60000.0));
+
+        when(executionStateRepository.findClosedExecutionStatesAndSignalsForBot(botId, null))
+                .thenReturn(new ArrayList<>(List.<Object[]>of(new Object[]{es, s})));
+
+        ObjectNode filledPayload = objectMapper.createObjectNode();
+        filledPayload.put("fill_price", 60000.0);
+        ExecutionEventEntity filledEvent = new ExecutionEventEntity(
+                "evt-lower-1",
+                "sig-lower",
+                2,
+                "order.filled",
+                Instant.now(),
+                Instant.now(),
+                filledPayload,
+                Instant.now()
+        );
+
+        ObjectNode closedPayload = objectMapper.createObjectNode();
+        closedPayload.put("pnl", 1500.0);
+        closedPayload.put("exit_price", 61000.0);
+        ExecutionEventEntity closedEvent = new ExecutionEventEntity(
+                "evt-lower-2",
+                "sig-lower",
+                3,
+                "position.closed",
+                Instant.now(),
+                Instant.now(),
+                closedPayload,
+                Instant.now()
+        );
+
+        when(executionEventRepository.findBySignalIdOrderBySequenceAsc("sig-lower"))
+                .thenReturn(List.of(filledEvent, closedEvent));
+
+        TradeLogPageSnapshot snapshot = adapter.listBotTrades(botId, 0, 10, null);
+
+        assertNotNull(snapshot);
+        assertEquals(1, snapshot.totalElements());
+        TradeLogSnapshot item = snapshot.items().get(0);
+        assertEquals("BTC/USDT", item.assetPair());
+        assertEquals("LONG", item.side());
+        assertEquals(1.5, item.size());
+        assertEquals(60000.0, item.entryPrice());
+        assertEquals(61000.0, item.exitPrice());
+        assertEquals(1500.0, item.netPnl());
+    }
+
     private BotEntity bot(String botId, BotStatus status) {
         BotEntity bot = new BotEntity();
         bot.setBotId(botId);

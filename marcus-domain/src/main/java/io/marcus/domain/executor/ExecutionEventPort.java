@@ -51,4 +51,9 @@ public interface ExecutionEventPort {
      * detection before storing.
      */
     boolean existsByEventId(String eventId);
+
+    /**
+     * Retrieve a stored event by eventId.
+     */
+    java.util.Optional<ExecutionEvent> findByEventId(String eventId);
 }

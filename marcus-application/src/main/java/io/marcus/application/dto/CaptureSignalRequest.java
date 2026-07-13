@@ -66,7 +66,9 @@ public record CaptureSignalRequest(
 
         String timeframe,
 
-        Map<String, Object> metadata
+        Map<String, Object> metadata,
+
+        Map<String, Object> policies
 ) {
 
     @AssertTrue(message = "entry must be provided when orderType is LIMIT")

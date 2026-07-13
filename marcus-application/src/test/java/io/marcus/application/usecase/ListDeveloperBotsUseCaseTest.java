@@ -8,6 +8,7 @@ import io.marcus.domain.model.Bot;
 import io.marcus.domain.repository.BotRepository;
 import io.marcus.domain.repository.UserRepository;
 import io.marcus.domain.service.IdentityService;
+import io.marcus.domain.port.BotDiscoveryReadPort;
 import io.marcus.domain.vo.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,28 +40,37 @@ class ListDeveloperBotsUseCaseTest {
     @Mock
     private BotDtoMapper botDtoMapper;
 
+    @Mock
+    private BotDiscoveryReadPort botDiscoveryReadPort;
+
     private ListDeveloperBotsUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new ListDeveloperBotsUseCase(botRepository, userRepository, identityService, botDtoMapper);
+        useCase = new ListDeveloperBotsUseCase(botRepository, userRepository, identityService, botDtoMapper, botDiscoveryReadPort);
     }
 
     @Test
     void shouldReturnMappedDeveloperBotsWhenAuthenticatedDeveloper() {
         Bot bot = Bot.builder().botId("bot_1").name("My Bot").developerId("dev_1").build();
         BotSummaryResult summary = BotSummaryResult.builder().botId("bot_1").botName("My Bot").apiKey("ak_1").build();
+        BotDiscoveryReadPort.BotDetailSnapshot detail = new BotDiscoveryReadPort.BotDetailSnapshot(
+                "bot_1", "My Bot", "desc", "ACTIVE", "BTCUSDT", "binance", "HISTORICAL", "dev_1", "ak_1",
+                null, null, new BotDiscoveryReadPort.BotPerformanceSnapshot(0.15, 0.1, 1.5, 0.65, 0.15, 1.0)
+        );
 
         when(identityService.getCurrentUserId()).thenReturn(Optional.of("dev_1"));
         when(userRepository.existsByIdAndRole("dev_1", Role.DEVELOPER)).thenReturn(true);
         when(botRepository.findAllByDeveloperId("dev_1")).thenReturn(List.of(bot));
-        when(botDtoMapper.toSummaryResult(bot, true)).thenReturn(summary);
+        when(botDiscoveryReadPort.getBotDetail("bot_1", "AUTO")).thenReturn(detail);
+        when(botDtoMapper.toSummaryResult(bot, true, detail)).thenReturn(summary);
 
         List<BotSummaryResult> result = useCase.execute();
 
         assertThat(result).containsExactly(summary);
         verify(botRepository).findAllByDeveloperId("dev_1");
-        verify(botDtoMapper).toSummaryResult(bot, true);
+        verify(botDiscoveryReadPort).getBotDetail("bot_1", "AUTO");
+        verify(botDtoMapper).toSummaryResult(bot, true, detail);
     }
 
     @Test
@@ -71,7 +81,7 @@ class ListDeveloperBotsUseCaseTest {
                 .isInstanceOf(UnauthenticatedException.class)
                 .hasMessage("No authenticated user found");
 
-        verifyNoInteractions(userRepository, botRepository, botDtoMapper);
+        verifyNoInteractions(userRepository, botRepository, botDtoMapper, botDiscoveryReadPort);
     }
 
     @Test
@@ -83,6 +93,6 @@ class ListDeveloperBotsUseCaseTest {
                 .isInstanceOf(ForbiddenOperationException.class)
                 .hasMessage("Only developer can list own bots");
 
-        verifyNoInteractions(botRepository, botDtoMapper);
+        verifyNoInteractions(botRepository, botDtoMapper, botDiscoveryReadPort);
     }
 }

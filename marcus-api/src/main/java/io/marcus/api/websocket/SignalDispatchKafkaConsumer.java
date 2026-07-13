@@ -8,16 +8,21 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 /**
- * Kafka consumer that delivers incoming signals to connected WebSocket executor clients.
+ * Kafka consumer that delivers incoming signals to connected WebSocket executor
+ * clients.
  *
- * <p>Responsibilities (single):
+ * <p>
+ * Responsibilities (single):
  * <ol>
- *   <li>Deserialize the Kafka message into a {@link Signal} domain object.</li>
- *   <li>Delegate frame construction to {@link SignalFrameBuilder}.</li>
- *   <li>Broadcast the serialized frame to all sessions registered for the bot.</li>
+ * <li>Deserialize the Kafka message into a {@link Signal} domain object.</li>
+ * <li>Delegate frame construction to {@link SignalFrameBuilder}.</li>
+ * <li>Broadcast the serialized frame to all sessions registered for the
+ * bot.</li>
  * </ol>
  *
- * <p>Frame building and expiry calculation logic live in {@link SignalFrameBuilder}
+ * <p>
+ * Frame building and expiry calculation logic live in
+ * {@link SignalFrameBuilder}
  * — this class stays intentionally thin.
  */
 @Component
@@ -29,11 +34,7 @@ public class SignalDispatchKafkaConsumer {
     private final ExecutorSessionRegistry sessionRegistry;
     private final SignalFrameBuilder signalFrameBuilder;
 
-    @KafkaListener(
-            topics = "${marcus.messaging.signal-storage-topic:trading-signals}",
-            groupId = "#{'marcus-websocket-dispatcher-' + T(java.util.UUID).randomUUID().toString()}",
-            properties = "auto.offset.reset=latest"
-    )
+    @KafkaListener(topics = "${marcus.messaging.signal-storage-topic:trading-signals}", groupId = "#{'marcus-websocket-dispatcher-' + T(java.util.UUID).randomUUID().toString()}", properties = "auto.offset.reset=latest")
     public void consume(String signalJson) {
         try {
             Signal signal = objectMapper.readValue(signalJson, Signal.class);

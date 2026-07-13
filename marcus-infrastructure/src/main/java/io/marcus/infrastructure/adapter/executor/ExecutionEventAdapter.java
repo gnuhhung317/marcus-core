@@ -10,6 +10,7 @@ import io.marcus.infrastructure.persistence.executor.ExecutionEventRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -74,6 +75,12 @@ public class ExecutionEventAdapter implements ExecutionEventPort {
     @Override
     public boolean existsByEventId(String eventId) {
         return executionEventRepository.existsByEventId(eventId);
+    }
+
+    @Override
+    public Optional<ExecutionEvent> findByEventId(String eventId) {
+        return executionEventRepository.findByEventId(eventId)
+                .map(this::mapToDomain);
     }
 
     /**

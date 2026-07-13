@@ -158,21 +158,24 @@ class DashboardControllerTest {
                 .thenReturn(List.of(
                         new PortfolioReadPort.SubscriptionDecisionSnapshot(
                                 "sub-risk", "bot-risk", "BTC Sentinel", "", "ACTIVE",
-                                -120.0, -0.03, -0.22, 0.42, 12, 5,
+                                -120.0, -0.03, -0.22,
                                 PortfolioReadPort.DecisionReason.HIGH_RISK,
-                                "Critical drawdown", 0.91, 10, 3, LocalDateTime.of(2026, 4, 3, 10, 0), "BINANCE"
+                                "Critical drawdown", 0.91, 10, LocalDateTime.of(2026, 4, 3, 9, 55), "FRESH",
+                                LocalDateTime.of(2026, 4, 3, 10, 0), "BINANCE"
                         ),
                         new PortfolioReadPort.SubscriptionDecisionSnapshot(
                                 "sub-review", "bot-review", "ETH Momentum", "", "ACTIVE",
-                                80.0, 0.02, -0.08, 0.55, 16, 9,
+                                80.0, 0.02, -0.08,
                                 PortfolioReadPort.DecisionReason.NEEDS_REVIEW,
-                                "Needs review", 0.58, 7, 1, LocalDateTime.of(2026, 4, 3, 11, 0), "BYBIT"
+                                "Needs review", 0.58, 7, LocalDateTime.of(2026, 4, 3, 10, 45), "STALE",
+                                LocalDateTime.of(2026, 4, 3, 11, 0), "BYBIT"
                         ),
                         new PortfolioReadPort.SubscriptionDecisionSnapshot(
                                 "sub-solid", "bot-solid", "SOL Trend", "", "ACTIVE",
-                                220.0, 0.06, -0.02, 0.74, 22, 17,
+                                220.0, 0.06, -0.02,
                                 PortfolioReadPort.DecisionReason.SOLID_PERFORMER,
-                                "Stable execution", 0.14, 30, 0, LocalDateTime.of(2026, 4, 3, 12, 0), "OKX"
+                                "Stable execution", 0.14, 30, LocalDateTime.of(2026, 4, 3, 11, 55), "FRESH",
+                                LocalDateTime.of(2026, 4, 3, 12, 0), "OKX"
                         )
                 ));
 

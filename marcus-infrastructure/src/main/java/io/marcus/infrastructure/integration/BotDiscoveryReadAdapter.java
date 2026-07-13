@@ -304,7 +304,7 @@ public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
 
         for (ExecutionEventEntity event : events) {
             JsonNode payload = event.getPayload();
-            String type = event.getEventType();
+            String type = normalizeExecutionEventType(event.getEventType());
 
             if ("ORDER_FILLED".equals(type)) {
                 double fillPrice = 0.0;
@@ -391,6 +391,16 @@ public class BotDiscoveryReadAdapter implements BotDiscoveryReadPort {
                 LEADERBOARD_BOTS_PAGE_TYPE,
                 () -> listLeaderboardBotsUncached(dataSource, market, asset, rankMetric, page, size)
         );
+    }
+
+    private String normalizeExecutionEventType(String eventType) {
+        if (eventType == null) {
+            return "";
+        }
+        return eventType.trim()
+                .replace('.', '_')
+                .replace('-', '_')
+                .toUpperCase(Locale.ROOT);
     }
 
     private LeaderboardBotsPageSnapshot listLeaderboardBotsUncached(

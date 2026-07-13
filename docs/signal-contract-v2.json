@@ -6,10 +6,10 @@
   "properties": {
     "signalId": {"type":"string","description":"Client-side idempotency id (UUID/ULID)"},
     "botId": {"type":"string"},
-    "symbol": {"type":"string","description":"Trading pair, CCXT format (BTC/USDT)"},
-    "action": {"type":"string","enum":["OPEN_LONG","OPEN_SHORT","CLOSE_LONG","CLOSE_SHORT","CLOSE"]},
+    "symbol": {"type":"string","description":"Canonical published symbol, for example BTCUSDT"},
+    "action": {"type":"string","enum":["OPEN_LONG","OPEN_SHORT","CLOSE_LONG","CLOSE_SHORT","UPDATE_TP_SL"]},
     "marketType": {"type":"string","enum":["SPOT","FUTURE","MARGIN"]},
-    "orderType": {"type":"string","enum":["LIMIT","MARKET","STOP_LIMIT","TAKE_PROFIT"]},
+    "orderType": {"type":"string","enum":["LIMIT","MARKET"]},
     "entry": {"type":["number","null"],"description":"Entry price required when orderType=LIMIT"},
     "stopLoss": {"type":["number","null"]},
     "takeProfit": {"type":["number","null"]},
@@ -19,14 +19,23 @@
     "reduceOnly": {"type":["boolean","null"]},
     "generatedTimestamp": {"type":"string","format":"date-time"},
     "timeframe": {"type":["string","null"]},
-    "metadata": {"type":"object","additionalProperties":true}
+    "metadata": {"type":"object","additionalProperties":true},
+    "policies": {
+      "type": ["object","null"],
+      "additionalProperties": false,
+      "properties": {
+        "maxSizePercent": {"type":["number","null"],"minimum":0,"maximum":1},
+        "cancelOrderAfter": {"type":["integer","null"]},
+        "closePositionAfter": {"type":["integer","null"]}
+      }
+    }
   },
   "additionalProperties": false,
   "examples": [
     {
       "signalId":"b8d9f9c2-6d2f-4f2a-8a5b-0a1b2c3d4e5f",
       "botId":"bot_f25c000d5e90",
-      "symbol":"BTC/USDT",
+      "symbol":"BTCUSDT",
       "action":"OPEN_LONG",
       "marketType":"SPOT",
       "orderType":"LIMIT",
@@ -35,7 +44,8 @@
       "takeProfit":33000.0,
       "amount":0.001,
       "generatedTimestamp":"2026-05-24T06:30:00Z",
-      "metadata": {"confidence_score":0.82,"strategy":"sma_v1"}
+      "metadata": {"confidence_score":0.82,"strategy":"sma_v1"},
+      "policies": {"maxSizePercent":0.1,"cancelOrderAfter":1711976400}
     }
   ]
 }

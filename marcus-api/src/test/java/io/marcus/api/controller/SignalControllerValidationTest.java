@@ -60,4 +60,24 @@ class SignalControllerValidationTest {
 
         verify(captureSignalUseCase, never()).execute(org.mockito.ArgumentMatchers.any(CaptureSignalRequest.class));
     }
+
+    @Test
+    void shouldReturn422ForUnsupportedGenericCloseAction() throws Exception {
+        mockMvc.perform(post("/api/v1/signals")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{" +
+                                "\"signalId\":\"sig-1\"," +
+                                "\"botId\":\"bot-1\"," +
+                                "\"symbol\":\"BTCUSDT\"," +
+                                "\"action\":\"CLOSE\"," +
+                                "\"marketType\":\"SPOT\"," +
+                                "\"orderType\":\"MARKET\"," +
+                                "\"generatedTimestamp\":\"2026-05-24T10:15:30\"" +
+                                "}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.errors").isArray());
+
+        verify(captureSignalUseCase, never()).execute(org.mockito.ArgumentMatchers.any(CaptureSignalRequest.class));
+    }
 }

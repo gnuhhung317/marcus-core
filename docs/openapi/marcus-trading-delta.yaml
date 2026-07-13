@@ -1677,29 +1677,63 @@ components:
 
     SignalSubmissionRequest:
       type: object
-      required: [signalId, botId, exchangeSlug, symbol, action, price, timestamp]
+      required: [signalId, botId, symbol, action, marketType, orderType, generatedTimestamp]
       properties:
         signalId:
           type: string
         botId:
           type: string
-        exchangeSlug:
-          type: string
         symbol:
           type: string
+          description: Canonical published symbol such as BTCUSDT.
         action:
           type: string
           enum: [OPEN_LONG, OPEN_SHORT, CLOSE_LONG, CLOSE_SHORT, UPDATE_TP_SL]
-        price:
+        marketType:
+          type: string
+          enum: [SPOT, FUTURE, MARGIN]
+        orderType:
+          type: string
+          enum: [LIMIT, MARKET]
+        entry:
           type: number
           format: double
+          nullable: true
+        stopLoss:
+          type: number
+          format: double
+          nullable: true
+        takeProfit:
+          type: number
+          format: double
+          nullable: true
+        amount:
+          type: number
+          format: double
+          nullable: true
+        leverage:
+          type: integer
+          minimum: 1
+          maximum: 125
+          nullable: true
+        marginMode:
+          type: string
+          enum: [CROSS, ISOLATED]
+          nullable: true
+        reduceOnly:
+          type: boolean
+          nullable: true
         metadata:
           type: object
-          additionalProperties:
-            type: object
-        timestamp:
+          additionalProperties: true
+        policies:
+          $ref: '#/components/schemas/SignalExecutionPolicies'
+        generatedTimestamp:
           type: string
           format: date-time
+        timeframe:
+          type: string
+          nullable: true
 
     SignalSubmissionResponse:
       type: object
@@ -1719,13 +1753,12 @@ components:
           type: string
         botId:
           type: string
-        exchangeSlug:
-          type: string
         symbol:
           type: string
         action:
           type: string
-        price:
+          enum: [OPEN_LONG, OPEN_SHORT, CLOSE_LONG, CLOSE_SHORT, UPDATE_TP_SL]
+        entry:
           type: number
           format: double
         status:
@@ -1733,6 +1766,25 @@ components:
         generatedTimestamp:
           type: string
           format: date-time
+
+    SignalExecutionPolicies:
+      type: object
+      additionalProperties: false
+      properties:
+        maxSizePercent:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          nullable: true
+        cancelOrderAfter:
+          type: integer
+          format: int64
+          nullable: true
+        closePositionAfter:
+          type: integer
+          format: int64
+          nullable: true
 
     PortfolioSummaryResponse:
       type: object

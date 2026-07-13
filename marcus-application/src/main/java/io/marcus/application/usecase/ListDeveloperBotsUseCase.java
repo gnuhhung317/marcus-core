@@ -7,6 +7,7 @@ import io.marcus.application.mapper.BotDtoMapper;
 import io.marcus.domain.repository.BotRepository;
 import io.marcus.domain.repository.UserRepository;
 import io.marcus.domain.service.IdentityService;
+import io.marcus.domain.port.BotDiscoveryReadPort;
 import io.marcus.domain.vo.Role;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ public class ListDeveloperBotsUseCase {
     private final UserRepository userRepository;
     private final IdentityService identityService;
     private final BotDtoMapper botDtoMapper;
+    private final BotDiscoveryReadPort botDiscoveryReadPort;
 
     public List<BotSummaryResult> execute() {
         String currentUserId = identityService.getCurrentUserId()
@@ -32,7 +34,15 @@ public class ListDeveloperBotsUseCase {
 
         return botRepository.findAllByDeveloperId(currentUserId)
                 .stream()
-                .map(bot -> botDtoMapper.toSummaryResult(bot, true))
+                .map(bot -> {
+                    BotDiscoveryReadPort.BotDetailSnapshot detail = null;
+                    try {
+                        detail = botDiscoveryReadPort.getBotDetail(bot.getBotId(), "AUTO");
+                    } catch (Exception e) {
+                        // Log or ignore to keep listing robust
+                    }
+                    return botDtoMapper.toSummaryResult(bot, true, detail);
+                })
                 .toList();
     }
 }

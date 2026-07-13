@@ -2,10 +2,15 @@ package io.marcus.application.executor;
 
 import io.marcus.domain.executor.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Application use case for synchronizing execution events from the executor
@@ -27,6 +32,7 @@ public class SyncExecutionEventUseCase {
 
     private final ExecutionEventPort executionEventPort;
     private final ExecutionStatePort executionStatePort;
+    private final ConcurrentMap<String, ReentrantLock> signalLocks = new ConcurrentHashMap<>();
 
     /**
      * Process an incoming execution event from the executor client.
@@ -34,13 +40,16 @@ public class SyncExecutionEventUseCase {
      * @param input the incoming event
      * @return ACK response (OK or ERROR)
      */
+    @Transactional
     public SyncExecutionEventOutput execute(SyncExecutionEventInput input) {
+        ReentrantLock signalLock = signalLocks.computeIfAbsent(input.getSignalId(), ignored -> new ReentrantLock());
+        signalLock.lock();
         try {
-            // Step 1: Validate event structure
             validateEventInput(input);
 
-            // Step 2: Check for duplicate (idempotency)
-            if (executionEventPort.existsByEventId(input.getEventId())) {
+            // Step 1: Check for duplicate (idempotency) and repair stale state from persisted events
+            if (executionEventPort.findByEventId(input.getEventId()).isPresent()) {
+                reconcilePersistedState(input.getSignalId());
                 return SyncExecutionEventOutput.ok(
                         input.getEventId(),
                         input.getSignalId(),
@@ -49,7 +58,7 @@ public class SyncExecutionEventUseCase {
             }
 
             // Step 3: Get current execution state
-            Optional<ExecutionState> currentStateOpt = executionStatePort.getState(input.getSignalId());
+            Optional<ExecutionState> currentStateOpt = loadCurrentStateWithRepair(input.getSignalId());
 
             // Step 4: Check for late events (after position.closed)
             if (currentStateOpt.isPresent() && currentStateOpt.get().isPositionClosed()) {
@@ -121,6 +130,11 @@ public class SyncExecutionEventUseCase {
                     "Backend error: " + e.getMessage(),
                     Instant.now()
             );
+        } finally {
+            signalLock.unlock();
+            if (!signalLock.hasQueuedThreads()) {
+                signalLocks.remove(input.getSignalId(), signalLock);
+            }
         }
     }
 
@@ -154,6 +168,115 @@ public class SyncExecutionEventUseCase {
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Unknown eventType: " + input.getEventType());
         }
+    }
+
+    private Optional<ExecutionState> loadCurrentStateWithRepair(String signalId) {
+        Optional<ExecutionState> currentStateOpt = executionStatePort.getState(signalId);
+        List<ExecutionEvent> persistedEvents = executionEventPort.findBySignalIdOrderBySequence(signalId);
+        if (persistedEvents.isEmpty()) {
+            return currentStateOpt;
+        }
+
+        ExecutionState rebuiltState = rebuildState(signalId, persistedEvents);
+        if (currentStateOpt.isEmpty() || !statesEqual(currentStateOpt.get(), rebuiltState)) {
+            executionStatePort.upsertState(rebuiltState);
+            return Optional.of(rebuiltState);
+        }
+
+        return currentStateOpt;
+    }
+
+    private void reconcilePersistedState(String signalId) {
+        List<ExecutionEvent> persistedEvents = executionEventPort.findBySignalIdOrderBySequence(signalId);
+        if (persistedEvents.isEmpty()) {
+            return;
+        }
+        executionStatePort.upsertState(rebuildState(signalId, persistedEvents));
+    }
+
+    private ExecutionState rebuildState(String signalId, List<ExecutionEvent> persistedEvents) {
+        ExecutionState.SignalState signalState = ExecutionState.SignalState.ACCEPTED;
+        ExecutionState.OrderState orderState = ExecutionState.OrderState.NONE;
+        ExecutionState.PositionState positionState = ExecutionState.PositionState.NONE;
+        int lastSequence = -1;
+        Instant lastEventTime = null;
+        Instant closedAt = null;
+
+        for (ExecutionEvent event : persistedEvents) {
+            lastSequence = event.getSequence();
+            lastEventTime = event.getSentAt();
+
+            switch (event.getEventType()) {
+                case SIGNAL_ACCEPTED:
+                    signalState = ExecutionState.SignalState.ACCEPTED;
+                    orderState = ExecutionState.OrderState.NONE;
+                    positionState = ExecutionState.PositionState.NONE;
+                    closedAt = null;
+                    break;
+                case SIGNAL_REJECTED:
+                    signalState = ExecutionState.SignalState.REJECTED;
+                    orderState = ExecutionState.OrderState.NONE;
+                    positionState = ExecutionState.PositionState.NONE;
+                    closedAt = event.getSentAt();
+                    break;
+                case ORDER_PLACED:
+                    signalState = ExecutionState.SignalState.ACCEPTED;
+                    orderState = ExecutionState.OrderState.PLACED;
+                    closedAt = null;
+                    break;
+                case ORDER_FILLED:
+                    signalState = ExecutionState.SignalState.OPEN;
+                    orderState = ExecutionState.OrderState.FILLED;
+                    closedAt = null;
+                    break;
+                case ORDER_FAILED:
+                    signalState = ExecutionState.SignalState.CLOSED;
+                    orderState = ExecutionState.OrderState.FAILED;
+                    closedAt = event.getSentAt();
+                    break;
+                case ORDER_CANCELED:
+                    signalState = ExecutionState.SignalState.CLOSED;
+                    orderState = ExecutionState.OrderState.CANCELED;
+                    closedAt = event.getSentAt();
+                    break;
+                case POSITION_OPENED:
+                    signalState = ExecutionState.SignalState.OPEN;
+                    positionState = ExecutionState.PositionState.OPENED;
+                    closedAt = null;
+                    break;
+                case POSITION_UPDATED:
+                    signalState = ExecutionState.SignalState.OPEN;
+                    positionState = ExecutionState.PositionState.UPDATING;
+                    closedAt = null;
+                    break;
+                case POSITION_CLOSED:
+                    signalState = ExecutionState.SignalState.CLOSED;
+                    positionState = ExecutionState.PositionState.CLOSED;
+                    closedAt = event.getSentAt();
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unknown event type: " + event.getEventType());
+            }
+        }
+
+        return new ExecutionState(
+                signalId,
+                signalState,
+                orderState,
+                positionState,
+                lastSequence,
+                lastEventTime,
+                closedAt
+        );
+    }
+
+    private boolean statesEqual(ExecutionState left, ExecutionState right) {
+        return left.getSignalState() == right.getSignalState()
+                && left.getOrderState() == right.getOrderState()
+                && left.getPositionState() == right.getPositionState()
+                && left.getLastSequence() == right.getLastSequence()
+                && java.util.Objects.equals(left.getLastEventTime(), right.getLastEventTime())
+                && java.util.Objects.equals(left.getClosedAt(), right.getClosedAt());
     }
 
     /**
@@ -260,7 +383,7 @@ public class SyncExecutionEventUseCase {
     ) {
         switch (eventType) {
             case SIGNAL_ACCEPTED:
-                executionStatePort.acceptSignal(signalId);
+                executionStatePort.acceptSignal(signalId, sequence, sentAt);
                 break;
 
             case SIGNAL_REJECTED:

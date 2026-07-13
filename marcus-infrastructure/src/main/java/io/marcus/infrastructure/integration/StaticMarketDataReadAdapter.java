@@ -128,7 +128,18 @@ public class StaticMarketDataReadAdapter implements MarketDataReadPort {
 
     private UserPortfolioEntity currentPortfolioState(String userId) {
         return springDataUserPortfolioRepository.findByUserId(userId)
-                .orElseThrow(() -> new NoSuchElementException("Portfolio not found for user: " + userId));
+                .orElseGet(() -> UserPortfolioEntity.builder()
+                        .userId(userId)
+                        .totalCapital(BigDecimal.ZERO)
+                        .availableBalance(BigDecimal.ZERO)
+                        .realizedPnl(BigDecimal.ZERO)
+                        .unrealizedPnl(BigDecimal.ZERO)
+                        .maxDrawdownThreshold(new BigDecimal("0.1000"))
+                        .mediumRiskThreshold(new BigDecimal("0.0500"))
+                        .freshAccountsCount(0)
+                        .staleAccountsCount(0)
+                        .dataFreshness("STALE")
+                        .build());
     }
 
     private SignalMetricsCalculator.SignalData toSignalData(SignalEntity signal) {

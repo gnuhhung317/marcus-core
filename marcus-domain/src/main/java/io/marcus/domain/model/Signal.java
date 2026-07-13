@@ -36,7 +36,7 @@ import java.util.Map;
 public class Signal extends BaseModel {
 
     /**
-     * Unique signal identifier — used for idempotency checks.
+     * Unique signal identifier used for idempotency checks.
      */
     private String signalId;
 
@@ -46,14 +46,17 @@ public class Signal extends BaseModel {
     private String botId;
 
     /**
-     * Trading pair in CCXT unified format. Spot: {@code BTC/USDT}. Futures
-     * (linear): {@code ETH/USDT:USDT}.
+     * Canonical published transport symbol. Backend emits compact wire symbols
+     * such as {@code BTCUSDT}; executors may normalize them internally for
+     * exchange adapters.
      */
     private String symbol;
 
     /**
-     * Canonical action — one of 4 semantic values. Maps to CCXT {@code side}
-     * (buy/sell) and {@code params.reduceOnly}.
+     * Canonical transport action. OPEN/CLOSE actions map to CCXT
+     * {@code side} (buy/sell) and {@code params.reduceOnly}; {@code
+     * UPDATE_TP_SL} updates protective orders without opening or closing a
+     * position.
      */
     private SignalAction action;
 
@@ -94,7 +97,7 @@ public class Signal extends BaseModel {
     private BigDecimal amount;
 
     /**
-     * Futures leverage multiplier (1–125). Executor calls
+     * Futures leverage multiplier (1-125). Executor calls
      * {@code exchange.set_leverage(leverage, symbol)} before placing order.
      * Ignored for SPOT. Defaults to 1 if null.
      */
@@ -109,8 +112,8 @@ public class Signal extends BaseModel {
 
     /**
      * Explicit reduce-only flag. If null, the executor derives it from
-     * {@code action} ({@code CLOSE_LONG} / {@code CLOSE_SHORT} → true; OPEN
-     * variants → false). Maps to CCXT {@code params.reduceOnly}.
+     * {@code action} ({@code CLOSE_LONG} / {@code CLOSE_SHORT} -> true; OPEN
+     * variants -> false). Maps to CCXT {@code params.reduceOnly}.
      */
     private Boolean reduceOnly;
 

@@ -24,7 +24,15 @@ public interface PortfolioReadPort {
                         double price,
                         String status,
                         LocalDateTime generatedTimestamp,
-                        Boolean isSimulated) {
+                        Boolean isSimulated,
+                        Integer leverage,
+                        String marketType,
+                        Boolean reduceOnly,
+                        Double size,
+                        Double tp,
+                        Double sl,
+                        java.util.Map<String, Object> metadata,
+                        java.util.Map<String, Object> rawPayload) {
         }
 
         /**
@@ -96,17 +104,15 @@ public interface PortfolioReadPort {
                         String botName,
                         String botIcon,
                         String status,
-                        double currentPnL,
-                        double pnlPercent,
-                        double drawdownPercent,
-                        double winRate,
-                        int signalCount24h,
-                        int successfulSignals24h,
+                        Double currentPnL,
+                        Double pnlPercent,
+                        Double drawdownPercent,
                         DecisionReason reason,
                         String reasonExplanation,
                         double riskScore,
                         int subscribedSinceDay,
-                        int daysAtRisk,
+                        LocalDateTime lastSyncAt,
+                        String syncFreshness,
                         LocalDateTime lastSignal,
                         String exchange) {
         }

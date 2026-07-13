@@ -16,7 +16,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import static java.lang.Math.pow;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -86,6 +88,45 @@ class GetBotAnalyticsUseCaseTest {
         assertThat(response.outOfSample().winRate()).isEqualTo(1.0);
         assertThat(response.total().sampleSizeTrades()).isEqualTo(3);
         assertThat(response.total().winRate()).isEqualTo(0.6667);
+    }
+
+    @Test
+    void shouldCalculateOutOfSampleMaxDrawdownFromEquityInsteadOfReturnGap() {
+        LocalDateTime t0 = LocalDateTime.of(2026, 1, 1, 0, 0);
+        LocalDateTime t1 = LocalDateTime.of(2026, 1, 2, 0, 0);
+        LocalDateTime t2 = LocalDateTime.of(2026, 1, 3, 0, 0);
+
+        when(botRepository.findByBotId("bot_1")).thenReturn(Optional.of(Bot.builder().botId("bot_1").build()));
+        when(botBacktestPort.findLatestRun("bot_1")).thenReturn(Optional.empty());
+        when(botDryRunPort.findPortfolioPoints("bot_1")).thenReturn(List.of(
+                point("bot_1", t0, "1000"),
+                point("bot_1", t1, "2000"),
+                point("bot_1", t2, "1500")
+        ));
+        when(botDryRunPort.findClosedTrades("bot_1")).thenReturn(List.of());
+
+        BotAnalyticsDtos.GroupedMetricsResponse response = useCase.getMetrics("bot_1");
+
+        assertThat(response.outOfSample().maxDrawdown()).isEqualTo(-0.25);
+    }
+
+    @Test
+    void shouldCalculateAnnualReturnAsCagrForOutOfSampleCurve() {
+        LocalDateTime t0 = LocalDateTime.of(2026, 1, 1, 0, 0);
+        LocalDateTime t1 = LocalDateTime.of(2026, 1, 31, 0, 0);
+
+        when(botRepository.findByBotId("bot_1")).thenReturn(Optional.of(Bot.builder().botId("bot_1").build()));
+        when(botBacktestPort.findLatestRun("bot_1")).thenReturn(Optional.empty());
+        when(botDryRunPort.findPortfolioPoints("bot_1")).thenReturn(List.of(
+                point("bot_1", t0, "1000"),
+                point("bot_1", t1, "2000")
+        ));
+        when(botDryRunPort.findClosedTrades("bot_1")).thenReturn(List.of());
+
+        BotAnalyticsDtos.GroupedMetricsResponse response = useCase.getMetrics("bot_1");
+
+        double expectedCagr = pow(2.0, (365.0 / 31.0)) - 1.0;
+        assertThat(response.outOfSample().annualReturn()).isEqualTo(expectedCagr, within(0.0001));
     }
 
     private BotDryRunPortfolioPoint point(String botId, LocalDateTime timestamp, String equity) {
