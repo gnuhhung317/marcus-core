@@ -91,6 +91,8 @@ public class ExecutorWebSocketHandler extends TextWebSocketHandler {
                         RawEvent rawEvent = new RawEvent();
                         rawEvent.setEventId(eventId);
                         rawEvent.setBotId(botId);
+                        rawEvent.setUserSubscriptionId((String) session.getAttributes()
+                                .get(ExecutorHandshakeInterceptor.USER_SUBSCRIPTION_ID_ATTRIBUTE));
                         rawEvent.setIdempotencyKey("hb-key-" + eventId);
                         rawEvent.setCorrelationId("hb-corr-" + eventId);
                         rawEvent.setType("heartbeat");

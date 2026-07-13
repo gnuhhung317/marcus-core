@@ -2,9 +2,12 @@ package io.marcus.api.websocket.executor;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.marcus.api.websocket.ExecutorHandshakeInterceptor;
 import io.marcus.application.executor.SyncExecutionEventInput;
 import io.marcus.application.executor.SyncExecutionEventOutput;
 import io.marcus.application.executor.SyncExecutionEventUseCase;
+import io.marcus.domain.model.RawEvent;
+import io.marcus.domain.port.RawEventPersistencePort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -26,6 +29,7 @@ import java.util.Map;
 public class ExecutorEventEventHandler {
 
     private final SyncExecutionEventUseCase syncExecutionEventUseCase;
+    private final RawEventPersistencePort rawEventPersistencePort;
     private final ObjectMapper objectMapper;
 
     /**
@@ -83,6 +87,7 @@ public class ExecutorEventEventHandler {
 
             // Send ACK
             if (output.isSuccess()) {
+                persistExecutorActivity(session, eventId, signalId, eventType, eventPayload);
                 log.info("Execution event accepted: eventId={}, signalId={}, sequence={}", eventId, signalId, sequence);
                 sendAck(session, eventId, "OK", null, null);
             } else {
@@ -96,6 +101,41 @@ public class ExecutorEventEventHandler {
             String eventId = frameRoot.path("payload").path("eventId").asText("unknown");
             sendAck(session, eventId, "ERROR", "INTERNAL_ERROR", "Internal error: " + e.getMessage());
         }
+    }
+
+    private void persistExecutorActivity(
+            WebSocketSession session,
+            String eventId,
+            String signalId,
+            String eventType,
+            JsonNode eventPayload
+    ) {
+        String botId = (String) session.getAttributes().get("botId");
+        String subscriptionId = (String) session.getAttributes()
+                .get(ExecutorHandshakeInterceptor.USER_SUBSCRIPTION_ID_ATTRIBUTE);
+        if (botId == null || botId.isBlank() || subscriptionId == null || subscriptionId.isBlank()) {
+            log.warn("Execution event activity was not persisted because session ownership is missing. signalId={}", signalId);
+            return;
+        }
+
+        Map<String, Object> payload = eventPayload.isObject()
+                ? objectMapper.convertValue(eventPayload, Map.class)
+                : new HashMap<>();
+        payload.put("eventType", eventType);
+        payload.put("signalId", signalId);
+        rawEventPersistencePort.save(RawEvent.builder()
+                .eventId("execution-log-" + eventId)
+                .botId(botId)
+                .userSubscriptionId(subscriptionId)
+                .idempotencyKey("execution-log-" + eventId)
+                .correlationId(signalId)
+                .type("execution_event")
+                .payload(payload)
+                .receivedAt(Instant.now())
+                .sourceConnId(session.getId())
+                .processed(true)
+                .processedAt(Instant.now())
+                .build());
     }
 
     /**

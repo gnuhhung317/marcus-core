@@ -49,6 +49,7 @@ public class AuditPushEventHandler {
             RawEvent auditTrail = RawEvent.builder()
                     .eventId(UUID.randomUUID().toString())
                     .botId(botId != null ? botId : "system")
+                    .userSubscriptionId(userSubscriptionId)
                     .type("audit-push")
                     .payload(rawPayload)
                     .idempotencyKey(payloadNode.path("timestamp").asText(String.valueOf(Instant.now().toEpochMilli())))

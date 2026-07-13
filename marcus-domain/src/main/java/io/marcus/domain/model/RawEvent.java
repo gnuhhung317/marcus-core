@@ -21,6 +21,8 @@ public class RawEvent extends BaseModel {
     private String id;
     private String eventId;
     private String botId;
+    /** Owning subscription when this event originates from a local executor. */
+    private String userSubscriptionId;
     private String idempotencyKey;
     private String correlationId;
     private String type;  // ingest, ack, heartbeat, replay-request, etc.

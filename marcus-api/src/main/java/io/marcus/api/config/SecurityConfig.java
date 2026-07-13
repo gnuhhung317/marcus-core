@@ -179,6 +179,15 @@ public class SecurityConfig {
                                                                 "/api/subscriptions/*/delivery-summary",
                                                                 "/api/v1/subscriptions/*/delivery-summary")
                                                 .hasRole(Role.DEVELOPER.name())
+                                                .requestMatchers(HttpMethod.GET,
+                                                                "/system/connectivity", "/api/system/connectivity",
+                                                                "/api/v1/system/connectivity")
+                                                .hasRole(Role.ADMIN.name())
+                                                .requestMatchers(HttpMethod.GET,
+                                                                "/system/execution-logs",
+                                                                "/api/system/execution-logs",
+                                                                "/api/v1/system/execution-logs")
+                                                .authenticated()
                                                 .requestMatchers("/admin/**", "/api/admin/**", "/api/v1/admin/**")
                                                 .hasRole(Role.ADMIN.name())
                                                 .anyRequest().authenticated())

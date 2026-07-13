@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.marcus.application.executor.SyncExecutionEventInput;
 import io.marcus.application.executor.SyncExecutionEventOutput;
 import io.marcus.application.executor.SyncExecutionEventUseCase;
+import io.marcus.api.websocket.ExecutorHandshakeInterceptor;
+import io.marcus.domain.model.RawEvent;
+import io.marcus.domain.port.RawEventPersistencePort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -17,6 +20,7 @@ import java.time.Instant;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
 /**
@@ -26,6 +30,9 @@ class ExecutorEventEventHandlerTest {
 
     @Mock
     private SyncExecutionEventUseCase syncExecutionEventUseCase;
+
+    @Mock
+    private RawEventPersistencePort rawEventPersistencePort;
 
     @Mock
     private WebSocketSession session;
@@ -38,7 +45,7 @@ class ExecutorEventEventHandlerTest {
         MockitoAnnotations.openMocks(this);
         objectMapper = new ObjectMapper();
 
-                handler = new ExecutorEventEventHandler(syncExecutionEventUseCase, objectMapper);
+        handler = new ExecutorEventEventHandler(syncExecutionEventUseCase, rawEventPersistencePort, objectMapper);
     }
 
     @Test
@@ -65,12 +72,22 @@ class ExecutorEventEventHandlerTest {
         // Mock use case response
         when(syncExecutionEventUseCase.execute(any(SyncExecutionEventInput.class)))
                 .thenReturn(SyncExecutionEventOutput.ok("evt-001", "sig-001", now));
+        when(session.getAttributes()).thenReturn(Map.of(
+                "botId", "bot-001",
+                ExecutorHandshakeInterceptor.USER_SUBSCRIPTION_ID_ATTRIBUTE, "sub-001"
+        ));
 
         // Handle event
         handler.handleExecutionEvent(session, frameNode);
 
         // Verify use case was called
         verify(syncExecutionEventUseCase, times(1)).execute(any(SyncExecutionEventInput.class));
+        verify(rawEventPersistencePort).save(argThat((RawEvent event) ->
+                "bot-001".equals(event.getBotId())
+                        && "sub-001".equals(event.getUserSubscriptionId())
+                        && "execution_event".equals(event.getType())
+                        && "sig-001".equals(event.getCorrelationId())
+        ));
         verify(session).sendMessage(any(TextMessage.class));
     }
 

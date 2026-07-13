@@ -97,6 +97,20 @@ public interface SpringDataRawEventRepository extends JpaRepository<RawEventEnti
             @Param("offset") int offset
     );
 
+    /**
+     * Return logs produced by one of the caller's local executor subscriptions.
+     * Bot IDs are shared by subscribers and therefore cannot provide this isolation.
+     */
+    @Query(value = "SELECT * FROM raw_events "
+            + "WHERE user_subscription_id IN (:subscriptionIds) "
+            + "ORDER BY received_at DESC, sequence_no DESC "
+            + "OFFSET :offset LIMIT :limit", nativeQuery = true)
+    List<RawEventEntity> findSubscriptionExecutionLogs(
+            @Param("subscriptionIds") List<String> subscriptionIds,
+            @Param("limit") int limit,
+            @Param("offset") int offset
+    );
+
     @Query(value = "SELECT * FROM raw_events "
             + "ORDER BY received_at DESC, sequence_no DESC "
             + "OFFSET :offset LIMIT :limit", nativeQuery = true)

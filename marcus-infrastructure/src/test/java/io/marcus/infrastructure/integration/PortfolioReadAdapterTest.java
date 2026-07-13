@@ -132,6 +132,49 @@ class PortfolioReadAdapterTest {
     }
 
     @Test
+    void listSystemExecutionLogs_forTrader_readsOnlyTheirExecutorSubscriptions() {
+        UserSubscriptionEntity subscription = UserSubscriptionEntity.builder()
+                .userSubscriptionId("sub-trader-1")
+                .userId("trader-1")
+                .botId("shared-bot")
+                .status(SubscriptionStatus.ACTIVE)
+                .build();
+        RawEventEntity event = RawEventEntity.builder()
+                .id("event-1")
+                .eventId("heartbeat-1")
+                .botId("shared-bot")
+                .userSubscriptionId("sub-trader-1")
+                .type("heartbeat")
+                .payload(Map.of())
+                .receivedAt(Instant.parse("2026-07-13T09:00:00Z"))
+                .sourceConnId("conn-1")
+                .sequenceNo(1L)
+                .processed(true)
+                .build();
+        when(springDataUserSubscriptionRepository.findByUserIdAndStatus("trader-1", SubscriptionStatus.ACTIVE))
+                .thenReturn(List.of(subscription));
+        when(springDataRawEventRepository.findSubscriptionExecutionLogs(List.of("sub-trader-1"), 6, 0))
+                .thenReturn(List.of(event));
+
+        ExecutionLogPageSnapshot snapshot = adapter.listSystemExecutionLogs(null, 5, "trader-1", Role.TRADER);
+
+        assertEquals(1, snapshot.items().size());
+        assertEquals("shared-bot", snapshot.items().get(0).source());
+        verify(springDataRawEventRepository, never()).findUserExecutionLogs(anyList(), anyInt(), anyInt());
+        verify(springDataRawEventRepository, never()).findSystemExecutionLogs(anyInt(), anyInt());
+    }
+
+    @Test
+    void listSystemExecutionLogs_forAdmin_readsGlobalLogs() {
+        when(springDataRawEventRepository.findSystemExecutionLogs(6, 0)).thenReturn(List.of());
+
+        ExecutionLogPageSnapshot snapshot = adapter.listSystemExecutionLogs(null, 5, "admin-1", Role.ADMIN);
+
+        assertTrue(snapshot.items().isEmpty());
+        verify(springDataRawEventRepository).findSystemExecutionLogs(6, 0);
+    }
+
+    @Test
     void listSystemExecutionLogs_hasMore_returnsNextCursor() {
         int limit = 2;
         RawEventEntity e1 = RawEventEntity.builder()
@@ -230,7 +273,7 @@ class PortfolioReadAdapterTest {
         ExecutionLogItemSnapshot item2 = snapshot.items().get(1);
         assertEquals("ERROR", item2.level()); // status FAILED mapping to ERROR
         assertEquals("bot-1", item2.source());
-        assertTrue(item2.message().contains("Acknowledgment received for EventID: evt-abc"));
+        assertTrue(item2.message().contains("Acknowledgment received (Status: FAILED)"));
     }
 
     @Test

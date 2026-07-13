@@ -358,16 +358,27 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
             }
         }
 
-        List<String> botIds = getAuthorizedBotIds(userId, role);
-        if (role != Role.ADMIN && (botIds == null || botIds.isEmpty())) {
-            return new ExecutionLogPageSnapshot(null, List.of());
-        }
-
         int fetchLimit = limit + 1;
         List<RawEventEntity> entities;
         if (role == Role.ADMIN) {
             entities = springDataRawEventRepository.findSystemExecutionLogs(fetchLimit, offset);
+        } else if (role == Role.TRADER) {
+            List<String> subscriptionIds = springDataUserSubscriptionRepository
+                    .findByUserIdAndStatus(userId, SubscriptionStatus.ACTIVE).stream()
+                    .map(UserSubscriptionEntity::getUserSubscriptionId)
+                    .filter(Objects::nonNull)
+                    .filter(subscriptionId -> !subscriptionId.isBlank())
+                    .toList();
+            if (subscriptionIds.isEmpty()) {
+                return new ExecutionLogPageSnapshot(null, List.of());
+            }
+            entities = springDataRawEventRepository
+                    .findSubscriptionExecutionLogs(subscriptionIds, fetchLimit, offset);
         } else {
+            List<String> botIds = getAuthorizedBotIds(userId, role);
+            if (botIds == null || botIds.isEmpty()) {
+                return new ExecutionLogPageSnapshot(null, List.of());
+            }
             entities = springDataRawEventRepository.findUserExecutionLogs(botIds, fetchLimit, offset);
         }
 
@@ -422,17 +433,23 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
             } else if ("audit-push".equalsIgnoreCase(type)) {
                 Object kind = payload.get("kind");
                 if (kind != null) {
-                    return "Audit Push: " + kind + " received (Conn: " + entity.getSourceConnId() + ")";
+                    return "Audit Push: " + kind + " received.";
                 }
             } else if ("heartbeat".equalsIgnoreCase(type)) {
-                return "Heartbeat received (Conn: " + entity.getSourceConnId() + ", Seq: " + entity.getSequenceNo() + ")";
+                return "Heartbeat received.";
+            } else if ("execution_event".equalsIgnoreCase(type)) {
+                Object eventType = payload.get("eventType");
+                Object signalId = payload.get("signalId");
+                if (eventType != null && signalId != null) {
+                    return "Executor event: " + eventType + " (Signal: " + signalId + ")";
+                }
             } else if ("ack".equalsIgnoreCase(type)) {
-                return "Acknowledgment received for EventID: " + payload.get("ackEventId") + " (Status: " + payload.get("status") + ")";
+                return "Acknowledgment received (Status: " + payload.get("status") + ")";
             }
         } catch (Exception e) {
             // Fall through to default formatting
         }
-        return "Event [" + type + "] processed. Correlation: " + entity.getCorrelationId() + ", EventID: " + entity.getEventId();
+        return "Event [" + type + "] processed.";
     }
 
     private String resolveHeartbeatStatus(Optional<RawEventEntity> heartbeatOpt) {

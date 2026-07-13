@@ -21,6 +21,7 @@ import java.util.Map;
             @Index(name = "idx_raw_events_bot_idempotency", columnList = "bot_id,idempotency_key", unique = true),
             @Index(name = "idx_raw_events_correlation_id", columnList = "correlation_id"),
             @Index(name = "idx_raw_events_sequence", columnList = "bot_id,sequence_no"),
+            @Index(name = "idx_raw_events_subscription_received_at", columnList = "user_subscription_id,received_at"),
             @Index(name = "idx_raw_events_received_at", columnList = "received_at"),
             @Index(name = "idx_raw_events_source_conn_id", columnList = "source_conn_id")
         }
@@ -47,6 +48,10 @@ public class RawEventEntity extends BaseEntity {
      */
     @Column(nullable = false)
     private String botId;
+
+    /** Subscription that owns the connected local executor which emitted this event. */
+    @Column(name = "user_subscription_id")
+    private String userSubscriptionId;
 
     /**
      * Idempotency key from the executor message envelope. Unique constraint
