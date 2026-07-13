@@ -35,6 +35,13 @@ public interface ExecutorOnlineStatusPort {
     boolean isOnline(String wsToken);
 
     /**
+     * Check whether at least one executor has a live Redis TTL marker.
+     *
+     * @return {@code true} when any executor connection is currently online
+     */
+    boolean isAnyOnline();
+
+    /**
      * Return the set of wsTokens that are currently online for a given bot.
      *
      * <p>Implemented by iterating over the active subscriptions for the bot

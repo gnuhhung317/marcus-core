@@ -1,6 +1,7 @@
 package io.marcus.infrastructure.integration;
 
 import io.marcus.domain.port.PortfolioReadPort;
+import io.marcus.domain.port.ExecutorOnlineStatusPort;
 import io.marcus.domain.service.SignalMetricsCalculator;
 import io.marcus.domain.vo.SubscriptionStatus;
 import io.marcus.infrastructure.persistence.SpringDataBotRepository;
@@ -52,6 +53,7 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
     private final SpringDataPortfolioHistoryRepository springDataPortfolioHistoryRepository;
     private final SpringDataRawEventRepository springDataRawEventRepository;
     private final SpringDataPortfolioAggregateHistoryRepository springDataPortfolioAggregateHistoryRepository;
+    private final ExecutorOnlineStatusPort executorOnlineStatusPort;
 
     @Override
     @Transactional(readOnly = true)
@@ -189,8 +191,19 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
     @Override
     @Transactional(readOnly = true)
     public ConnectivityHealthSnapshot getSystemConnectivityHealth() {
+        Optional<RawEventEntity> latestHeartbeat = springDataRawEventRepository.findLatestHeartbeat();
+        String heartbeatStatus = resolveHeartbeatStatus(latestHeartbeat);
+        boolean executorOnline = executorOnlineStatusPort.isAnyOnline();
+        String executorConnectionStatus = executorOnline ? "UP" : "DOWN";
+
         return new ConnectivityHealthSnapshot(
-                resolveHeartbeatStatus(springDataRawEventRepository.findLatestHeartbeat()),
+                resolveSystemConnectivityStatus(executorOnline, heartbeatStatus),
+                executorConnectionStatus,
+                heartbeatStatus,
+                latestHeartbeat.map(RawEventEntity::getReceivedAt)
+                        .filter(Objects::nonNull)
+                        .map(receivedAt -> LocalDateTime.ofInstant(receivedAt, ZoneId.systemDefault()))
+                        .orElse(null),
                 LocalDateTime.now()
         );
     }
@@ -379,6 +392,13 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
             return "DEGRADED";
         }
         return "DOWN";
+    }
+
+    private String resolveSystemConnectivityStatus(boolean executorOnline, String heartbeatStatus) {
+        if (!executorOnline) {
+            return "DOWN";
+        }
+        return "UP".equals(heartbeatStatus) ? "UP" : "DEGRADED";
     }
 
     @Override

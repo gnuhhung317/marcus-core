@@ -49,6 +49,9 @@ public interface PortfolioReadPort {
 
         record ConnectivityHealthSnapshot(
                         String overallStatus,
+                        String executorConnectionStatus,
+                        String heartbeatStatus,
+                        LocalDateTime lastHeartbeatAt,
                         LocalDateTime checkedAt) {
         }
 

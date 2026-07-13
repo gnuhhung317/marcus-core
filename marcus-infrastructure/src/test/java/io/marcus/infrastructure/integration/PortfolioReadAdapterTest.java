@@ -5,6 +5,7 @@ import io.marcus.domain.port.PortfolioReadPort.ExecutionLogItemSnapshot;
 import io.marcus.domain.port.PortfolioReadPort.BotIntegrationHealthSnapshot;
 import io.marcus.domain.port.PortfolioReadPort.ConnectivityHealthSnapshot;
 import io.marcus.domain.port.PortfolioReadPort;
+import io.marcus.domain.port.ExecutorOnlineStatusPort;
 import io.marcus.domain.port.PortfolioReadPort.SubscriptionDecisionSnapshot;
 import io.marcus.domain.vo.BotStatus;
 import io.marcus.domain.vo.MarketType;
@@ -66,6 +67,8 @@ class PortfolioReadAdapterTest {
     private SpringDataPortfolioAccountRepository springDataPortfolioAccountRepository;
     @Mock
     private SpringDataPortfolioHistoryRepository springDataPortfolioHistoryRepository;
+    @Mock
+    private ExecutorOnlineStatusPort executorOnlineStatusPort;
 
     private PortfolioReadAdapter adapter;
 
@@ -79,7 +82,8 @@ class PortfolioReadAdapterTest {
                 springDataPortfolioAccountRepository,
                 springDataPortfolioHistoryRepository,
                 springDataRawEventRepository,
-                springDataPortfolioAggregateHistoryRepository
+                springDataPortfolioAggregateHistoryRepository,
+                executorOnlineStatusPort
         );
     }
 
@@ -339,11 +343,15 @@ class PortfolioReadAdapterTest {
                 .receivedAt(Instant.now().minusSeconds(30))
                 .build();
         when(springDataRawEventRepository.findLatestHeartbeat()).thenReturn(Optional.of(heartbeat));
+        when(executorOnlineStatusPort.isAnyOnline()).thenReturn(true);
 
         ConnectivityHealthSnapshot snapshot = adapter.getSystemConnectivityHealth();
 
         assertNotNull(snapshot);
         assertEquals("UP", snapshot.overallStatus());
+        assertEquals("UP", snapshot.executorConnectionStatus());
+        assertEquals("UP", snapshot.heartbeatStatus());
+        assertNotNull(snapshot.lastHeartbeatAt());
     }
 
     @Test
@@ -353,11 +361,14 @@ class PortfolioReadAdapterTest {
                 .receivedAt(Instant.now().minusSeconds(500))
                 .build();
         when(springDataRawEventRepository.findLatestHeartbeat()).thenReturn(Optional.of(heartbeat));
+        when(executorOnlineStatusPort.isAnyOnline()).thenReturn(true);
 
         ConnectivityHealthSnapshot snapshot = adapter.getSystemConnectivityHealth();
 
         assertNotNull(snapshot);
         assertEquals("DEGRADED", snapshot.overallStatus());
+        assertEquals("UP", snapshot.executorConnectionStatus());
+        assertEquals("DEGRADED", snapshot.heartbeatStatus());
     }
 
     @Test
@@ -368,6 +379,37 @@ class PortfolioReadAdapterTest {
 
         assertNotNull(snapshot);
         assertEquals("DOWN", snapshot.overallStatus());
+        assertEquals("DOWN", snapshot.executorConnectionStatus());
+        assertEquals("DOWN", snapshot.heartbeatStatus());
+    }
+
+    @Test
+    void getSystemConnectivityHealth_onlineExecutorWithoutHeartbeat_returnsDegraded() {
+        when(springDataRawEventRepository.findLatestHeartbeat()).thenReturn(Optional.empty());
+        when(executorOnlineStatusPort.isAnyOnline()).thenReturn(true);
+
+        ConnectivityHealthSnapshot snapshot = adapter.getSystemConnectivityHealth();
+
+        assertEquals("DEGRADED", snapshot.overallStatus());
+        assertEquals("UP", snapshot.executorConnectionStatus());
+        assertEquals("DOWN", snapshot.heartbeatStatus());
+        assertNull(snapshot.lastHeartbeatAt());
+    }
+
+    @Test
+    void getSystemConnectivityHealth_offlineExecutorWithFreshHeartbeat_returnsDown() {
+        RawEventEntity heartbeat = RawEventEntity.builder()
+                .type("heartbeat")
+                .receivedAt(Instant.now().minusSeconds(30))
+                .build();
+        when(springDataRawEventRepository.findLatestHeartbeat()).thenReturn(Optional.of(heartbeat));
+        when(executorOnlineStatusPort.isAnyOnline()).thenReturn(false);
+
+        ConnectivityHealthSnapshot snapshot = adapter.getSystemConnectivityHealth();
+
+        assertEquals("DOWN", snapshot.overallStatus());
+        assertEquals("DOWN", snapshot.executorConnectionStatus());
+        assertEquals("UP", snapshot.heartbeatStatus());
     }
 
     @Test
