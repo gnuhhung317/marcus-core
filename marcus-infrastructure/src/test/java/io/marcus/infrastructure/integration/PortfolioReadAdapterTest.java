@@ -2,6 +2,7 @@ package io.marcus.infrastructure.integration;
 
 import io.marcus.domain.port.PortfolioReadPort.ExecutionLogPageSnapshot;
 import io.marcus.domain.port.PortfolioReadPort.ExecutionLogItemSnapshot;
+import io.marcus.domain.port.PortfolioReadPort.SignalItemSnapshot;
 import io.marcus.domain.port.PortfolioReadPort.BotIntegrationHealthSnapshot;
 import io.marcus.domain.port.PortfolioReadPort.ConnectivityHealthSnapshot;
 import io.marcus.domain.port.PortfolioReadPort;
@@ -10,6 +11,7 @@ import io.marcus.domain.port.PortfolioReadPort.SubscriptionDecisionSnapshot;
 import io.marcus.domain.vo.BotStatus;
 import io.marcus.domain.vo.MarketType;
 import io.marcus.domain.vo.OrderType;
+import io.marcus.domain.vo.Role;
 import io.marcus.domain.vo.SignalAction;
 import io.marcus.domain.vo.SignalStatus;
 import io.marcus.domain.vo.SubscriptionStatus;
@@ -93,7 +95,7 @@ class PortfolioReadAdapterTest {
         when(springDataRawEventRepository.findSystemExecutionLogs(6, 0))
                 .thenReturn(List.of());
 
-        ExecutionLogPageSnapshot snapshot = adapter.listSystemExecutionLogs(null, limit);
+        ExecutionLogPageSnapshot snapshot = adapter.listSystemExecutionLogs(null, limit, "admin", Role.ADMIN);
 
         assertNotNull(snapshot);
         assertTrue(snapshot.items().isEmpty());
@@ -107,7 +109,7 @@ class PortfolioReadAdapterTest {
         when(springDataRawEventRepository.findSystemExecutionLogs(6, 10))
                 .thenReturn(List.of());
 
-        ExecutionLogPageSnapshot snapshot = adapter.listSystemExecutionLogs("10", limit);
+        ExecutionLogPageSnapshot snapshot = adapter.listSystemExecutionLogs("10", limit, "admin", Role.ADMIN);
 
         assertNotNull(snapshot);
         assertTrue(snapshot.items().isEmpty());
@@ -121,7 +123,7 @@ class PortfolioReadAdapterTest {
         when(springDataRawEventRepository.findSystemExecutionLogs(6, 0))
                 .thenReturn(List.of());
 
-        ExecutionLogPageSnapshot snapshot = adapter.listSystemExecutionLogs("not_a_number", limit);
+        ExecutionLogPageSnapshot snapshot = adapter.listSystemExecutionLogs("not_a_number", limit, "admin", Role.ADMIN);
 
         assertNotNull(snapshot);
         assertTrue(snapshot.items().isEmpty());
@@ -169,7 +171,7 @@ class PortfolioReadAdapterTest {
         when(springDataRawEventRepository.findSystemExecutionLogs(3, 0))
                 .thenReturn(List.of(e1, e2, e3));
 
-        ExecutionLogPageSnapshot snapshot = adapter.listSystemExecutionLogs("0", limit);
+        ExecutionLogPageSnapshot snapshot = adapter.listSystemExecutionLogs("0", limit, "admin", Role.ADMIN);
 
         assertNotNull(snapshot);
         assertEquals(2, snapshot.items().size());
@@ -215,7 +217,7 @@ class PortfolioReadAdapterTest {
         when(springDataRawEventRepository.findSystemExecutionLogs(11, 0))
                 .thenReturn(List.of(e1, e2));
 
-        ExecutionLogPageSnapshot snapshot = adapter.listSystemExecutionLogs(null, limit);
+        ExecutionLogPageSnapshot snapshot = adapter.listSystemExecutionLogs(null, limit, "admin", Role.ADMIN);
 
         assertNotNull(snapshot);
         assertEquals(2, snapshot.items().size());
@@ -980,5 +982,65 @@ class PortfolioReadAdapterTest {
                 .status(SignalStatus.ACKNOWLEDGED)
                 .generatedTimestamp(generatedAt)
                 .build();
+    }
+
+    @Test
+    void listSignals_forTrader_returnsOnlySubscribedBots() {
+        String userId = "trader-1";
+        UserSubscriptionEntity sub = UserSubscriptionEntity.builder()
+                .userId(userId)
+                .botId("bot-1")
+                .status(SubscriptionStatus.ACTIVE)
+                .build();
+        when(springDataUserSubscriptionRepository.findByUserIdAndStatus(userId, SubscriptionStatus.ACTIVE))
+                .thenReturn(List.of(sub));
+
+        SignalEntity s1 = signal("bot-1", 1, 60000, 61000, 59000);
+        when(springDataSignalRepository.findByBotIdInOrderByGeneratedTimestampDesc(
+                eq(List.of("bot-1")), any()))
+                .thenReturn(List.of(s1));
+
+        List<SignalItemSnapshot> results = adapter.listSignals("ALL", 10, userId, Role.TRADER);
+
+        assertNotNull(results);
+        assertEquals(1, results.size());
+        assertEquals("bot-1", results.get(0).botId());
+    }
+
+    @Test
+    void listSignals_forDeveloper_returnsOnlyDeveloperBots() {
+        String userId = "dev-1";
+        BotEntity bot = BotEntity.builder()
+                .botId("bot-2")
+                .developerId(userId)
+                .build();
+        when(springDataBotRepository.findByDeveloperId(userId))
+                .thenReturn(List.of(bot));
+
+        SignalEntity s2 = signal("bot-2", 1, 60000, 61000, 59000);
+        when(springDataSignalRepository.findByBotIdInOrderByGeneratedTimestampDesc(
+                eq(List.of("bot-2")), any()))
+                .thenReturn(List.of(s2));
+
+        List<SignalItemSnapshot> results = adapter.listSignals("ALL", 10, userId, Role.DEVELOPER);
+
+        assertNotNull(results);
+        assertEquals(1, results.size());
+        assertEquals("bot-2", results.get(0).botId());
+    }
+
+    @Test
+    void listSignals_forAdmin_returnsAllBots() {
+        String userId = "admin-1";
+        SignalEntity s1 = signal("bot-1", 1, 60000, 61000, 59000);
+        SignalEntity s2 = signal("bot-2", 2, 60000, 61000, 59000);
+
+        when(springDataSignalRepository.findAllOrderByGeneratedTimestampDesc(any()))
+                .thenReturn(List.of(s1, s2));
+
+        List<SignalItemSnapshot> results = adapter.listSignals("ALL", 10, userId, Role.ADMIN);
+
+        assertNotNull(results);
+        assertEquals(2, results.size());
     }
 }

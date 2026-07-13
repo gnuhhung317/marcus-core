@@ -1,9 +1,11 @@
 package io.marcus.domain.port;
 
+import io.marcus.domain.vo.Role;
 import java.time.LocalDateTime;
 import java.util.List;
 
 public interface PortfolioReadPort {
+
 
         record TimeSeriesPointSnapshot(LocalDateTime timestamp, double value) {
         }
@@ -122,7 +124,7 @@ public interface PortfolioReadPort {
 
         List<TimeSeriesPointSnapshot> listDashboardEquitySeries(String userId, String range);
 
-        List<SignalItemSnapshot> listSignals(String status, int limit);
+        List<SignalItemSnapshot> listSignals(String status, int limit, String userId, Role role);
 
         /**
          * List signals for a specific bot (developer view).
@@ -131,7 +133,7 @@ public interface PortfolioReadPort {
          * @param status lifecycle filter (ALL, RECEIVED, DISPATCHED, ACKNOWLEDGED, FAILED)
          * @param limit  max rows to return
          */
-        List<SignalItemSnapshot> listSignalsByBot(String botId, String status, int limit);
+        List<SignalItemSnapshot> listSignalsByBot(String botId, String status, int limit, String userId, Role role);
 
         /**
          * Look up a single signal by its unique identifier.
@@ -139,7 +141,7 @@ public interface PortfolioReadPort {
          * @param signalId the signal identifier
          * @return single-element list or empty list if not found
          */
-        List<SignalItemSnapshot> listSignalsBySignalId(String signalId);
+        List<SignalItemSnapshot> listSignalsBySignalId(String signalId, String userId, Role role);
 
         /**
          * Aggregate KPI summary for the developer dashboard header.
@@ -156,7 +158,7 @@ public interface PortfolioReadPort {
 
         ApiKeySnapshot getBotCredentials(String botId);
 
-        ExecutionLogPageSnapshot listSystemExecutionLogs(String cursor, int limit);
+        ExecutionLogPageSnapshot listSystemExecutionLogs(String cursor, int limit, String userId, Role role);
 
         PortfolioOverviewSnapshot getPortfolioOverview(String userId);
 

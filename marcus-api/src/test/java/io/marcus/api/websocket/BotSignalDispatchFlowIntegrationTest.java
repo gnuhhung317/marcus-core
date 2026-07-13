@@ -78,7 +78,17 @@ class BotSignalDispatchFlowIntegrationTest {
         InMemoryBotSubscriberRoutingPort botSubscriberRoutingPort = new InMemoryBotSubscriberRoutingPort();
         InMemoryUserSessionRoutingPort userSessionRoutingPort = new InMemoryUserSessionRoutingPort();
 
-        IdentityService identityService = () -> Optional.of(userId);
+        IdentityService identityService = new IdentityService() {
+            @Override
+            public Optional<String> getCurrentUserId() {
+                return Optional.of(userId);
+            }
+
+            @Override
+            public Optional<Role> getCurrentUserRole() {
+                return Optional.of(Role.TRADER);
+            }
+        };
 
         SubscribeBotUseCase subscribeBotUseCase = new SubscribeBotUseCase(
                 identityService,

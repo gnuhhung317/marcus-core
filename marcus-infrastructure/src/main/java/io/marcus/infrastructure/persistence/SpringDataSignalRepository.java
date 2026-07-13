@@ -56,6 +56,20 @@ public interface SpringDataSignalRepository extends JpaRepository<SignalEntity, 
             Pageable pageable
     );
 
+    @Query("SELECT s FROM SignalEntity s WHERE s.botId IN :botIds ORDER BY s.generatedTimestamp DESC NULLS LAST")
+    List<SignalEntity> findByBotIdInOrderByGeneratedTimestampDesc(
+            @Param("botIds") List<String> botIds,
+            Pageable pageable
+    );
+
+    @Query("SELECT s FROM SignalEntity s WHERE s.botId IN :botIds AND CAST(s.status AS string) = :status " +
+           "ORDER BY s.generatedTimestamp DESC NULLS LAST")
+    List<SignalEntity> findByBotIdInAndStatusStringOrderByGeneratedTimestampDesc(
+            @Param("botIds") List<String> botIds,
+            @Param("status") String status,
+            Pageable pageable
+    );
+
     // --- Decision Dashboard queries ---
 
     /**

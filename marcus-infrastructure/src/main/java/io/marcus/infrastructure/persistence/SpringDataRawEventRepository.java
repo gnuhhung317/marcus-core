@@ -88,6 +88,16 @@ public interface SpringDataRawEventRepository extends JpaRepository<RawEventEnti
      * Supports pagination via limit and offset.
      */
     @Query(value = "SELECT * FROM raw_events "
+            + "WHERE bot_id IN (:botIds) "
+            + "ORDER BY received_at DESC, sequence_no DESC "
+            + "OFFSET :offset LIMIT :limit", nativeQuery = true)
+    List<RawEventEntity> findUserExecutionLogs(
+            @Param("botIds") List<String> botIds,
+            @Param("limit") int limit,
+            @Param("offset") int offset
+    );
+
+    @Query(value = "SELECT * FROM raw_events "
             + "ORDER BY received_at DESC, sequence_no DESC "
             + "OFFSET :offset LIMIT :limit", nativeQuery = true)
     List<RawEventEntity> findSystemExecutionLogs(

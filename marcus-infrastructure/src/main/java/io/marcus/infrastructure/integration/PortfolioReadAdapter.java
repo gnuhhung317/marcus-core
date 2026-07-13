@@ -4,6 +4,7 @@ import io.marcus.domain.port.PortfolioReadPort;
 import io.marcus.domain.port.ExecutorOnlineStatusPort;
 import io.marcus.domain.service.SignalMetricsCalculator;
 import io.marcus.domain.vo.SubscriptionStatus;
+import io.marcus.domain.vo.Role;
 import io.marcus.infrastructure.persistence.SpringDataBotRepository;
 import io.marcus.infrastructure.persistence.SpringDataPortfolioAccountRepository;
 import io.marcus.infrastructure.persistence.SpringDataSignalRepository;
@@ -55,6 +56,26 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
     private final SpringDataPortfolioAggregateHistoryRepository springDataPortfolioAggregateHistoryRepository;
     private final ExecutorOnlineStatusPort executorOnlineStatusPort;
 
+    private List<String> getAuthorizedBotIds(String userId, Role role) {
+        if (userId == null || userId.isBlank() || role == null) {
+            return List.of();
+        }
+        if (role == Role.ADMIN) {
+            return null; // Admin can see all bots
+        }
+        if (role == Role.DEVELOPER) {
+            return springDataBotRepository.findByDeveloperId(userId).stream()
+                    .map(BotEntity::getBotId)
+                    .toList();
+        }
+        if (role == Role.TRADER) {
+            return springDataUserSubscriptionRepository.findByUserIdAndStatus(userId, SubscriptionStatus.ACTIVE).stream()
+                    .map(UserSubscriptionEntity::getBotId)
+                    .toList();
+        }
+        return List.of();
+    }
+
     @Override
     @Transactional(readOnly = true)
     public List<TimeSeriesPointSnapshot> listDashboardEquitySeries(String userId, String range) {
@@ -96,17 +117,32 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
 
     @Override
     @Transactional(readOnly = true)
-    public List<SignalItemSnapshot> listSignals(String status, int limit) {
+    public List<SignalItemSnapshot> listSignals(String status, int limit, String userId, Role role) {
         int normalizedLimit = Math.max(1, Math.min(limit, 200));
         String normalizedStatus = (status == null || status.isBlank()) ? "ALL" : status.trim().toUpperCase(Locale.ROOT);
 
+        List<String> botIds = getAuthorizedBotIds(userId, role);
+        if (role != Role.ADMIN && (botIds == null || botIds.isEmpty())) {
+            return List.of();
+        }
+
         List<SignalEntity> signals;
         if ("ALL".equals(normalizedStatus)) {
-            signals = springDataSignalRepository.findAllOrderByGeneratedTimestampDesc(
-                    PageRequest.of(0, normalizedLimit));
+            if (role == Role.ADMIN) {
+                signals = springDataSignalRepository.findAllOrderByGeneratedTimestampDesc(
+                        PageRequest.of(0, normalizedLimit));
+            } else {
+                signals = springDataSignalRepository.findByBotIdInOrderByGeneratedTimestampDesc(
+                        botIds, PageRequest.of(0, normalizedLimit));
+            }
         } else {
-            signals = springDataSignalRepository.findByStatusStringOrderByGeneratedTimestampDesc(
-                    normalizedStatus, PageRequest.of(0, normalizedLimit));
+            if (role == Role.ADMIN) {
+                signals = springDataSignalRepository.findByStatusStringOrderByGeneratedTimestampDesc(
+                        normalizedStatus, PageRequest.of(0, normalizedLimit));
+            } else {
+                signals = springDataSignalRepository.findByBotIdInAndStatusStringOrderByGeneratedTimestampDesc(
+                        botIds, normalizedStatus, PageRequest.of(0, normalizedLimit));
+            }
         }
 
         return signals.stream()
@@ -116,10 +152,16 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
 
     @Override
     @Transactional(readOnly = true)
-    public List<SignalItemSnapshot> listSignalsByBot(String botId, String status, int limit) {
+    public List<SignalItemSnapshot> listSignalsByBot(String botId, String status, int limit, String userId, Role role) {
         if (botId == null || botId.isBlank()) {
             throw new IllegalArgumentException("botId must not be blank");
         }
+
+        List<String> botIds = getAuthorizedBotIds(userId, role);
+        if (role != Role.ADMIN && (botIds == null || !botIds.contains(botId))) {
+            return List.of();
+        }
+
         int normalizedLimit = Math.max(1, Math.min(limit, 200));
         String normalizedStatus = (status == null || status.isBlank()) ? "ALL" : status.trim().toUpperCase(Locale.ROOT);
 
@@ -140,14 +182,23 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
 
     @Override
     @Transactional(readOnly = true)
-    public List<SignalItemSnapshot> listSignalsBySignalId(String signalId) {
+    public List<SignalItemSnapshot> listSignalsBySignalId(String signalId, String userId, Role role) {
         if (signalId == null || signalId.isBlank()) {
             return List.of();
         }
-        return springDataSignalRepository.findBySignalId(signalId)
-                .map(this::toSignalItemSnapshot)
-                .map(List::of)
-                .orElse(List.of());
+
+        Optional<SignalEntity> signalOpt = springDataSignalRepository.findBySignalId(signalId);
+        if (signalOpt.isEmpty()) {
+            return List.of();
+        }
+
+        SignalEntity signal = signalOpt.get();
+        List<String> botIds = getAuthorizedBotIds(userId, role);
+        if (role != Role.ADMIN && (botIds == null || !botIds.contains(signal.getBotId()))) {
+            return List.of();
+        }
+
+        return List.of(toSignalItemSnapshot(signal));
     }
 
     @Override
@@ -297,7 +348,7 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
 
     @Override
     @Transactional(readOnly = true)
-    public ExecutionLogPageSnapshot listSystemExecutionLogs(String cursor, int limit) {
+    public ExecutionLogPageSnapshot listSystemExecutionLogs(String cursor, int limit, String userId, Role role) {
         int offset = 0;
         if (cursor != null && !cursor.isBlank()) {
             try {
@@ -307,8 +358,18 @@ public class PortfolioReadAdapter implements PortfolioReadPort {
             }
         }
 
+        List<String> botIds = getAuthorizedBotIds(userId, role);
+        if (role != Role.ADMIN && (botIds == null || botIds.isEmpty())) {
+            return new ExecutionLogPageSnapshot(null, List.of());
+        }
+
         int fetchLimit = limit + 1;
-        List<RawEventEntity> entities = springDataRawEventRepository.findSystemExecutionLogs(fetchLimit, offset);
+        List<RawEventEntity> entities;
+        if (role == Role.ADMIN) {
+            entities = springDataRawEventRepository.findSystemExecutionLogs(fetchLimit, offset);
+        } else {
+            entities = springDataRawEventRepository.findUserExecutionLogs(botIds, fetchLimit, offset);
+        }
 
         boolean hasMore = entities.size() > limit;
         List<RawEventEntity> pageEntities = hasMore ? entities.subList(0, limit) : entities;
